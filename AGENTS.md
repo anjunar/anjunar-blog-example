@@ -12,5 +12,5 @@
 - Preserve the contract across the entity, EntitySchema, REST graph, and frontend model.
 - Keep each UI tree together in compose; use the i18n macro for new translatable UI messages.
 - Add appropriate functional checks alongside each feature.
-- Current check: sbt --server "application-backend/testFull".
+- Current check: sbt --server "application-backend/testFull". Chapter 4 needs a separate local PostgreSQL database and BLOG_DB_PASSWORD; see README.md for setup. Database tests create and drop a uniquely named probe table.
 - Do not modify the reference repository or content repository without a corresponding request.

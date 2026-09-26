@@ -11,6 +11,11 @@ lazy val backend = Project("application-backend", file("application/backend"))
       "io.undertow" % "undertow-core" % "2.4.3.Final",
       "io.undertow.ee" % "undertow-servlet" % "2.0.2.Final",
       "org.jboss.weld.servlet" % "weld-servlet-core" % "6.0.4.Final",
+      "org.hibernate.orm" % "hibernate-core" % "7.4.10.Final",
+      "org.postgresql" % "postgresql" % "42.7.13",
+      "org.jboss.narayana.jta" % "narayana-jta" % "7.3.4.Final",
+      "io.agroal" % "agroal-pool" % "3.2.1",
+      "io.agroal" % "agroal-narayana" % "3.2.1",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
     // Undertow 2.4 uses the separately published Servlet 6.1 integration.
