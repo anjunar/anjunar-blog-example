@@ -1,9 +1,9 @@
 # Anjunar Blog Tutorial
 
 The companion repository, `anjunar-blog-example`, grows alongside the Anjunar Blog
-Tutorial series into a complete web application built with Scala, Scala.js, and PostgreSQL. Anjunar Stack serves as
-the technical reference. The tutorial builds a single application without
-multitenancy.
+Tutorial series into a complete web application built with Scala, Scala.js, and
+PostgreSQL. Anjunar Stack is the technical reference. The tutorial builds one
+application without multitenancy.
 
 The articles, documentation, and examples are written in English.
 
@@ -17,44 +17,78 @@ The articles, documentation, and examples are written in English.
 - The server delivers HTML; the browser takes over interactivity through hydration.
 - The application runs on its own domain over HTTPS.
 
-The [roadmap](docs/roadmap.md) describes the planned steps.
+Follow the [roadmap](docs/roadmap.md) and the immutable
+[article checkpoints](docs/article-checkpoints.md).
 
-The [article checkpoints](docs/article-checkpoints.md) identify the exact source
-revision and commands for each implementation chapter.
+## Current state: database access and request transactions
 
-## Current state: HTTP endpoints discovered through CDI
+Undertow, RESTEasy, and Weld serve resources discovered through CDI.
+Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
+A request owns its EntityManager and transaction through response serialization.
 
-The project contains an sbt build and one backend module. Undertow handles HTTP,
-RESTEasy routes requests to REST resources, and Weld manages their dependencies
-and lifetimes through CDI. A portable CDI extension registers resources and
-providers automatically. The database and frontend will follow in later steps.
+There are no domain entities yet. The readiness endpoint executes `select 1`;
+chapter 5 introduces `BlogPost`.
 
 ### Prerequisites
 
-- JDK 25. We will use GraalVM for server-side rendering later in the series.
-- sbt. The project version, 2.0.9, is pinned in `project/build.properties`.
+- JDK 25. We will use GraalVM for server-side rendering later.
+- sbt; the project selects sbt 2.0.9 and Scala 3.9.0.
+- PostgreSQL 18, either installed locally or started with Docker Compose.
 - Access to Maven Central for the initial build.
 
-Scala 3.9.0 and the library versions are pinned in `build.sbt`.
-Node/npm and PostgreSQL are only needed when we reach their respective chapters.
-You do not need to build any other Anjunar repositories locally.
+All JVM library versions are pinned in `build.sbt`. Node/npm enters the project
+in the frontend chapters. No other Anjunar repository needs a local build.
+
+### Start a development database
+
+Set a password in the same terminal that will run Docker Compose and sbt.
+For this local tutorial, in PowerShell:
+
+```powershell
+$env:BLOG_DB_PASSWORD = "local-blog-password"
+docker compose up -d --wait
+```
+
+In Bash:
+
+```bash
+export BLOG_DB_PASSWORD=local-blog-password
+docker compose up -d --wait
+```
+
+The Compose file starts PostgreSQL 18.6 on `127.0.0.1:5433`, creates the
+`anjunar_blog` database and the `blog` development user, and stores its data
+in a named volume. `docker compose down` stops it and preserves that volume.
+The image initializes credentials only for an empty data directory.
+
+For an existing local PostgreSQL installation, create a separate tutorial
+database and role, then set these variables to its connection details:
+
+| Variable | Default |
+| --- | --- |
+| `BLOG_DB_URL` | `jdbc:postgresql://127.0.0.1:5433/anjunar_blog` |
+| `BLOG_DB_USER` | `blog` |
+| `BLOG_DB_PASSWORD` | Required; no default |
+
+The application reads environment variables directly; it does not load a
+`.env` file.
 
 ### Run the tests
 
-From the project directory:
+With that development database running:
 
 ```text
 sbt --server "application-backend/testFull"
 ```
 
-The two integration tests start the actual HTTP server on available local ports.
-They check the greeting and liveness endpoints, CDI injection, and a 404 response.
-Test-only resources and a response filter also verify automatic registration,
-request and application scopes, and destruction callbacks on request completion
-and server shutdown.
+Expect **12 successful tests**. The database suite creates its own uniquely
+named probe table and drops it afterward. It verifies committed and rolled-back
+rows through separate JDBC connections. It also checks serialization failures,
+deferred constraint failures, rollback-only transactions, GET/HEAD, and
+responses without a body. Intentional failure cases produce server error logs.
 
-Use `testFull` to execute the tests on every invocation. In sbt 2, `test` is
-incremental and may skip tests that already passed.
+The original HTTP and CDI lifecycle tests still run. Use `testFull` because
+sbt 2's incremental `test` can skip previously successful tests.
 
 ### Start the application
 
@@ -62,57 +96,45 @@ incremental and may skip tests that already passed.
 sbt --server "application-backend/run"
 ```
 
-In a second terminal:
+In another terminal:
 
 ```text
-curl http://127.0.0.1:8080/service/hello
-```
-
-In Windows PowerShell, use `curl.exe` if `curl` resolves to a PowerShell alias.
-Expect HTTP 200, `Content-Type: text/plain`, and:
-
-```text
-Welcome to Anjunar Blog Tutorial!
-```
-
-Check liveness with:
-
-```text
+curl -i http://127.0.0.1:8080/service/hello
 curl -i http://127.0.0.1:8080/service/health/live
+curl -i http://127.0.0.1:8080/service/health/ready
 ```
 
-Expect HTTP 200 and `UP`. This endpoint checks that the HTTP request can reach
-a REST resource; it does not check external dependencies.
+Use `curl.exe` in Windows PowerShell if necessary. Expect HTTP 200 for each:
+the greeting, `UP`, and `UP`.
 
-Press Ctrl+C to stop the application. `--server` runs sbt in the foreground.
+Liveness bypasses database access. Readiness runs a query through Hibernate
+and the transaction boundary; a database failure currently produces HTTP 500.
+Persistence initializes on the first database-backed request. The startup
+message alone does not establish database readiness.
 
-The server binds to `127.0.0.1`. If port 8080 is already in use, set the
-`BLOG_PORT` environment variable before starting the application:
+The server binds to `127.0.0.1`. Set `BLOG_PORT` if 8080 is occupied. Stop the
+application with Ctrl+C; on Windows the sbt batch launcher may ask for confirmation.
 
-```powershell
-$env:BLOG_PORT = "8081"
-sbt --server "application-backend/run"
-```
+## Following a database request
 
-In Bash:
+1. `RestComponentsExtension` registers the resources and `TransactionBoundary`.
+2. The request filter starts a Narayana transaction and opens an EntityManager.
+3. A resource receives that EntityManager through CDI.
+4. The response filter flushes successful writes.
+5. The writer serializes into a buffer while the EntityManager is still open.
+6. The transaction commits successful writes, or rolls back reads and failures.
+7. The EntityManager closes, then the buffered response is sent.
 
-```bash
-BLOG_PORT=8081 sbt --server "application-backend/run"
-```
+HEAD and responses without an entity finish in the response filter.
+An unfinished request rolls back during CDI destruction. `Persistence` closes
+the EntityManagerFactory and then the pool on shutdown.
 
-## Following a request through the code
+This boundary is for the current synchronous, small REST responses. It buffers
+the body in memory and does not implement asynchronous context propagation or
+streaming downloads. A successful database commit cannot guarantee subsequent
+network delivery.
 
-1. `ApplicationMain` starts the server and registers its shutdown hook.
-2. `ServerApplication` defines the `/service` API prefix and reads the resource and provider classes collected by `RestComponentsExtension` during CDI bootstrap.
-3. `HelloResource` handles `GET /hello`.
-4. Weld injects `GreetingService`, which supplies the response text.
-
-The source files are in `application/backend/src/main/scala/com/anjunar/blog`.
-`META-INF/beans.xml` enables CDI discovery for annotated beans. The extension
-is registered in `META-INF/services/jakarta.enterprise.inject.spi.Extension`.
-Add new resources with `@Path` and an explicit CDI scope, such as
-`@RequestScoped`; providers use `@Provider` and a scope.
-
-We start with this single module. Platform and feature modules will be added
-as the tutorial introduces their responsibilities. Each published article
-should have a corresponding runnable commit or tag.
+Weld's startup message about unavailable transactional services refers to Weld's
+own transactional integration. This chapter wires Narayana explicitly through
+Agroal, Hibernate, and the request boundary; it does not enable CDI transaction
+observers or automatic `@Transactional` interception.

@@ -52,7 +52,7 @@ write them together.
 The server starts locally, stores a post in PostgreSQL, and returns it through REST.
 
 The initial project revision lays the groundwork for topics 2 and 3:
-a reproducible build, HTTP, REST, and CDI. Persistence is not implemented yet.
+a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions; chapter 5 introduces the first domain entity.
 
 ## Further topics
 

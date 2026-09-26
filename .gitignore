@@ -9,3 +9,5 @@ target/
 !.env.example
 application.properties
 *.log
+ObjectStore/
+PutObjectStoreDirHere/
