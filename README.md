@@ -20,14 +20,16 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: database access and request transactions
+## Current state: the first domain model
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
 A request owns its EntityManager and transaction through response serialization.
 
-There are no domain entities yet. The readiness endpoint executes `select 1`;
-chapter 5 introduces `BlogPost`.
+`BlogPost` now maps to PostgreSQL with a generated UUID, optimistic-lock version,
+unique slug, title, content, publication status, and publication time. Bean
+Validation checks fields and publication consistency before inserts and updates.
+The model is exercised through persistence tests; public post endpoints come later.
 
 ### Prerequisites
 
@@ -73,15 +75,39 @@ database and role, then set these variables to its connection details:
 The application reads environment variables directly; it does not load a
 `.env` file.
 
+### Create the first table
+
+After starting the database, apply `database/001-blog-post.sql` once. With Compose,
+these commands work in both PowerShell and Bash:
+
+```text
+docker compose cp database/001-blog-post.sql postgres:/tmp/001-blog-post.sql
+docker compose exec -T postgres psql -U blog -d anjunar_blog --set ON_ERROR_STOP=1 --single-transaction --file /tmp/001-blog-post.sql
+```
+
+With a native PostgreSQL installation, use its `psql` client and your database port:
+
+```text
+psql -h 127.0.0.1 -p 5433 -U blog -d anjunar_blog --set ON_ERROR_STOP=1 --single-transaction --file database/001-blog-post.sql
+```
+
+The native client prompts for the database password if needed. The script creates
+`public.blog_post` and intentionally fails if it already exists. Apply it once
+to a fresh tutorial database; do not delete an existing table to rerun it.
+Hibernate uses `validate` and does not create or alter the table.
+Chapter 6 introduces schema migrations.
+
 ### Run the tests
 
-With that development database running:
+With the development database running and the initial table created:
 
 ```text
 sbt --server "application-backend/testFull"
 ```
 
-Expect **12 successful tests**. The database suite creates its own uniquely
+Expect **24 successful tests**. The BlogPost tests cover field and publication
+validation, persisted values, unique slugs, version increments, and stale edits.
+They remove only the rows they created. The transaction suite creates its own uniquely
 named probe table and drops it afterward. It verifies committed and rolled-back
 rows through separate JDBC connections. It also checks serialization failures,
 deferred constraint failures, rollback-only transactions, GET/HEAD, and
@@ -109,7 +135,8 @@ the greeting, `UP`, and `UP`.
 
 Liveness bypasses database access. Readiness runs a query through Hibernate
 and the transaction boundary; a database failure currently produces HTTP 500.
-Persistence initializes on the first database-backed request. The startup
+Persistence initializes and validates the mapped table on the first database-backed
+request. A missing table makes readiness fail. The startup
 message alone does not establish database readiness.
 
 The server binds to `127.0.0.1`. Set `BLOG_PORT` if 8080 is occupied. Stop the

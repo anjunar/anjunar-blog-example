@@ -1,5 +1,6 @@
 package com.anjunar.blog
 
+import com.arjuna.ats.jta.{UserTransaction as NarayanaUserTransaction}
 import jakarta.annotation.PreDestroy
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -17,7 +18,7 @@ class RequestTransaction {
   private var manager: EntityManager = null
   private var started = false
   private var readOnly = false
-  private def transaction = com.arjuna.ats.jta.UserTransaction.userTransaction()
+  private def transaction = NarayanaUserTransaction.userTransaction()
 
   def active: Boolean = started
 

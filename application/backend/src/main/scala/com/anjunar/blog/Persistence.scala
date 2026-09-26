@@ -1,5 +1,6 @@
 package com.anjunar.blog
 
+import com.arjuna.ats.jta.{TransactionManager as NarayanaTransactionManager}
 import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionSynchronizationRegistryImple
 import io.agroal.api.AgroalDataSource
 import io.agroal.api.configuration.supplier.{AgroalConnectionFactoryConfigurationSupplier, AgroalConnectionPoolConfigurationSupplier, AgroalDataSourceConfigurationSupplier}
@@ -11,6 +12,7 @@ import jakarta.enterprise.inject.Produces
 import jakarta.persistence.{EntityManager, EntityManagerFactory}
 import org.hibernate.boot.MetadataSources
 import org.hibernate.boot.registry.{StandardServiceRegistry, StandardServiceRegistryBuilder}
+import org.hibernate.engine.transaction.jta.platform.internal.NarayanaJtaPlatform
 import org.postgresql.xa.PGXADataSource
 
 import java.time.Duration
@@ -35,7 +37,7 @@ class Persistence {
       .acquisitionTimeout(Duration.ofSeconds(5))
       .connectionFactoryConfiguration(connection)
       .transactionIntegration(new NarayanaTransactionIntegration(
-        com.arjuna.ats.jta.TransactionManager.transactionManager(),
+        NarayanaTransactionManager.transactionManager(),
         new TransactionSynchronizationRegistryImple()))
     pool = AgroalDataSource.from(new AgroalDataSourceConfigurationSupplier()
       .connectionPoolConfiguration(pooling))
@@ -46,11 +48,14 @@ class Persistence {
         .applySetting("jakarta.persistence.jtaDataSource", pool)
         .applySetting("hibernate.transaction.coordinator_class", "jta")
         .applySetting("hibernate.transaction.jta.platform",
-          "org.hibernate.engine.transaction.jta.platform.internal.JBossStandAloneJtaPlatform")
-        .applySetting("hibernate.hbm2ddl.auto", "none")
+          new NarayanaJtaPlatform())
+        .applySetting("hibernate.hbm2ddl.auto", "validate")
+        .applySetting("jakarta.persistence.validation.mode", "CALLBACK")
         .build()
-      // The first domain entity arrives in chapter 5.
-      factory = new MetadataSources(registry).buildMetadata().buildSessionFactory()
+      factory = new MetadataSources(registry)
+        .addAnnotatedClass(classOf[BlogPost])
+        .buildMetadata()
+        .buildSessionFactory()
     } catch {
       case NonFatal(error) =>
         try {
