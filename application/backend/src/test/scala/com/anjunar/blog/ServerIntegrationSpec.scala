@@ -28,6 +28,9 @@ class ServerIntegrationSpec extends AnyFunSuite {
       assert(response.statusCode() == 200)
       assert(response.headers().firstValue("Content-Type").orElse("").startsWith("text/plain"))
       assert(response.body() == "Welcome to Anjunar Blog Tutorial!\n")
+      val health = get("/service/health/live")
+      assert(health.statusCode() == 200)
+      assert(health.body() == "UP\n")
       assert(get("/service/missing").statusCode() == 404)
     } finally {
       client.close()
