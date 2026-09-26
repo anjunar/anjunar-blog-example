@@ -5,6 +5,7 @@ import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.{GET, Path, Produces}
 
+import java.lang
 import scala.compiletime.uninitialized
 
 @Path("/health/ready")
@@ -16,7 +17,7 @@ class DatabaseHealthResource {
   @GET
   @Produces(Array("text/plain;charset=UTF-8"))
   def ready(): String = {
-    entityManager.createNativeQuery("select 1", classOf[java.lang.Integer]).getSingleResult
+    entityManager.createNativeQuery("select 1", classOf[lang.Integer]).getSingleResult
     "UP\n"
   }
 }

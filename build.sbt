@@ -12,6 +12,8 @@ lazy val backend = Project("application-backend", file("application/backend"))
       "io.undertow.ee" % "undertow-servlet" % "2.0.2.Final",
       "org.jboss.weld.servlet" % "weld-servlet-core" % "6.0.4.Final",
       "org.hibernate.orm" % "hibernate-core" % "7.4.10.Final",
+      "org.hibernate.validator" % "hibernate-validator" % "9.1.4.Final",
+      "org.glassfish.expressly" % "expressly" % "6.0.0",
       "org.postgresql" % "postgresql" % "42.7.13",
       "org.jboss.narayana.jta" % "narayana-jta" % "7.3.4.Final",
       "io.agroal" % "agroal-pool" % "3.2.1",

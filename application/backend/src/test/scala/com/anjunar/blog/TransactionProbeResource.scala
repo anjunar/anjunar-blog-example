@@ -1,5 +1,6 @@
 package com.anjunar.blog
 
+import com.arjuna.ats.jta.{UserTransaction as NarayanaUserTransaction}
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -7,6 +8,7 @@ import jakarta.transaction.Status
 import jakarta.ws.rs.{GET, POST, Path, PathParam, Produces}
 import jakarta.ws.rs.core.{Response, StreamingOutput}
 
+import java.lang
 import java.io.IOException
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
@@ -38,18 +40,18 @@ class TransactionProbeResource {
     mode match {
       case "rejected" => Response.status(400).entity("Rejected\n").build()
       case "sql-failure" =>
-        entityManager.createNativeQuery("select 1 / 0", classOf[java.lang.Integer]).getSingleResult
+        entityManager.createNativeQuery("select 1 / 0", classOf[lang.Integer]).getSingleResult
         Response.ok().build()
       case "rollback-only" =>
-        com.arjuna.ats.jta.UserTransaction.userTransaction().setRollbackOnly()
+        NarayanaUserTransaction.userTransaction().setRollbackOnly()
         Response.ok("Saved\n").build()
       case "empty" => Response.noContent().build()
       case "serialize" | "writer-failure" =>
         val body: StreamingOutput = output => {
           require(entityManager.isOpen, "EntityManager closed before serialization")
-          require(com.arjuna.ats.jta.UserTransaction.userTransaction().getStatus == Status.STATUS_ACTIVE)
+          require(NarayanaUserTransaction.userTransaction().getStatus == Status.STATUS_ACTIVE)
           val count = entityManager.createNativeQuery(
-            s"select count(*) from ${TransactionProbe.table} where id = :id", classOf[java.lang.Long])
+            s"select count(*) from ${TransactionProbe.table} where id = :id", classOf[lang.Long])
             .setParameter("id", id).getSingleResult
           output.write(s"Rows: $count\n".getBytes(UTF_8))
           output.flush()

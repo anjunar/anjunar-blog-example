@@ -1,0 +1,185 @@
+package com.anjunar.blog
+
+import jakarta.persistence.{EntityManager, OptimisticLockException}
+import jakarta.validation.ConstraintViolationException
+import org.hibernate.exception.{ConstraintViolationException as SqlConstraintViolationException}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+
+import java.sql.{DriverManager, SQLException}
+import java.time.Instant
+import java.util.UUID
+import scala.collection.mutable
+import scala.util.control.NonFatal
+
+class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
+  private val persistence = new Persistence()
+  private val ownedIds = mutable.Set.empty[UUID]
+  private var initialized = false
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    persistence.initialize()
+    initialized = true
+  }
+
+  override protected def afterAll(): Unit =
+    try {
+      if (initialized) inTransaction() { manager =>
+        for (id <- ownedIds) {
+          val post = manager.find(classOf[BlogPost], id)
+          if (post != null) manager.remove(post)
+        }
+      }
+    } finally {
+      try { if (initialized) persistence.close() }
+      finally super.afterAll()
+    }
+
+  private def inTransaction[A](readOnly: Boolean = false)(work: EntityManager => A): A = {
+    val transaction = new RequestTransaction()
+    transaction.persistence = persistence
+    transaction.begin(readOnly)
+    try {
+      val result = work(transaction.entityManager)
+      transaction.flush(true)
+      transaction.finish(true)
+      result
+    } catch {
+      case NonFatal(error) =>
+        try transaction.finish(false)
+        catch { case NonFatal(cleanup) => error.addSuppressed(cleanup) }
+        throw error
+    }
+  }
+
+  private def draft(): BlogPost = {
+    val post = new BlogPost()
+    post.slug = s"post-${UUID.randomUUID()}"
+    post.title = "Our first post"
+    post.content = "The first paragraph."
+    post
+  }
+
+  private def persist(manager: EntityManager, post: BlogPost): BlogPost = {
+    manager.persist(post)
+    ownedIds += post.id
+    post
+  }
+
+  private def savedDraft(): BlogPost =
+    inTransaction()(manager => persist(manager, draft()))
+
+  private def load(id: UUID): BlogPost =
+    inTransaction(readOnly = true)(_.find(classOf[BlogPost], id))
+
+  test("a persisted draft receives a UUID and version and survives a new persistence context") {
+    val saved = savedDraft()
+    assert(saved.id != null)
+    assert(saved.version != null)
+    val loaded = load(saved.id)
+    assert(loaded ne saved)
+    assert(loaded.id == saved.id)
+    assert(loaded.version == saved.version)
+    assert(loaded.slug == saved.slug)
+    assert(loaded.title == saved.title)
+    assert(loaded.content == saved.content)
+    assert(loaded.status == BlogPostStatus.DRAFT)
+    assert(loaded.publishedAt == null)
+  }
+
+  test("managed changes persist publication state and increment the version without changing the slug") {
+    val saved = savedDraft()
+    val originalVersion = saved.version.longValue()
+    val at = Instant.parse("2026-09-27T10:00:00Z")
+    inTransaction() { manager =>
+      val post = manager.find(classOf[BlogPost], saved.id)
+      post.title = "A better title"
+      post.publish(at)
+    }
+    val published = load(saved.id)
+    assert(published.version.longValue() == originalVersion + 1)
+    assert(published.slug == saved.slug)
+    assert(published.title == "A better title")
+    assert(published.status == BlogPostStatus.PUBLISHED)
+    assert(published.publishedAt == at)
+
+    inTransaction()(_.find(classOf[BlogPost], saved.id).retract())
+    val retracted = load(saved.id)
+    assert(retracted.status == BlogPostStatus.DRAFT)
+    assert(retracted.publishedAt == null)
+    assert(retracted.version.longValue() == originalVersion + 2)
+  }
+
+  test("Hibernate validates new entities before inserting them") {
+    val post = draft()
+    post.title = " "
+    val error = intercept[ConstraintViolationException] {
+      inTransaction()(manager => persist(manager, post))
+    }
+    assert(!error.getConstraintViolations.isEmpty)
+    assert(load(post.id) == null)
+  }
+
+  test("Hibernate validates changed entities before updating them") {
+    val saved = savedDraft()
+    intercept[ConstraintViolationException] {
+      inTransaction() { manager =>
+        val post = manager.find(classOf[BlogPost], saved.id)
+        post.status = BlogPostStatus.PUBLISHED
+      }
+    }
+    val loaded = load(saved.id)
+    assert(loaded.status == BlogPostStatus.DRAFT)
+    assert(loaded.publishedAt == null)
+    assert(loaded.version == saved.version)
+  }
+
+  test("PostgreSQL rejects a duplicate slug and keeps the first post") {
+    val first = savedDraft()
+    val duplicate = draft()
+    duplicate.slug = first.slug
+    val error = intercept[SqlConstraintViolationException] {
+      inTransaction()(manager => persist(manager, duplicate))
+    }
+    assert(error.getSQLState == "23505")
+    assert(error.getConstraintName == "uq_blog_post_slug")
+    assert(load(first.id).title == first.title)
+    assert(load(duplicate.id) == null)
+  }
+
+  test("an old detached version cannot overwrite a newer committed edit") {
+    val saved = savedDraft()
+    val firstEditor = load(saved.id)
+    val secondEditor = load(saved.id)
+    firstEditor.title = "The committed title"
+    inTransaction()(_.merge(firstEditor))
+    secondEditor.title = "The stale title"
+    intercept[OptimisticLockException] {
+      inTransaction()(_.merge(secondEditor))
+    }
+    val current = load(saved.id)
+    assert(current.title == "The committed title")
+    assert(current.version.longValue() == saved.version.longValue() + 1)
+  }
+
+  test("the database rejects a published row without a publication time even outside Hibernate") {
+    val config = DatabaseConfig.load()
+    val connection = DriverManager.getConnection(config.url, config.user, config.password)
+    val id = UUID.randomUUID()
+    ownedIds += id
+    try {
+      val command = connection.prepareStatement(
+        "insert into public.blog_post (id, version, slug, title, content, status) values (?, 0, ?, ?, ?, 'PUBLISHED')")
+      try {
+        command.setObject(1, id)
+        command.setString(2, s"post-$id")
+        command.setString(3, "Direct SQL")
+        command.setString(4, "This insert must fail.")
+        val error = intercept[SQLException](command.executeUpdate())
+        assert(error.getSQLState == "23514")
+      } finally command.close()
+    } finally connection.close()
+    assert(load(id) == null)
+  }
+}
