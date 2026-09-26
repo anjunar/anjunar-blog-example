@@ -144,3 +144,63 @@ Use `curl.exe` in Windows PowerShell if needed.
 
 Stop the application with Ctrl+C. If using Compose, `docker compose down`
 stops the database while retaining its data volume.
+
+## 05 — Our First Domain Model
+
+- Article slug: `abt-05-our-first-domain-model`
+- Source revision: [f962700](https://github.com/anjunar/anjunar-blog-example/tree/f962700f5105edd62913e7e16f04fce7039269c6)
+
+This chapter introduces BlogPost, its UUID and optimistic-lock version, unique
+slug, publication state, Bean Validation, and the first PostgreSQL table.
+
+### Check out this version
+
+In a directory where `anjunar-blog-example` does not yet exist:
+
+```text
+git clone https://github.com/anjunar/anjunar-blog-example.git
+cd anjunar-blog-example
+git switch --detach f962700f5105edd62913e7e16f04fce7039269c6
+```
+
+Use JDK 25 and the [README database setup](../README.md#start-a-development-database).
+Set `BLOG_DB_PASSWORD` in the terminal that runs sbt. Set `BLOG_DB_URL` and
+`BLOG_DB_USER` when using a different local database or role.
+
+### Create the first table once
+
+With the Compose database running:
+
+```text
+docker compose cp database/001-blog-post.sql postgres:/tmp/001-blog-post.sql
+docker compose exec -T postgres psql -U blog -d anjunar_blog --set ON_ERROR_STOP=1 --single-transaction --file /tmp/001-blog-post.sql
+```
+
+For native PostgreSQL, use `psql --file database/001-blog-post.sql` with your
+connection details, `--set ON_ERROR_STOP=1`, and `--single-transaction`.
+The README contains the full command.
+
+The script creates `public.blog_post`. Apply it only once to a database without
+that table. Hibernate validates its mapping and does not modify the schema.
+
+### Run and verify
+
+```text
+sbt --server "application-backend/testFull"
+sbt --server "application-backend/run"
+```
+
+Expect **24 successful tests**. The model tests cover generated values,
+publication transitions, Bean Validation on inserts and updates, slug
+uniqueness, and stale versions. They remove only their own rows. The existing
+HTTP, CDI, and transaction tests still run.
+
+In another terminal:
+
+```text
+curl -i http://127.0.0.1:8080/service/health/ready
+```
+
+Expect HTTP 200 and `UP`; an absent table causes readiness to fail with HTTP 500.
+Use `curl.exe` in Windows PowerShell if needed. Stop the application with Ctrl+C.
+Public post endpoints follow in chapter 8.
