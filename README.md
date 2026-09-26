@@ -19,6 +19,9 @@ The articles, documentation, and examples are written in English.
 
 The [roadmap](docs/roadmap.md) describes the planned steps.
 
+The [article checkpoints](docs/article-checkpoints.md) identify the exact source
+revision and commands for each implementation chapter.
+
 ## Current state: the first HTTP endpoint
 
 The project contains an sbt build and one backend module. Undertow handles HTTP,
@@ -40,12 +43,15 @@ You do not need to build any other Anjunar repositories locally.
 From the project directory:
 
 ```text
-sbt --server "application-backend/test"
+sbt --server "application-backend/testFull"
 ```
 
 The integration test starts the actual HTTP server on an available local port,
 checks the REST endpoint including CDI injection, verifies a 404 response, and
 then shuts down the server.
+
+Use `testFull` to execute the test on every invocation. In sbt 2, `test` is
+incremental and may skip tests that already passed.
 
 ### Start the application
 
