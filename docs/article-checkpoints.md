@@ -390,3 +390,61 @@ npm run test:browser:database
 Expect 42 backend tests and 2 real database browser tests. Keep port 18080 free;
 Playwright starts and stops its own server. See the
 [connection guide](connecting-rest.md#verify) for test data requirements and limits.
+
+## 11 — User Accounts and Sign-In
+
+- Article slug: `abt-11-user-accounts-and-sign-in`
+- Source revision: [320c303](https://github.com/anjunar/anjunar-blog-example/tree/320c30394eb53a51e9c29cfecec3b61b681841a1)
+
+This chapter adds the Account entity, an explicit first-administrator command,
+password verification, server-side sessions, CSRF protection, and /en/account.
+The public blog remains anonymous. Registration, email confirmation, and
+password recovery follow in chapter 12; later roadmap topics move forward by one.
+
+### Check out and prepare this version
+
+```text
+git switch --detach 320c30394eb53a51e9c29cfecec3b61b681841a1
+sbt --server "application-frontend/update"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+```
+
+Configure a separate local PostgreSQL database first. A chapter 10 database
+advances to revision 2 and preserves existing posts; a fresh database starts at
+revision 1 with both tables. Repeating migrate reports AlreadyApplied.
+
+Follow the [account setup guide](user-accounts.md) to create the first
+administrator with BootstrapAdminMain. The command refuses a second bootstrap
+and never replaces existing credentials.
+
+For local HTTP, set BLOG_COOKIE_SECURE=false in the terminal that starts sbt;
+Secure defaults to true and requires HTTPS outside that development setup.
+
+```text
+sbt --server frontendAssets "application-backend/run"
+```
+
+Open http://127.0.0.1:8080/en/account. Sign in, reload, and sign out.
+
+### Verify
+
+```text
+sbt --server "application-backend/testFull"
+sbt --server "application-frontend/testFull"
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
+
+Expect 61 backend tests, 9 Scala.js model tests, and 16 browser contract tests.
+The backend suite needs its dedicated migrated database. Browser contract
+tests intercept data requests and need no database.
+
+With the sample posts loaded, run npm run test:browser:database for two real
+blog workflows. With an administrator bootstrapped in that test database and
+BLOG_TEST_ADMIN_EMAIL/PASSWORD set, run npm run test:browser:auth for one real
+sign-in/reload/sign-out workflow. The guide documents fixture setup.
+
+The checkpoint uses in-memory sessions and rate limits in one server process.
+HTTPS deployment, registration/recovery, and editorial permissions remain
+separate roadmap steps.
