@@ -103,7 +103,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("a persisted draft receives a UUID and version and survives a new persistence context") {
     val saved = savedDraft()
     assert(saved.id != null)
-    assert(saved.version != null)
+    assert(saved.version == 0L)
     val loaded = load(saved.id)
     assert(loaded ne saved)
     assert(loaded.id == saved.id)
@@ -117,7 +117,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("managed changes persist publication state and increment the version without changing the slug") {
     val saved = savedDraft()
-    val originalVersion = saved.version.longValue()
+    val originalVersion = saved.version
     val at = Instant.parse("2026-09-27T10:00:00Z")
     inTransaction() { manager =>
       val post = manager.find(classOf[BlogPost], saved.id)
@@ -125,7 +125,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       post.publish(at)
     }
     val published = load(saved.id)
-    assert(published.version.longValue() == originalVersion + 1)
+    assert(published.version == originalVersion + 1)
     assert(published.slug == saved.slug)
     assert(published.title == "A better title")
     assert(published.status == BlogPostStatus.PUBLISHED)
@@ -135,7 +135,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     val retracted = load(saved.id)
     assert(retracted.status == BlogPostStatus.DRAFT)
     assert(retracted.publishedAt == null)
-    assert(retracted.version.longValue() == originalVersion + 2)
+    assert(retracted.version == originalVersion + 2)
   }
 
   test("a summary can be saved and cleared without changing the post identity") {
@@ -147,7 +147,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     val edited = load(saved.id)
     assert(edited.summary == "A short introduction.")
     assert(edited.slug == saved.slug)
-    assert(edited.version.longValue() == saved.version.longValue() + 1)
+    assert(edited.version == saved.version + 1)
     inTransaction()(_.find(classOf[BlogPost], saved.id).summary = null)
     assert(load(saved.id).summary == null)
   }
@@ -200,7 +200,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
     val current = load(saved.id)
     assert(current.title == "The committed title")
-    assert(current.version.longValue() == saved.version.longValue() + 1)
+    assert(current.version == saved.version + 1)
   }
 
   test("the database rejects a published row without a publication time even outside Hibernate") {
