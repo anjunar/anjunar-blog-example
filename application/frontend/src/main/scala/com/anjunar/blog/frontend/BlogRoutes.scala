@@ -3,9 +3,16 @@ package com.anjunar.blog.frontend
 import ui.router.{Route, RouteFailure, RouterConfig}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 final class BlogRoutes(service: BlogService, actions: BlogActions)(using ExecutionContext) {
+  private val accounts = new AccountService()
   val routes: Seq[Route] = Seq(
+    Route.view("/account") { context =>
+      accounts.session(context.signal)
+        .map(state => new AccountPage(Some(state), accounts, () => actions.retry()))
+        .recover { case NonFatal(_) => new AccountPage(None, accounts, () => actions.retry()) }
+    },
     Route.view("/") { context =>
       val offset = context.queryParams.get("offset").getOrElse("0").toIntOption
         .filter(_ >= 0).getOrElse(throw new HttpFailure(400))

@@ -15,7 +15,7 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
     val path = exchange.getRequestPath
-    val page = path == "/en" || path == "/en/" || postPage.matches(path)
+    val page = path == "/en" || path == "/en/" || path == "/en/account" || postPage.matches(path)
     if (path == "/service" || path.startsWith("/service/")) api.handleRequest(exchange)
     else if (!publicPaths.contains(path) && !page) {
       exchange.setStatusCode(StatusCodes.NOT_FOUND)

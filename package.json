@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test:browser": "sbt --server frontendAssets && playwright test --project=contracts",
-    "test:browser:database": "sbt --server frontendAssets && playwright test --project=database"
+    "test:browser:database": "sbt --server frontendAssets && playwright test --project=database",
+    "test:browser:auth": "sbt --server frontendAssets && playwright test --project=authentication"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0"

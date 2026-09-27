@@ -20,17 +20,20 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: a blog backed by the REST API
+## Current state: user accounts and sign-in
 
-The Scala.js journal now loads published posts from PostgreSQL through REST.
-Its frontend model mirrors the entity contract, and the router opens full posts
-with loading, empty, and error states. Visitors can follow article links, reload
-a detail page, use browser history, toggle summaries, and page through results.
+The journal reads published posts from PostgreSQL and now has an account page
+at /en/account. An operator creates the first administrator with an explicit
+command. Sign-in uses a salted password hash and a server-side session with
+CSRF protection, rotation, revocation, and logout.
 
-See [Connecting the frontend and backend](docs/connecting-rest.md) for the
-model, service, actions, routes, and complete verification workflow.
-The [chapter 9 interface guide](docs/first-interface.md) describes its historical
-local-data checkpoint.
+Follow [User accounts and sign-in](docs/user-accounts.md) to migrate the
+database, bootstrap the administrator, configure local HTTP cookies, and test
+the account page. Public registration and password recovery follow in chapter 12.
+
+The [REST connection guide](docs/connecting-rest.md) explains the public
+list/detail flow. The [chapter 9 guide](docs/first-interface.md) describes its
+historical local-data checkpoint.
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
@@ -95,6 +98,9 @@ First prepare the database and schema using the steps below. Then open
 http://127.0.0.1:8080/. An empty database shows an empty list; load the optional
 SQL examples from [the API guide](docs/public-rest.md) to read the first post.
 Article links open /en/posts/:slug; the English router uses /en for the list.
+For sign-in over this local HTTP origin, set BLOG_COOKIE_SECURE=false before
+starting sbt. See [the account setup](docs/user-accounts.md#open-the-account-page-locally)
+for PowerShell/Bash commands and administrator bootstrap.
 
 After editing Scala, HTML, or CSS, run `sbt --server frontendAssets` in
 another terminal and reload. Stop the application with Ctrl+C.
@@ -143,7 +149,7 @@ sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain preview"
 sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
 ```
 
-Hibernate DDL Manager creates the current table, constraints, and history.
+Hibernate DDL Manager creates the current tables, constraints, and history.
 A repeated migration checks the database and reports AlreadyApplied.
 
 For an existing chapter 5 database, follow the
@@ -168,7 +174,8 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **42 successful backend tests**. The BlogPost tests cover field and publication
+Expect **61 successful backend tests**. The account tests verify password
+hashing, CSRF, session rotation, logout, revocation, private responses, and limits. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
 slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
@@ -194,15 +201,16 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **11 successful browser contract tests**. They build the frontend, start
+Expect **16 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the six Scala.js JSON mapping tests with
+Run the nine Scala.js JSON mapping tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
-See [the chapter 10 guide](docs/connecting-rest.md#verify) for the setup and limits.
+Run `npm run test:browser:auth` for one additional real administrator workflow.
+See [the account guide](docs/user-accounts.md#verify) for credentials and setup.
 
 ### Start the application
 

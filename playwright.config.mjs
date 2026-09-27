@@ -4,8 +4,9 @@ export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
   projects: [
-    { name: "contracts", testMatch: "frontend.spec.mjs" },
+    { name: "contracts", testMatch: ["frontend.spec.mjs", "account.spec.mjs"] },
     { name: "database", testMatch: "database.spec.mjs" },
+    { name: "authentication", testMatch: "auth-database.spec.mjs" },
   ],
   use: {
     baseURL: "http://127.0.0.1:18080",
@@ -16,7 +17,7 @@ export default defineConfig({
   webServer: {
     command: 'sbt --server "application-backend/run"',
     url: "http://127.0.0.1:18080/",
-    env: { BLOG_PORT: "18080" },
+    env: { BLOG_PORT: "18080", BLOG_COOKIE_SECURE: "false" },
     reuseExistingServer: false,
     timeout: 90_000,
   },

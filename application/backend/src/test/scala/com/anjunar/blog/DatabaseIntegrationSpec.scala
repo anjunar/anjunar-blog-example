@@ -85,18 +85,21 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 200)
     assert(response.body() == "Saved\n")
     assert(exists(id))
+    assert(TransactionProbe.committed.remove(id))
   }
 
   test("an error status rolls back completed SQL statements") {
     val id = UUID.randomUUID()
     assert(request("POST", s"_test/transactions/rejected/$id").statusCode() == 400)
     assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
   }
 
   test("an SQL exception rolls back the preceding insert") {
     val id = UUID.randomUUID()
     assert(request("POST", s"_test/transactions/sql-failure/$id").statusCode() == 500)
     assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
   }
 
   test("the writer can query through the same open persistence context") {
@@ -105,6 +108,7 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 200)
     assert(response.body() == "Rows: 1\n")
     assert(exists(id))
+    assert(TransactionProbe.committed.remove(id))
   }
 
   test("a writer failure rolls back and does not send its partial success body") {
@@ -113,6 +117,7 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 500)
     assert(!response.body().contains("Rows:"))
     assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
   }
 
   test("a deferred constraint failure does not send a success response") {
@@ -121,6 +126,7 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 500)
     assert(!response.body().contains("Saved"))
     assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
   }
 
   test("a rollback-only transaction cannot produce a success response") {
@@ -129,6 +135,7 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 500)
     assert(!response.body().contains("Saved"))
     assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
   }
 
   test("GET and HEAD discard writes") {
@@ -136,6 +143,7 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
       val id = UUID.randomUUID()
       assert(request(method, s"_test/transactions/read/$id").statusCode() == 200)
       assert(!exists(id))
+    assert(!TransactionProbe.committed.contains(id))
     }
   }
 
@@ -145,5 +153,6 @@ class DatabaseIntegrationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(response.statusCode() == 204)
     assert(response.body().isEmpty)
     assert(exists(id))
+    assert(TransactionProbe.committed.remove(id))
   }
 }

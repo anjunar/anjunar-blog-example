@@ -52,7 +52,7 @@ moves keyboard focus to the main landmark.
 
 UI messages use the i18n macro with an English runtime and source-text fallback.
 The post titles and summaries are editorial data, not translation keys.
-German catalogs and locale selection enter in chapter 18.
+German catalogs and locale selection enter in chapter 19.
 
 PostPreview is a small, read-only display projection. It is not the API's
 deserialization model. Chapter 10 introduces the matching frontend JSON model,

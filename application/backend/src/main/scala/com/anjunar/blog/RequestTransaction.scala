@@ -18,6 +18,7 @@ class RequestTransaction {
   private var manager: EntityManager = null
   private var started = false
   private var readOnly = false
+  private var commitActions = Vector.empty[() => Unit]
   private def transaction = NarayanaUserTransaction.userTransaction()
 
   def active: Boolean = started
@@ -48,11 +49,22 @@ class RequestTransaction {
   def flush(successful: Boolean): Unit =
     if (started && successful && !readOnly) entityManager.flush()
 
+  def afterCommit(action: () => Unit): Unit = {
+    require(started && !readOnly, "After-commit actions need an active write transaction")
+    commitActions :+= action
+  }
+
   def finish(successful: Boolean): Unit =
     if (started) {
       started = false
+      val actions = commitActions
+      commitActions = Vector.empty
+      var committed = false
       try {
-        if (successful && !readOnly) transaction.commit()
+        if (successful && !readOnly) {
+          transaction.commit()
+          committed = true
+        }
         else if (transaction.getStatus != Status.STATUS_NO_TRANSACTION) transaction.rollback()
       } catch {
         case NonFatal(error) =>
@@ -66,6 +78,7 @@ class RequestTransaction {
           finally manager = null
         }
       }
+      if (committed) actions.foreach(_.apply())
     }
 
   @PreDestroy

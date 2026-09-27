@@ -103,3 +103,20 @@ h3 { margin: 0; font: 400 clamp(24px, 3vw, 29px)/1.25 Georgia, "Times New Roman"
 .error-state h1 { font-size: clamp(36px, 5vw, 56px); }
 .error-state p, .empty-state { margin: 28px 0; line-height: 1.7; color: var(--muted); }
 .error-state button { margin-right: 24px; }
+
+.account-page { max-width: 540px; min-height: 480px; padding-top: 64px; }
+.account-page h1 { font-size: clamp(38px, 5vw, 58px); margin-bottom: 28px; }
+.account-page p { line-height: 1.6; }
+.account-email { font-weight: 700; overflow-wrap: anywhere; }
+.sign-in-form { display: grid; gap: 22px; margin-top: 30px; }
+.sign-in-form label { display: grid; gap: 9px; font-size: 14px; font-weight: 700; }
+.sign-in-form input { width: 100%; min-height: 48px; border: 1px solid #829386; border-radius: 4px; padding: 12px; background: #fff; color: var(--ink); font: inherit; font-weight: 400; }
+.sign-in-form input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.sign-in-form button { justify-self: start; min-width: 110px; background: var(--accent); color: white; }
+.form-error { color: #8c3026; }
+button:disabled { opacity: 0.6; cursor: wait; }
+@media (max-width: 680px) {
+  .site-header { flex-wrap: wrap; padding: 20px 0; gap: 14px; }
+  .site-header nav { gap: 20px; flex-wrap: wrap; }
+  .account-page { padding-top: 44px; }
+}

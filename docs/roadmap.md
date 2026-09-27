@@ -16,8 +16,9 @@ introduce internationalization.
 
 ## Topic sequence
 
-This is a working plan. We will refine the scope of individual articles as we
-write them together.
+This is a working plan. We refine the scope of individual articles as we
+write them together. Chapter 11 was split into authentication and a separate
+chapter 12 for registration/recovery; later topics move forward by one number.
 
 | No. | Topic | Content |
 | --- | --- | --- |
@@ -31,28 +32,29 @@ write them together.
 | 8 | Serving posts through REST | Lists and details, the JSON mapper, entity graphs, Data, and Table. |
 | 9 | Building the first interface with Scala.js | A cohesive DSL tree in compose, properties, lists, styles, and accessible HTML. |
 | 10 | Connecting the frontend and backend | Mirrored models, JSON mapping, HTTP services, actions, routing, and loading and error states. |
-| 11 | User accounts and sign-in | Password hashing, sessions, cookies, the first administrator account, registration, and account recovery. |
-| 12 | Permissions and HATEOAS | Endpoint, object, and field permissions, plus allowed actions exposed through $links. |
-| 13 | Applying changes safely | PreparedChange, authorization before mutation, references, validation, and error responses. |
-| 14 | Building a form from end to end | Model binding, field errors, save state, version conflicts, and delayed responses. |
-| 15 | Searching, filtering, and pagination | Criteria through EntitySchema, search models, sorting, pagination, and list projections. |
-| 16 | Managing relationships and media | Authors, tags, uploads, ownership, delivery, and orphaned media cleanup. |
-| 17 | Integrating a post editor | Structured content, the document format, code blocks, and embedded images. |
-| 18 | Translating the interface and content | The i18n macro for UI messages; separate models for editorial translations and fallbacks. |
-| 19 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
-| 20 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
-| 21 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
-| 22 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
-| 23 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
-| 24 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
-| 25 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
+| 11 | User accounts and sign-in | Password hashing, the first administrator, cookies, sessions, CSRF, revocation, and the account page. |
+| 12 | Registration and account recovery | Public registration, email confirmation, single-use expiring tokens, mail delivery, and password reset. |
+| 13 | Permissions and HATEOAS | Endpoint, object, and field permissions, plus allowed actions exposed through $links. |
+| 14 | Applying changes safely | PreparedChange, authorization before mutation, references, validation, and error responses. |
+| 15 | Building a form from end to end | Model binding, field errors, save state, version conflicts, and delayed responses. |
+| 16 | Searching, filtering, and pagination | Criteria through EntitySchema, search models, sorting, pagination, and list projections. |
+| 17 | Managing relationships and media | Authors, tags, uploads, ownership, delivery, and orphaned media cleanup. |
+| 18 | Integrating a post editor | Structured content, the document format, code blocks, and embedded images. |
+| 19 | Translating the interface and content | The i18n macro for UI messages; separate models for editorial translations and fallbacks. |
+| 20 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
+| 21 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
+| 22 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
+| 23 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
+| 24 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
+| 25 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
+| 26 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
 
 ## First milestone
 
 The server starts locally, stores a post in PostgreSQL, and returns it through REST.
 
 The initial project revision lays the groundwork for topics 2 and 3:
-a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Chapter 6 adopts the existing schema with stable IDs and adds an optional summary through Hibernate DDL Manager. Chapter 7 defines the complete EntitySchema, queries published posts with typed Criteria attributes, and verifies the mapper contract. Chapter 8 serves public list and detail responses with entity graphs, Data/Table envelopes, and HTTP contract tests. This completes the first milestone. Chapter 9 adds the first Scala.js interface with local post previews, reactive controls, accessible HTML, asset delivery, and browser tests. Chapter 10 connects it to REST with mirrored JSON models, a same-origin HTTP service, actions, list/detail routes, loading and error boundaries, basic page links, and tests using both controlled responses and real PostgreSQL data.
+a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Chapter 6 adopts the existing schema with stable IDs and adds an optional summary through Hibernate DDL Manager. Chapter 7 defines the complete EntitySchema, queries published posts with typed Criteria attributes, and verifies the mapper contract. Chapter 8 serves public list and detail responses with entity graphs, Data/Table envelopes, and HTTP contract tests. This completes the first milestone. Chapter 9 adds the first Scala.js interface with local post previews, reactive controls, accessible HTML, asset delivery, and browser tests. Chapter 10 connects it to REST with mirrored JSON models, a same-origin HTTP service, actions, list/detail routes, loading and error boundaries, basic page links, and tests using both controlled responses and real PostgreSQL data. Chapter 11 adds the first administrator, password authentication, server-side sessions, CSRF protection, session revocation, and the account page.
 
 ## Further topics
 
@@ -68,4 +70,4 @@ a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and 
 - A commit or tag connects each published article to its project revision.
 - Excerpts identify the file, where the code belongs, how to run it, and the expected result.
 - We explain architectural decisions when they become relevant.
-- Tests accompany each feature; article 22 brings the testing strategy together.
+- Tests accompany each feature; article 23 brings the testing strategy together.
