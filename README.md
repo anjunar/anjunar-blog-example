@@ -20,14 +20,15 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: the first domain model
+## Current state: schema evolution
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
 A request owns its EntityManager and transaction through response serialization.
 
 `BlogPost` now maps to PostgreSQL with a generated UUID, optimistic-lock version,
-unique slug, title, content, publication status, and publication time. Bean
+unique slug, title, content, optional summary, publication status, and publication time.
+Bean
 Validation checks fields and publication consistency before inserts and updates.
 The model is exercised through persistence tests; public post endpoints come later.
 
@@ -81,38 +82,43 @@ database and role, then set these variables to its connection details:
 The application reads environment variables directly; it does not load a
 `.env` file.
 
-### Create the first table
+### Prepare the schema
 
-After starting the database, apply `database/001-blog-post.sql` once. With Compose,
-these commands work in both PowerShell and Bash:
-
-```text
-docker compose cp database/001-blog-post.sql postgres:/tmp/001-blog-post.sql
-docker compose exec -T postgres psql -U blog -d anjunar_blog --set ON_ERROR_STOP=1 --single-transaction --file /tmp/001-blog-post.sql
-```
-
-With a native PostgreSQL installation, use its `psql` client and your database port:
+For a new, empty tutorial database:
 
 ```text
-psql -h 127.0.0.1 -p 5433 -U blog -d anjunar_blog --set ON_ERROR_STOP=1 --single-transaction --file database/001-blog-post.sql
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain preview"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
 ```
 
-The native client prompts for the database password if needed. The script creates
-`public.blog_post` and intentionally fails if it already exists. Apply it once
-to a fresh tutorial database; do not delete an existing table to rerun it.
-Hibernate uses `validate` and does not create or alter the table.
-Chapter 6 introduces schema migrations.
+Hibernate DDL Manager creates the current table, constraints, and history.
+A repeated migration checks the database and reports AlreadyApplied.
+
+For an existing chapter 5 database, follow the
+[adoption and upgrade instructions](docs/schema-evolution.md#upgrade-a-chapter-5-database).
+They use a separate baseline checkpoint before adding summary. Do not run the
+final mapping's adoption command against an older table or recreate that table.
+
+The role must own the managed tables and be able to create the history schema.
+SchemaMain uses CDI entity discovery and a non-JTA JDBC connection; normal
+requests retain their Agroal/Narayana transaction boundary. Hibernate still
+uses validate. Run migrations successfully before starting the HTTP server.
+
+Read-only previews of existing named CHECK constraints report INCOMPLETE and
+exit with code 3. Execution verifies their normalized predicates under the
+migration lock; see the guide for the expected output and limits.
 
 ### Run the tests
 
-With the development database running and the initial table created:
+With a separate test database running and migrated to the current schema:
 
 ```text
 sbt --server "application-backend/testFull"
 ```
 
-Expect **26 successful tests**. The BlogPost tests cover field and publication
-validation, persisted values, unique slugs, version increments, and stale edits.
+Expect **28 successful tests**. The BlogPost tests cover field and publication
+validation, optional summaries and their length limit, persisted values, unique
+slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
 named probe table and drops it afterward. It verifies committed and rolled-back
 rows through separate JDBC connections. It also checks serialization failures,
