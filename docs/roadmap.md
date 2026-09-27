@@ -35,7 +35,7 @@ chapter 12 for registration/recovery; later topics move forward by one number.
 | 11 | User accounts and sign-in | Jakarta Security with Soteria, Undertow integration, IdentityStore, password hashing, the first administrator, sessions, CSRF, revocation, and the account page. |
 | 12 | Registration and account recovery | Public registration, email confirmation, single-use expiring tokens, mail delivery, and password reset. |
 | 13 | Permissions and HATEOAS | Endpoint, object, and field permissions, plus allowed actions exposed through $links. |
-| 14 | Applying changes safely | PreparedChange, authorization before mutation, references, validation, and error responses. |
+| 14 | Applying changes safely | PreparedChange, authorization before mutation, required versions, partial updates, validation, error responses, and the boundary for future references. |
 | 15 | Building a form from end to end | Model binding, field errors, save state, version conflicts, and delayed responses. |
 | 16 | Searching, filtering, and pagination | Criteria through EntitySchema, search models, sorting, pagination, and list projections. |
 | 17 | Managing relationships and media | Authors, tags, uploads, ownership, delivery, and orphaned media cleanup. |
@@ -59,8 +59,15 @@ a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and 
 Chapter 13 adds the administrator's editorial list and preview, publication and
 retraction commands, explicit endpoint policies, object/state checks and CDI
 field rules. Per-response links drive available actions, and real HTTP/browser
-tests verify conflicts, revoked access and rollback. General post editing remains
-chapter 14 (PreparedChange), followed by forms in chapter 15.
+tests verify conflicts, revoked access and rollback.
+
+Chapter 14 creates and edits posts through PreparedChange. It requires the current
+version, preserves partial/null semantics and uses the mapper's field validation.
+Hibernate's existing callbacks protect complete entities; safe problem details
+carry validation errors back to the client. Concurrent requests and failed
+writes are covered through real HTTP and PostgreSQL; the browser runs the exact
+article example. Reference loading stays closed until relationships in chapter 17.
+Chapter 15 will bind this write contract to an editing form.
 
 ## Further topics
 

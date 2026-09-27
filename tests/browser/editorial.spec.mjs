@@ -146,3 +146,14 @@ test("editorial pagination preserves the offset and limit supplied by the server
   expect(requests).toEqual([["0", "1"], ["1", "1"]]);
   await expect(page).toHaveURL(/offset=1&limit=1/);
 });
+
+test("an empty draft remains previewable when the mapper omits its empty content", async ({ page }) => {
+  const draft = envelope(false, [link("self", api), link("update", api, "PATCH")]);
+  delete draft.data.content;
+  await page.route("**/service/editorial/**", route => reply(route, draft));
+  await page.goto(`/en/editorial/posts/${id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("A draft worth sharing");
+  await expect(page.getByRole("status", { name: "Publication status" })).toHaveText("Draft");
+  await expect(page.getByRole("button", { name: "Publish", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});

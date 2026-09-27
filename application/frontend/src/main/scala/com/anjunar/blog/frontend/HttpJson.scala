@@ -6,10 +6,19 @@ import ui.json.{JsonMapper, JsonSchema}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
+import scala.util.Try
 
-final class HttpFailure(val status: Int) extends RuntimeException(s"HTTP $status")
+final class HttpFailure(val status: Int, val problem: Option[ProblemDetails] = None)
+    extends RuntimeException(s"HTTP $status")
 
 object HttpJson {
+  private[frontend] def failure(status: Int, contentType: String, body: String): HttpFailure = {
+    val problem = Option(contentType).filter(_.takeWhile(_ != ';').trim.equalsIgnoreCase("application/problem+json"))
+      .flatMap(_ => Try(JsonMapper.deserialize[ProblemDetails](js.JSON.parse(body))).toOption)
+      .filter(value => value != null && value.status == status && Option(value.title).exists(_.nonEmpty))
+    new HttpFailure(status, problem)
+  }
+
   def get[M](path: String, signal: Option[dom.AbortSignal])(using
       ExecutionContext, JsonSchema[M]
   ): Future[M] = request(path, dom.HttpMethod.GET, signal, None, None)
@@ -21,7 +30,7 @@ object HttpJson {
   private def request[M](path: String, method: dom.HttpMethod, signal: Option[dom.AbortSignal],
       body: Option[js.Dynamic], csrf: Option[String])(using ExecutionContext, JsonSchema[M]): Future[M] = {
     val headers = new dom.Headers()
-    headers.set("Accept", "application/json")
+    headers.set("Accept", "application/json, application/problem+json")
     val options = new dom.RequestInit {
       credentials = dom.RequestCredentials.`same-origin`
     }
@@ -35,7 +44,8 @@ object HttpJson {
     }
 
     dom.fetch(path, options).toFuture.flatMap { response =>
-      if (!response.ok) Future.failed(new HttpFailure(response.status))
+      if (!response.ok) response.text().toFuture.flatMap(body =>
+        Future.failed(failure(response.status, response.headers.get("Content-Type"), body)))
       else response.text().toFuture.map { body =>
         JsonMapper.deserialize[M](js.JSON.parse(body))
       }

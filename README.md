@@ -20,12 +20,19 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: permissions and HATEOAS
+## Current state: applying changes safely
 
-The editorial workspace now lets administrators preview, publish and retract posts.
+The editorial API now creates drafts and applies partial edits through PreparedChange.
+It checks access before mutation and requires the saved version on updates. The
+JSON mapper validates submitted fields; Hibernate's existing validation callbacks
+protect the persisted entity. Errors and version conflicts return problem details.
+Follow [Applying changes safely](docs/applying-changes-safely.md) for chapter 14
+and its runnable browser-console example. Editing forms arrive in chapter 15.
+
+The editorial workspace already lets administrators preview, publish and retract posts.
 Endpoint and entity-state checks enforce access; mapper rules govern fields, and
-response-specific $links drive the available UI actions. Follow
-[Permissions and HATEOAS](docs/permissions-and-hateoas.md) to run chapter 13.
+response-specific $links drive the available UI actions. See
+[Permissions and HATEOAS](docs/permissions-and-hateoas.md) for chapter 13.
 
 The journal reads published posts from PostgreSQL and has an account page
 at /en/account. An operator creates the first administrator with an explicit
@@ -183,14 +190,16 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **89 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **112 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
 They also verify the same caller through Servlet/JAX-RS/Jakarta Security and
 failed login/logout serialization or commit without a persistent session change. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
-slugs, version increments, and stale edits.
+slugs, version increments, and stale edits. PreparedChange HTTP tests also cover
+partial/null updates, concurrent saves, required versions, safe field errors,
+and rollback after validation, serialization or commit failures.
 They remove only the rows they created. The transaction suite creates its own uniquely
 named probe table and drops it afterward. It verifies committed and rolled-back
 rows through separate JDBC connections. It also checks serialization failures,
@@ -214,11 +223,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **28 successful browser contract tests**. They build the frontend, start
+Expect **29 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the nine Scala.js JSON mapping tests with
+Run the 12 Scala.js model and problem-details tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -226,6 +235,10 @@ Run `npm run test:browser:auth` for one additional real administrator workflow.
 See [the account guide](docs/user-accounts.md#verify) for credentials and setup.
 Run `npm run test:browser:recovery` with the local SMTP test environment for one
 complete registration, confirmation, reset and session-revocation workflow.
+Run `npm run test:browser:editorial` for publication/retraction and
+`npm run test:browser:changes` for the exact article example: create, edit, then
+reject a stale edit. Both require the test administrator and psql on PATH or
+BLOG_PSQL; each removes its own post. All six browser projects contain 35 tests.
 
 ### Start the application
 
