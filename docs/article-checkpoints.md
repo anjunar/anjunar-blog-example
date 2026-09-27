@@ -560,3 +560,58 @@ serialization/commit rollback and visibility before/after publication.
 
 The actions are narrow state transitions. PreparedChange, general post editing
 and form binding remain chapters 14 and 15.
+
+## 14 — Applying Changes Safely
+
+- Article slug: `abt-14-applying-changes-safely`
+- Source revision: [a701781](https://github.com/anjunar/anjunar-blog-example/tree/a70178141e12e37bf89350607a7b3eed44af8c52)
+- Starting revision: chapter 13, `37f2a3e6a7d440be4bbc99730bc430915f1bdaa4`.
+
+The editorial API creates drafts and applies partial updates through PreparedChange.
+Controllers authorize the original entity before applying it. Required versions,
+full validation and request rollback protect edits; safe problem details carry
+field errors and conflicts to the client.
+
+### Check out and run
+
+```text
+git switch --detach a70178141e12e37bf89350607a7b3eed44af8c52
+sbt --server frontendAssets
+sbt --server "application-backend/run"
+```
+
+Use chapter 13's development database and administrator. No database mapping
+changes; migration reports AlreadyApplied at revision 3 with zero statements.
+Follow [the chapter guide](applying-changes-safely.md) for local configuration,
+the partial-update contract, error details and concurrency behavior.
+
+Sign in at /en/account, then paste [the console example](examples/post-changes.js)
+into that page's developer console. It creates a draft, saves a partial edit
+and verifies that the old version receives 409. It leaves the draft available
+at the returned preview address. Editing forms follow in chapter 15.
+
+### Verify
+
+Use the isolated migrated database and chapter 12's local SMTP capture settings.
+Keep port 18080 and the capture port free; run backend and browser suites
+sequentially.
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test --project=contracts --project=changes --project=editorial --project=database --project=authentication --project=recovery
+```
+
+The checkpoint passes 112 backend tests, 12 Scala.js tests and 35 browser tests
+(29 controlled contracts and six real workflows). The changes project executes
+the exact article example against real Soteria, REST and PostgreSQL. It needs
+BLOG_TEST_ADMIN_EMAIL/PASSWORD and psql on PATH or BLOG_PSQL, and deletes its
+own generated post.
+
+Coverage includes partial/null semantics, preparation before mutation, single-use
+application, required versions, simultaneous edits, racing unique slugs,
+full-entity validation, CSRF/roles and serialization/commit rollback.
+Problem parsing preserves the real HTTP status even when the body is malformed
+or contains null values.
+
+The current providers support BlogPost only. Its contract has no relationships;
+reference loading is rejected until chapter 17 adds authorized target loading.
