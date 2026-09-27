@@ -19,7 +19,7 @@ final class BlogService(using ExecutionContext) {
   def detail(slug: String, signal: Option[dom.AbortSignal]): Future[BlogPost] =
     HttpJson.get[BlogPostData](s"/service/blog/posts/${encodeURIComponent(slug)}", signal)
       .map { result =>
-        require(result.data != null && result.data.content.get.nonEmpty, "Missing post detail")
+        require(result.data != null && result.data.content.get != null, "Missing post detail")
         result.data
       }
 }

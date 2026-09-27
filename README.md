@@ -20,14 +20,19 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: applying changes safely
+## Current state: a form from end to end
 
-The editorial API now creates drafts and applies partial edits through PreparedChange.
-It checks access before mutation and requires the saved version on updates. The
-JSON mapper validates submitted fields; Hibernate's existing validation callbacks
-protect the persisted entity. Errors and version conflicts return problem details.
-Follow [Applying changes safely](docs/applying-changes-safely.md) for chapter 14
-and its runnable browser-console example. Editing forms arrive in chapter 15.
+Administrators can now create and edit posts through a form bound directly to
+BlogPost. It displays field errors, sends the current version and preserves text
+entered while a save is pending. Version conflicts keep the local edits until
+the user explicitly discards and reloads them. Follow
+[Building a form from end to end](docs/building-a-form-from-end-to-end.md) for
+chapter 15 and its two-tab conflict walkthrough.
+
+The API uses PreparedChange; the JSON mapper validates submitted fields and
+Hibernate's existing callbacks protect the complete entity. See
+[Applying changes safely](docs/applying-changes-safely.md) for chapter 14's
+write contract and browser-console example.
 
 The editorial workspace already lets administrators preview, publish and retract posts.
 Endpoint and entity-state checks enforce access; mapper rules govern fields, and
@@ -223,11 +228,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **29 successful browser contract tests**. They build the frontend, start
+Expect **42 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 12 Scala.js model and problem-details tests with
+Run the 21 Scala.js model, form-state and problem-details tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -238,7 +243,9 @@ complete registration, confirmation, reset and session-revocation workflow.
 Run `npm run test:browser:editorial` for publication/retraction and
 `npm run test:browser:changes` for the exact article example: create, edit, then
 reject a stale edit. Both require the test administrator and psql on PATH or
-BLOG_PSQL; each removes its own post. All six browser projects contain 35 tests.
+BLOG_PSQL; each removes its own post. Run `npm run test:browser:forms` with the
+same settings to create/edit a post and resolve a real version conflict through
+the form. All seven browser projects contain 49 tests.
 
 ### Start the application
 

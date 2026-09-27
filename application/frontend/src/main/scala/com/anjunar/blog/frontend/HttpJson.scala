@@ -27,6 +27,16 @@ object HttpJson {
       ExecutionContext, JsonSchema[M]
   ): Future[M] = request(path, dom.HttpMethod.POST, None, Some(body), Some(csrf))
 
+  def write[M](path: String, method: String, body: js.Dynamic, csrf: String)(using
+      ExecutionContext, JsonSchema[M]): Future[M] = {
+    val httpMethod = method match {
+      case "POST" => dom.HttpMethod.POST
+      case "PATCH" => dom.HttpMethod.PATCH
+      case _ => throw new IllegalArgumentException("Unexpected write method")
+    }
+    request(path, httpMethod, None, Some(body), Some(csrf))
+  }
+
   private def request[M](path: String, method: dom.HttpMethod, signal: Option[dom.AbortSignal],
       body: Option[js.Dynamic], csrf: Option[String])(using ExecutionContext, JsonSchema[M]): Future[M] = {
     val headers = new dom.Headers()

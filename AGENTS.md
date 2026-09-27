@@ -30,7 +30,7 @@
 - Auth writes require CSRF and JSON credentials are a separate bounded command, not a general entity update. AuthenticationFilter enters Undertow/Elytron/Soteria after TransactionBoundary begins; AuthorizationFilter enforces endpoint policies and CSRF on auth/recovery/editorial writes. Do not replace the container identity with a hand-written JAX-RS SecurityContext.
 - Session changes for login/logout belong in RequestTransaction.afterCommit. Preserve rollback/writer-failure coverage. SessionServer closes sessions while Weld is still active.
 - Secure cookies default to true; set BLOG_COOKIE_SECURE=false only for local HTTP. Keep HttpOnly, SameSite, cookie-only tracking, expiry and database revocation checks.
-- Verify 112 backend tests, 12 frontend model/problem tests, 29 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
+- Verify 112 backend tests, 21 frontend model/form/problem tests, 42 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
 - Soteria's IdentityStoreHandler and HttpAuthenticationMechanismHandler come from the library, with the official Weld bean decorator. PasswordIdentityStore verifies credentials; SoteriaAuthenticationMechanism calls notifyContainerAboutLogin. Keep the verified initializer, BeanManager JNDI lookup, CallerDetailsResolver service registration and Elytron configuration together.
 - Persist authentication in afterCommit, without AutoApplySession/registerSession. request.logout must reach Soteria cleanSubject; current database roles and session revocation are verified through all three security APIs.
 
@@ -48,7 +48,7 @@
 - PostEditRule resolves the current CDI caller; lifecycle fields use read-only rules. Cache rule classes in EntitySchema, never permission results.
 - Build links per Data/Table/SessionState response; keep them out of JPA state. Schema.forGraph still describes structure, not writable-field capabilities. Responses with caller-specific links use no-store.
 - The editorial frontend follows supplied command URLs/methods, validates same-origin /service/ destinations, and replaces values/version/links on success. Clear stale actions on failure and ignore replies after disposal.
-- test:browser:editorial needs the dedicated test admin plus psql on PATH or BLOG_PSQL. It creates/deletes its own UUID draft in the test database. All browser projects now contain 35 checks.
+- test:browser:editorial needs the dedicated test admin plus psql on PATH or BLOG_PSQL. It creates/deletes its own UUID draft in the test database. All browser projects now contain 49 checks.
 
 - Chapter 14 supports PreparedChange[BlogPost] for POST creation and PATCH editing. Check change.getEntity() before applying once. The JSON mapper validates supplied values through its injected Validator; do not add a second controller validation pass. Keep Hibernate's existing CALLBACK validation for complete entities before insert/update. Propagate failures to roll back; preparation is not an independent transaction.
 - PATCH requires a nonnegative integer version. Lock the current row before comparing; never assign the request's version. Preserve missing versus null, server-generated identity, property rules and publication invariants.
@@ -57,3 +57,10 @@
 - Return application/problem+json with safe details and field paths. Unexpected errors expose a correlation ID, never driver text. Keep HTTP status authoritative when parsing ProblemDetails in the browser.
 - The mapper omits empty strings; editorial draft detail normalizes missing content to an empty value. Published detail still requires content.
 - test:browser:changes executes docs/examples/post-changes.js unchanged against real HTTP and PostgreSQL, then deletes its own draft. Keep the article example executable and tested.
+
+- Chapter 15 binds form(post) directly to BlogPost; text fields use nullable Property[String], preserving missing content versus an empty draft. Do not bind Option[String] to a String control. Keep scalar names, constraints and partial-write semantics aligned with the entity.
+- BlogPost.writeBody uses JsonMapper dirty-field serialization, always adds the current version for updates, removes a new empty ID and maps an explicitly cleared summary to null. Lifecycle fields are read-only in the frontend mapper.
+- Freeze payload and submitted values before any asynchronous session lookup. Merge each acknowledged field only if it has not changed since submission; always advance its default and the saved ID/version/links. Never let a delayed response erase newer typing or repeat creation.
+- Server field errors use Form.setErrorResponses and only apply to unchanged submitted values. Cross-field errors remain visible at form level; stale versions, revoked access and unconfirmed writes stop blind retries while keeping the input.
+- Use actual component receivers for raw setAttribute calls; inherited methods on the page can otherwise change the wrong node. Keep labels, aria-describedby, aria-invalid, native form submission and the entire DSL tree in compose.
+- test:browser:forms creates/edits a real post, clears its summary and resolves a stale version through the UI, then removes its own UUID. It uses the same dedicated admin/database/psql setup as test:browser:changes.

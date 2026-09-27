@@ -25,13 +25,13 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
         text(post.publishedAt.map(_.fold("")(_.take(10)))) {}
       }
       heading(1) { id = "post-title"; text(post.title) {} }
-      if (post.summary.get.nonEmpty) {
-        paragraph { classes = "detail-summary"; text(post.summary.map(_.getOrElse(""))) {} }
+      if (Option(post.summary.get).exists(_.nonEmpty)) {
+        paragraph { classes = "detail-summary"; text(post.summary.map(value => Option(value).getOrElse(""))) {} }
       }
       div {
         classes = "post-content"
-        // Chapter 17 introduces structured content. Today content is plain text.
-        text(post.content.map(_.getOrElse(""))) {}
+        // Chapter 18 introduces structured content. Today content is plain text.
+        text(post.content.map(value => Option(value).getOrElse(""))) {}
       }
     }
 }

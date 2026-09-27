@@ -98,10 +98,10 @@ final class PostListPage(table: BlogPostTable, offset: Int, pageSize: Int, actio
                       }
                     }
                     when(actions.showSummaries) {
-                      if (post.summary.get.nonEmpty) {
+                      if (Option(post.summary.get).exists(_.nonEmpty)) {
                         paragraph {
                           classes = "post-summary"
-                          text(post.summary.map(_.getOrElse(""))) {}
+                          text(post.summary.map(value => Option(value).getOrElse(""))) {}
                         }
                       }
                     }

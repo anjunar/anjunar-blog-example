@@ -12,12 +12,12 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     .setWelcomeFiles("index.html")
   private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css")
   private val accountPages = Set("/en/account", "/en/register", "/en/confirm", "/en/forgot-password", "/en/reset-password")
-  private val editorialPost = "/en/editorial/posts/[0-9a-fA-F-]{36}".r
+  private val editorialPost = "/en/editorial/posts/[0-9a-fA-F-]{36}(?:/edit)?".r
   private val postPage = "/en/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
     val path = exchange.getRequestPath
-    val editorial = path == "/en/editorial" || editorialPost.matches(path)
+    val editorial = path == "/en/editorial" || path == "/en/editorial/new" || editorialPost.matches(path)
     val page = editorial || path == "/en" || path == "/en/" || accountPages.contains(path) || postPage.matches(path)
     if (path == "/service" || path.startsWith("/service/")) api.handleRequest(exchange)
     else if (!publicPaths.contains(path) && !page) {

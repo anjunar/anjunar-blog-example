@@ -67,7 +67,11 @@ Hibernate's existing callbacks protect complete entities; safe problem details
 carry validation errors back to the client. Concurrent requests and failed
 writes are covered through real HTTP and PostgreSQL; the browser runs the exact
 article example. Reference loading stays closed until relationships in chapter 17.
-Chapter 15 will bind this write contract to an editing form.
+Chapter 15 binds this write contract directly to BlogPost in an accessible create/edit
+form. It displays local and server errors, follows create/update links, preserves
+newer typing across delayed saves, and keeps conflicts until explicit discard/reload.
+The real browser workflow creates and edits a post against PostgreSQL.
+Chapter 16 adds search, filtering and richer pagination.
 
 ## Further topics
 
