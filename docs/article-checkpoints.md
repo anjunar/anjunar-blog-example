@@ -294,3 +294,48 @@ BlogPost now implements EntityProvider and uses Scala Long for its version,
 initialized to -1 and assigned 0 on insertion. Its PostgreSQL column is unchanged.
 The transaction boundary also keeps implicit HEAD responses open through the
 writer, because RESTEasy invokes serialization before suppressing the body.
+
+## 09 — Building the First Interface with Scala.js
+
+- Article slug: `abt-09-building-the-first-interface-with-scala-js`
+- Source revision: [b7c8f76](https://github.com/anjunar/anjunar-blog-example/tree/b7c8f7674c759a27432925353a7b2090038b8c5b)
+
+This chapter adds a separate Scala.js module and an English journal page with
+local post previews. Property, when, and the DSL foreach drive its summary toggle
+and ordering. The whole component tree stays in compose, with i18n UI messages,
+semantic HTML, keyboard controls, and responsive styles.
+
+### Check out and open this version
+
+From the repository root:
+
+```text
+git switch --detach b7c8f7674c759a27432925353a7b2090038b8c5b
+sbt --server frontendAssets "application-backend/run"
+```
+
+Open http://127.0.0.1:8080/. This preview does not need PostgreSQL.
+The existing Undertow server serves the linked JavaScript, HTML, and CSS.
+Stop with Ctrl+C; rebuild frontendAssets and reload after editing the frontend.
+
+Scala.js UI 1.0.9 is resolved from Maven Central. The sbt plugin is 1.22.0,
+with the existing JDK 25, Scala 3.9.0, and sbt 2.0.9 setup.
+
+### Verify
+
+```text
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
+
+Expect four browser tests. Playwright builds the assets and starts the real
+backend on port 18080, which must be free. Node/npm is needed for these tests.
+
+With a separate PostgreSQL database configured and migrated, run
+`sbt --server "application-backend/testFull"` for 42 backend tests.
+An existing chapter 6/7/8 database needs no schema change.
+
+The [first interface guide](first-interface.md) explains the source files,
+asset workflow, test coverage, and current local-data scope. API loading and
+post routing follow in chapter 10.

@@ -4,7 +4,9 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import java.net.{InetAddress, ServerSocket, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+import java.nio.file.Path
 import java.time.Duration
+import java.util.UUID
 
 class ServerIntegrationSpec extends AnyFunSuite {
 
@@ -38,4 +40,26 @@ class ServerIntegrationSpec extends AnyFunSuite {
     }
   }
 
+  test("API liveness remains available before frontend assets are built") {
+    val reservation = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
+    val port = try reservation.getLocalPort finally reservation.close()
+    val missingAssets = Path.of("target", s"missing-assets-${UUID.randomUUID()}")
+    val server = ApplicationMain.start(port, missingAssets)
+    val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
+    try {
+      def get(path: String): HttpResponse[String] =
+        client.send(
+          HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port$path"))
+            .timeout(Duration.ofSeconds(10)).GET().build(),
+          HttpResponse.BodyHandlers.ofString()
+        )
+
+      assert(get("/service/health/live").statusCode() == 200)
+      assert(get("/").statusCode() == 503)
+      assert(get("/service/missing").statusCode() == 404)
+    } finally {
+      client.close()
+      server.stop()
+    }
+  }
 }

@@ -1,3 +1,6 @@
+import org.scalajs.linker.interface.ModuleKind
+import org.scalajs.sbtplugin.ScalaJSPlugin
+
 ThisBuild / organization := "com.anjunar"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.9.0"
@@ -33,5 +36,26 @@ lazy val backend = Project("application-backend", file("application/backend"))
   )
 
 lazy val root = Project("anjunar-blog-tutorial", file("."))
-  .aggregate(backend)
+  .aggregate(backend, frontend)
   .settings(publish / skip := true)
+
+lazy val frontend = Project("application-frontend", file("application/frontend"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    libraryDependencies += "com.anjunar" %% "scalajs-ui-core" % "1.0.9",
+    scalaJSUseMainModuleInitializer := true,
+    scalaJSLinkerConfig := scalaJSLinkerConfig.value.withModuleKind(ModuleKind.ESModule)
+  )
+
+lazy val frontendAssets = taskKey[File]("Build and copy the browser application")
+frontendAssets / aggregate := false
+
+frontendAssets := Def.uncached {
+  val _ = (frontend / Compile / fastLinkJS).value
+  val linked = (frontend / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
+  val destination = (LocalRootProject / baseDirectory).value / "target" / "frontend"
+  IO.createDirectory(destination)
+  IO.copyDirectory(linked, destination)
+  IO.copyDirectory((frontend / Compile / resourceDirectory).value, destination)
+  destination
+}

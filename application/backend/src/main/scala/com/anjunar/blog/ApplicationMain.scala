@@ -1,8 +1,10 @@
 package com.anjunar.blog
 
-import dev.resteasy.embedded.server.UndertowCdiEmbeddedServer
+import dev.resteasy.embedded.server.{UndertowCdiEmbeddedServer, UndertowConfigurationOptions}
+import io.undertow.servlet.api.DeploymentInfo
 import jakarta.ws.rs.SeBootstrap
 
+import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.util.control.NonFatal
@@ -18,17 +20,21 @@ object ApplicationMain {
       if (stopped.compareAndSet(false, true)) server.stop()
 
     Runtime.getRuntime.addShutdownHook(new Thread(() => stop(), "blog-shutdown"))
-    println(s"Blog server: http://127.0.0.1:$port/service/hello")
+    println(s"Blog: http://127.0.0.1:$port/")
+    println(s"API: http://127.0.0.1:$port/service/blog/posts")
 
     try new CountDownLatch(1).await()
     finally stop()
   }
 
-  def start(port: Int): UndertowCdiEmbeddedServer = {
+  def start(port: Int, assets: Path = Path.of("target", "frontend")): UndertowCdiEmbeddedServer = {
     require(port >= 1 && port <= 65535, "BLOG_PORT must be between 1 and 65535")
     val server = new UndertowCdiEmbeddedServer()
     server.getDeployment.setApplication(new ServerApplication())
+    val deployment = new DeploymentInfo()
+      .addInitialHandlerChainWrapper(api => new FrontendHandler(api, assets))
     val configuration = SeBootstrap.Configuration.builder()
+      .property(UndertowConfigurationOptions.DEPLOYMENT_INFO, deployment)
       .host("127.0.0.1")
       .port(port)
       .rootPath("/")

@@ -96,7 +96,7 @@ just as it does for GET. Only responses without an entity finish in the response
 filter. GET and HEAD still roll back; the writer's buffered response is sent
 after transaction completion.
 
-`sbt --server "application-backend/testFull"` runs 41 tests, including eight
+`sbt --server "application-backend/testFull"` runs the backend suite, including eight
 HTTP checks for the public contract. The tests start the real server, seed their
 own rows, and remove only those rows. Use a separate migrated PostgreSQL test
 database. Error cases intentionally produce server logs.

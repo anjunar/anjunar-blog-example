@@ -18,6 +18,9 @@
 - Default mapper rules allow reads and deny writes. Public row visibility still belongs in queries/endpoint checks; findPublishedBySlug excludes drafts. Introduce authenticated write rules in their planned chapter.
 - Public reads use BlogPost.list/detail named graphs, Data/Table envelopes, and MapperMessageBodyWriter. Keep version in both graphs; a graph selects fields, while queries enforce published-row visibility. Schema response metadata describes structure, not permissions.
 - Keep each UI tree together in compose; use the i18n macro for new translatable UI messages.
+- The frontend module uses scalajs-ui-core 1.0.9 from Maven Central. Chapter 9 renders local PostPreview examples; API mapping and routing follow in chapter 10. Keep editorial text separate from i18n UI messages.
+- Build browser assets from the repository root with sbt --server frontendAssets. Edit application/frontend sources, never target/frontend. The existing backend serves this directory; API startup must not depend on it existing.
+- Browser check: npm ci, npx playwright install chromium, npm run test:browser. Playwright starts the real backend on free port 18080 and does not need PostgreSQL. The backend suite still needs its migrated test database.
 - Add appropriate functional checks alongside each feature.
 - Current check: sbt --server "application-backend/testFull". Use a separate local PostgreSQL database, BLOG_DB_PASSWORD, migrated with SchemaMain; see README.md and docs/schema-evolution.md for setup. Preserve SchemaId values and named publication checks; run migrations on the compile classpath so test-only entities are excluded. Model tests remove their own rows; transaction tests create and drop a uniquely named probe table.
 - Do not modify the reference repository or content repository without a corresponding request.
