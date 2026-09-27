@@ -261,3 +261,36 @@ resolution for existing checkouts that may previously have used local Ivy artifa
 The persistence tests activate CDI's request context before beginning a transaction.
 BlogPost.schema must first be evaluated with an active request EntityManager and
 initialized Hibernate metamodel. Normal startup and SchemaMain do not evaluate it.
+
+## 08 — Serving Posts through REST
+
+- Article slug: `abt-08-serving-posts-through-rest`
+- Source revision: [54fac60](https://github.com/anjunar/anjunar-blog-example/tree/54fac6042b34be4c8d7ab9b3f4ed054272220b81)
+
+This chapter completes the first milestone with public list and detail endpoints.
+Named entity graphs select the fields; Data/Table envelopes carry entities and
+structural field metadata through the JSON mapper. Queries exclude drafts.
+
+### Check out and run this version
+
+```text
+git switch --detach 54fac6042b34be4c8d7ab9b3f4ed054272220b81
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+sbt --server "application-backend/testFull"
+sbt --server "application-backend/run"
+```
+
+Use JDK 25 and a separate local PostgreSQL database with BLOG_DB_URL,
+BLOG_DB_USER and BLOG_DB_PASSWORD configured as in the README.
+A chapter 6/7 database reports AlreadyApplied with zero SQL statements.
+An empty database is initialized by migrate. Follow chapter 6's adoption sequence
+first when starting from chapter 5.
+
+Expect 41 successful tests. The [public API guide](public-rest.md) supplies optional
+example posts, curl commands, and the exact list/detail and empty-page contracts.
+The example script can be applied twice without replacing the existing examples.
+
+BlogPost now implements EntityProvider and uses Scala Long for its version,
+initialized to -1 and assigned 0 on insertion. Its PostgreSQL column is unchanged.
+The transaction boundary also keeps implicit HEAD responses open through the
+writer, because RESTEasy invokes serialization before suppressing the body.
