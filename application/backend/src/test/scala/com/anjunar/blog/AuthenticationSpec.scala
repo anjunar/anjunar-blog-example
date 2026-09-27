@@ -79,7 +79,7 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
       val builder = HttpRequest.newBuilder(URI.create(s"http://127.0.0.1:$port/service/$path"))
         .timeout(Duration.ofSeconds(20)).header("Accept", "application/json")
       if (csrf.nonEmpty) builder.header("X-CSRF-Token", csrf)
-      extra.foreach((key, value) => builder.header(key, value))
+      extra.foreach((key, value) => builder.setHeader(key, value))
       if (method == "POST") builder.header("Content-Type", "application/json")
       builder.method(method, HttpRequest.BodyPublishers.ofString(body))
       client.send(builder.build(), HttpResponse.BodyHandlers.ofString())
@@ -220,6 +220,68 @@ class AuthenticationSpec extends AnyFunSuite with BeforeAndAfterAll {
     json(browser.login(account()))
     val other = new Browser()
     assert(other.send(s"auth/me;jsessionid=${browser.cookie}").statusCode() != 200)
+  }
+
+
+  test("Soteria establishes one identity and current roles in Servlet, REST and Jakarta Security") {
+    val email = account()
+    val browser = new Browser()
+    def probe(): Map[String, String] = {
+      val response = browser.send("auth/probe", extra = Map("Accept" -> "text/plain"))
+      assert(response.statusCode() == 200, response.body())
+      response.body().linesIterator.map(_.split("=", 2)).map(parts => parts(0) -> parts(1)).toMap
+    }
+    val anonymous = probe()
+    assert(Seq("servlet", "rest", "jakarta").forall(anonymous(_) == "anonymous"))
+    assert(anonymous("typedPrincipals") == "0")
+    val id = json(browser.login(email)).getJsonObject("account").getString("id")
+    val signedIn = probe()
+    assert(Seq("servlet", "rest", "jakarta").forall(signedIn(_) == id))
+    assert(Seq("servletAdmin", "restAdmin", "jakartaAdmin").forall(signedIn(_) == "true"))
+    assert(signedIn("typedPrincipals") == "1")
+    assert(signedIn("container") == "org.wildfly.elytron.web.undertow.server.servlet.ServletSecurityContextImpl")
+    assert(signedIn("storeHandler") != signedIn("mechanismHandler"))
+    Using.resource(connection()) { connection =>
+      Using.resource(connection.prepareStatement("update public.blog_account set role = 'READER' where email = ?")) { query =>
+        query.setString(1, email)
+        query.executeUpdate()
+      }
+    }
+    val changed = probe()
+    assert(Seq("servletAdmin", "restAdmin", "jakartaAdmin").forall(changed(_) == "false"))
+    assert(Seq("servletReader", "restReader", "jakartaReader").forall(changed(_) == "true"))
+    val token = browser.session().getString("csrfToken")
+    json(browser.send("auth/logout", "POST", csrf = token))
+    assert(Seq("servlet", "rest", "jakarta").forall(probe()(_) == "anonymous"))
+  }
+
+  test("a failed login response or commit never grants a persistent session") {
+    for (failure <- Seq("writer", "commit")) {
+      val browser = new Browser()
+      val token = browser.session().getString("csrfToken")
+      val cookie = browser.cookie
+      val body = new JsonObject().put("email", account()).put("password", password).encode()
+      assert(browser.send("auth/login", "POST", body, token,
+        Map("X-Test-Auth-Failure" -> failure)).statusCode() == 500)
+      assert(browser.cookie == cookie)
+      assert(browser.send("auth/me").statusCode() == 401)
+      assert(browser.session().getString("csrfToken") == token)
+    }
+  }
+
+  test("a failed logout response or commit preserves the existing authenticated session") {
+    val browser = new Browser()
+    val token = json(browser.login(account())).getString("csrfToken")
+    val cookie = browser.cookie
+    for (failure <- Seq("writer", "commit")) {
+      assert(browser.send("auth/logout", "POST", csrf = token,
+        extra = Map("X-Test-Auth-Failure" -> failure)).statusCode() == 500)
+      assert(browser.cookie == cookie)
+      assert(browser.send("auth/me").statusCode() == 200)
+      assert(browser.session().getString("csrfToken") == token)
+    }
+    json(browser.send("auth/logout", "POST", csrf = token))
+    assert(browser.send("auth/me").statusCode() == 401)
   }
 
   test("secure cookies are the default") {

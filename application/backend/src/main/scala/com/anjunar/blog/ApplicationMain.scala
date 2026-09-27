@@ -49,6 +49,7 @@ object ApplicationMain {
       })
       .addInitialHandlerChainWrapper(api =>
         new SameSiteCookieHandler(new FrontendHandler(api, assets), "Lax", SecurityConfig.cookieName))
+    server.securityDomain = SoteriaIntegration.configure(deployment)
     val configuration = SeBootstrap.Configuration.builder()
       .property(UndertowConfigurationOptions.DEPLOYMENT_INFO, deployment)
       .host("127.0.0.1")

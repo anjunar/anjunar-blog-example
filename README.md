@@ -24,8 +24,9 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 
 The journal reads published posts from PostgreSQL and now has an account page
 at /en/account. An operator creates the first administrator with an explicit
-command. Sign-in uses a salted password hash and a server-side session with
-CSRF protection, rotation, revocation, and logout.
+command. Sign-in uses Jakarta Security/Soteria, an IdentityStore, and Elytron's
+Undertow integration. The container supplies the authenticated principal and roles;
+server-side sessions retain CSRF protection, rotation, revocation, and logout.
 
 Follow [User accounts and sign-in](docs/user-accounts.md) to migrate the
 database, bootstrap the administrator, configure local HTTP cookies, and test
@@ -174,8 +175,10 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **61 successful backend tests**. The account tests verify password
-hashing, CSRF, session rotation, logout, revocation, private responses, and limits. The BlogPost tests cover field and publication
+Expect **64 successful backend tests**. The account tests verify password
+hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
+They also verify the same caller through Servlet/JAX-RS/Jakarta Security and
+failed login/logout serialization or commit without a persistent session change. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
 slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
