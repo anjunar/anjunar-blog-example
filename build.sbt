@@ -1,6 +1,8 @@
 ThisBuild / organization := "com.anjunar"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.9.0"
+// Keep local publishLocal artifacts out of the reproducible tutorial build.
+ThisBuild / externalResolvers := Seq(Resolver.mavenCentral)
 
 lazy val backend = Project("application-backend", file("application/backend"))
   .settings(
@@ -11,6 +13,7 @@ lazy val backend = Project("application-backend", file("application/backend"))
       "io.undertow" % "undertow-core" % "2.4.3.Final",
       "io.undertow.ee" % "undertow-servlet" % "2.0.2.Final",
       "org.jboss.weld.servlet" % "weld-servlet-core" % "6.0.4.Final",
+      "com.anjunar" %% "json-mapper" % "1.1.5",
       "com.anjunar.hibernateddl" %% "schema-integration" % "1.1.0",
       "org.hibernate.orm" % "hibernate-core" % "7.4.10.Final",
       "org.hibernate.validator" % "hibernate-validator" % "9.1.4.Final",

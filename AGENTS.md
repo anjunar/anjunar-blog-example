@@ -13,6 +13,9 @@
 - English is the application's primary language. Introduce German as the second language in the internationalization chapter.
 - Preserve the contract across the entity, EntitySchema, REST graph, and frontend model.
 - Discover entity classes through EntityExtension and EntityRegistry. Entity-containing archives need beans.xml with bean-discovery-mode="all"; do not maintain a manual entity list in Persistence.
+- BlogPost.Schema is the complete mapper and Criteria field model. Use reference for persistent singular attributes and preserve SingularProperty types; property is for mapper-only or transient fields. Keep every published @JsonbProperty field in the schema.
+- Initialize SchemaProvider schemas only after Hibernate is ready and a CDI request transaction is active. RuntimeContext resolves the request EntityManager. Never store caller-specific permission state in a cached schema.
+- Default mapper rules allow reads and deny writes. Public row visibility still belongs in queries/endpoint checks; findPublishedBySlug excludes drafts. Introduce authenticated write rules in their planned chapter.
 - Keep each UI tree together in compose; use the i18n macro for new translatable UI messages.
 - Add appropriate functional checks alongside each feature.
 - Current check: sbt --server "application-backend/testFull". Use a separate local PostgreSQL database, BLOG_DB_PASSWORD, migrated with SchemaMain; see README.md and docs/schema-evolution.md for setup. Preserve SchemaId values and named publication checks; run migrations on the compile classpath so test-only entities are excluded. Model tests remove their own rows; transaction tests create and drop a uniquely named probe table.

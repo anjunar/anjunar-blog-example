@@ -20,7 +20,7 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: schema evolution
+## Current state: an entity schema and typed queries
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
@@ -38,6 +38,16 @@ The model is exercised through persistence tests; public post endpoints come lat
 registration; Hibernate manages their instances. No entity list is maintained in
 `Persistence`.
 
+`BlogPost.Schema` describes all eight persistent fields with typed JPA attributes.
+The mapper uses the same schema to apply field rules; default rules allow reading
+and ignore incoming writes. `findPublishedBySlug` uses the schema directly in a
+Criteria query and excludes drafts. Public post HTTP endpoints follow in chapter 8.
+
+The schema is initialized lazily through the active CDI request's EntityManager.
+Do not access it during bootstrap or cache caller-specific permissions in it.
+`InstantConverter` preserves publication timestamps as ISO-8601 strings. Mapper
+tests verify all populated fields, omitted nulls, version zero, and denied writes.
+
 ### Prerequisites
 
 - JDK 25. We will use GraalVM for server-side rendering later.
@@ -47,6 +57,13 @@ registration; Hibernate manages their instances. No entity list is maintained in
 
 All JVM library versions are pinned in `build.sbt`. Node/npm enters the project
 in the frontend chapters. No other Anjunar repository needs a local build.
+
+The build resolves application dependencies exclusively from Maven Central.
+When updating an existing checkout to this chapter, refresh resolution once:
+
+```text
+sbt --server "application-backend/update"
+```
 
 ### Start a development database
 
@@ -116,7 +133,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **28 successful tests**. The BlogPost tests cover field and publication
+Expect **33 successful tests**. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
 slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
@@ -127,6 +144,8 @@ responses without a body. Intentional failure cases produce server error logs.
 
 The persistence suite starts CDI and also checks discovery of a second test-only
 entity, its Hibernate mapping, and the exclusion of entities from CDI bean resolution.
+Schema tests compare the field model with Hibernate, query a published slug using
+typed attributes, and exercise real JSON serialization and protected writes.
 The original HTTP and CDI lifecycle tests still run. Use `testFull` because
 sbt 2's incremental `test` can skip previously successful tests.
 
