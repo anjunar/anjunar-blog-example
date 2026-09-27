@@ -564,18 +564,19 @@ and form binding remain chapters 14 and 15.
 ## 14 — Applying Changes Safely
 
 - Article slug: `abt-14-applying-changes-safely`
-- Source revision: [a701781](https://github.com/anjunar/anjunar-blog-example/tree/a70178141e12e37bf89350607a7b3eed44af8c52)
+- Source revision: [bb212a1](https://github.com/anjunar/anjunar-blog-example/tree/bb212a133dc20f9647ead13d5347be42e5829592)
 - Starting revision: chapter 13, `37f2a3e6a7d440be4bbc99730bc430915f1bdaa4`.
 
 The editorial API creates drafts and applies partial updates through PreparedChange.
-Controllers authorize the original entity before applying it. Required versions,
-full validation and request rollback protect edits; safe problem details carry
+Controllers authorize the original entity before applying it. The JSON mapper
+validates submitted values; Hibernate's existing callbacks validate persisted
+entities. Required versions and request rollback protect edits; problem details carry
 field errors and conflicts to the client.
 
 ### Check out and run
 
 ```text
-git switch --detach a70178141e12e37bf89350607a7b3eed44af8c52
+git switch --detach bb212a133dc20f9647ead13d5347be42e5829592
 sbt --server frontendAssets
 sbt --server "application-backend/run"
 ```
