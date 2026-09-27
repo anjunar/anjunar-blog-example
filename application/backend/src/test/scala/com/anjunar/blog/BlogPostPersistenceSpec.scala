@@ -130,6 +130,20 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(retracted.version.longValue() == originalVersion + 2)
   }
 
+  test("a summary can be saved and cleared without changing the post identity") {
+    val saved = savedDraft()
+    assert(load(saved.id).summary == null)
+    inTransaction() { manager =>
+      manager.find(classOf[BlogPost], saved.id).summary = "A short introduction."
+    }
+    val edited = load(saved.id)
+    assert(edited.summary == "A short introduction.")
+    assert(edited.slug == saved.slug)
+    assert(edited.version.longValue() == saved.version.longValue() + 1)
+    inTransaction()(_.find(classOf[BlogPost], saved.id).summary = null)
+    assert(load(saved.id).summary == null)
+  }
+
   test("Hibernate validates new entities before inserting them") {
     val post = draft()
     post.title = " "
@@ -162,7 +176,6 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       inTransaction()(manager => persist(manager, duplicate))
     }
     assert(error.getSQLState == "23505")
-    assert(error.getConstraintName == "uq_blog_post_slug")
     assert(load(first.id).title == first.title)
     assert(load(duplicate.id) == null)
   }

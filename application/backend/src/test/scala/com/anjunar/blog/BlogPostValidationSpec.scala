@@ -57,6 +57,15 @@ class BlogPostValidationSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
+  test("a summary is optional and accepts at most 300 characters") {
+    val post = draft()
+    assert(violations(post).isEmpty)
+    post.summary = "a" * 300
+    assert(violations(post).isEmpty)
+    post.summary = "a" * 301
+    assert(violations(post).contains("summary"))
+  }
+
   test("publishing and retracting keep status and publication time together") {
     val post = draft()
     post.content = "The first paragraph."

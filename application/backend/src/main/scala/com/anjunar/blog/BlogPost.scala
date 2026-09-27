@@ -56,6 +56,11 @@ class BlogPost {
   @SchemaId("398bfd50")
   var publishedAt: Instant = null
 
+  @Size(max = 300)
+  @Column(length = 300)
+  @SchemaId("0ca6e520")
+  var summary: String = null
+
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
