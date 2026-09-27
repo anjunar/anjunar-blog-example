@@ -394,18 +394,19 @@ Playwright starts and stops its own server. See the
 ## 11 — User Accounts and Sign-In
 
 - Article slug: `abt-11-user-accounts-and-sign-in`
-- Source revision: [320c303](https://github.com/anjunar/anjunar-blog-example/tree/320c30394eb53a51e9c29cfecec3b61b681841a1)
+- Source revision: [8c7f7a9](https://github.com/anjunar/anjunar-blog-example/tree/8c7f7a93fa164a3a3f64395e529a358605621f22)
 
 This chapter adds the Account entity, an explicit first-administrator command,
-password verification, server-side sessions, CSRF protection, and /en/account.
+Jakarta Security/Soteria authentication through Elytron and Undertow, password
+verification, server-side sessions, CSRF protection, and /en/account.
 The public blog remains anonymous. Registration, email confirmation, and
 password recovery follow in chapter 12; later roadmap topics move forward by one.
 
 ### Check out and prepare this version
 
 ```text
-git switch --detach 320c30394eb53a51e9c29cfecec3b61b681841a1
-sbt --server "application-frontend/update"
+git switch --detach 8c7f7a93fa164a3a3f64395e529a358605621f22
+sbt --server "application-backend/update" "application-frontend/update"
 sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
 ```
 
@@ -436,9 +437,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect 61 backend tests, 9 Scala.js model tests, and 16 browser contract tests.
+Expect 64 backend tests, 9 Scala.js model tests, and 16 browser contract tests.
 The backend suite needs its dedicated migrated database. Browser contract
 tests intercept data requests and need no database.
+The backend also compares Servlet/JAX-RS/Jakarta Security identity and roles,
+and checks that failed login/logout responses or commits do not change sessions.
 
 With the sample posts loaded, run npm run test:browser:database for two real
 blog workflows. With an administrator bootstrapped in that test database and
