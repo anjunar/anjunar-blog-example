@@ -622,6 +622,7 @@ reference loading is rejected until chapter 17 adds authorized target loading.
 
 - Article slug: `abt-15-building-a-form-from-end-to-end`
 - Source revision: [9e3edb2](https://github.com/anjunar/anjunar-blog-example/tree/9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b)
+- Corrected editor: [214eeb6](https://github.com/anjunar/anjunar-blog-example/blob/214eeb6d5a2c6062013d95abf7f990a1cb032cce/application/frontend/src/main/scala/com/anjunar/blog/frontend/PostEditorPage.scala). The run commands apply this DSL correction to the chapter 15 snapshot.
 - Starting revision: chapter 14, `bb212a133dc20f9647ead13d5347be42e5829592`.
 
 The editorial form binds directly to the frontend BlogPost and uses the chapter
@@ -633,6 +634,7 @@ server errors return to the affected inputs.
 
 ```text
 git switch --detach 9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b
+git restore --source 214eeb6d5a2c6062013d95abf7f990a1cb032cce -- application/frontend/src/main/scala/com/anjunar/blog/frontend/PostEditorPage.scala
 sbt --server frontendAssets
 sbt --server "application-backend/run"
 ```
@@ -676,7 +678,7 @@ retries, autosave and offline storage are outside this chapter.
 ## 16 — Searching, Filtering and Pagination
 
 - Article slug: `abt-16-searching-filtering-and-pagination`
-- Source revision: [39ccf8f](https://github.com/anjunar/anjunar-blog-example/tree/39ccf8f0af8c785e025d8e48aa171b4595c02cb1)
+- Source revision: [214eeb6](https://github.com/anjunar/anjunar-blog-example/tree/214eeb6d5a2c6062013d95abf7f990a1cb032cce)
 - Starting revision: chapter 15, `9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b`.
 
 Public and editorial lists use the stack's HibernateSearch architecture with
@@ -685,11 +687,13 @@ and count use the same search context and typed EntitySchema attributes.
 Editorial adds a status filter.
 Whitelisted sorting, UUID tie-breakers and filter-preserving URLs make the
 page navigation predictable. SQL constructor projections omit the post body.
+Form attributes use AttributeDsl.setAttribute inside their DSL blocks; reactive
+attribute observers are attached and disposed within their target control.
 
 ### Check out and run
 
 ```text
-git switch --detach 39ccf8f0af8c785e025d8e48aa171b4595c02cb1
+git switch --detach 214eeb6d5a2c6062013d95abf7f990a1cb032cce
 sbt --server frontendAssets
 sbt --server "application-backend/run"
 ```
