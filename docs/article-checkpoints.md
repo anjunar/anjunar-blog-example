@@ -676,18 +676,20 @@ retries, autosave and offline storage are outside this chapter.
 ## 16 — Searching, Filtering and Pagination
 
 - Article slug: `abt-16-searching-filtering-and-pagination`
-- Source revision: [4106366](https://github.com/anjunar/anjunar-blog-example/tree/4106366cb683e4cb61c232a9bd2afd587c20fb3f)
+- Source revision: [39ccf8f](https://github.com/anjunar/anjunar-blog-example/tree/39ccf8f0af8c785e025d8e48aa171b4595c02cb1)
 - Starting revision: chapter 15, `9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b`.
 
-Public and editorial lists search title, slug and summary with shared typed
-Criteria predicates for rows and count. Editorial adds a status filter.
+Public and editorial lists use the stack's HibernateSearch architecture with
+AbstractSearch, annotated fields and CDI predicate/sort providers. Both rows
+and count use the same search context and typed EntitySchema attributes.
+Editorial adds a status filter.
 Whitelisted sorting, UUID tie-breakers and filter-preserving URLs make the
 page navigation predictable. SQL constructor projections omit the post body.
 
 ### Check out and run
 
 ```text
-git switch --detach 4106366cb683e4cb61c232a9bd2afd587c20fb3f
+git switch --detach 39ccf8f0af8c785e025d8e48aa171b4595c02cb1
 sbt --server frontendAssets
 sbt --server "application-backend/run"
 ```
@@ -714,7 +716,7 @@ npx playwright test --project=contracts
 npx playwright test --project=search --project=forms --project=changes --project=editorial --project=database --project=authentication --project=recovery
 ```
 
-This checkpoint passes 121 backend tests, 26 Scala.js tests and all 56 browser
+This checkpoint passes 125 backend tests, 26 Scala.js tests and all 56 browser
 tests: 48 controlled contracts and eight real workflows. Desktop and mobile
 search layouts were checked.
 
@@ -726,6 +728,8 @@ projection, editorial drafts and public visibility after sign-in.
 Coverage includes literal LIKE punctuation, URL-encoded Unicode, percent escapes
 and braces, equal-key ties, null-date ordering, filtered counts, empty pages,
 invalid query values and a delayed search disposed by later navigation.
+HibernateSearchSpec also covers an independent CDI provider with entity/scalar
+projections, missing-provider failures and generic page bounds.
 
 Substring search can scan rows; offset pagination is not a snapshot under
 concurrent changes. These limits and the projection's authorization boundary
