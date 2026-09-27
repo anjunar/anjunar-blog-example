@@ -32,7 +32,7 @@ class BlogPostValidationSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(post.status == BlogPostStatus.DRAFT)
     assert(post.publishedAt == null)
     assert(post.id == null)
-    assert(post.version == null)
+    assert(post.version == -1L)
   }
 
   test("field annotations reject missing values, invalid slugs, and oversized text") {

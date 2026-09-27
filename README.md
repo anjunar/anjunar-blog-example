@@ -20,7 +20,7 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: an entity schema and typed queries
+## Current state: public post endpoints
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
@@ -28,9 +28,8 @@ A request owns its EntityManager and transaction through response serialization.
 
 `BlogPost` now maps to PostgreSQL with a generated UUID, optimistic-lock version,
 unique slug, title, content, optional summary, publication status, and publication time.
-Bean
-Validation checks fields and publication consistency before inserts and updates.
-The model is exercised through persistence tests; public post endpoints come later.
+Bean Validation checks fields and publication consistency before inserts and updates.
+Visitors can now list published posts and read a complete post by slug through REST.
 
 `EntityExtension` discovers `@Entity` classes through CDI and supplies an injectable
 `EntityRegistry` to the Hibernate bootstrap. Entity-containing archives use
@@ -41,12 +40,19 @@ registration; Hibernate manages their instances. No entity list is maintained in
 `BlogPost.Schema` describes all eight persistent fields with typed JPA attributes.
 The mapper uses the same schema to apply field rules; default rules allow reading
 and ignore incoming writes. `findPublishedBySlug` uses the schema directly in a
-Criteria query and excludes drafts. Public post HTTP endpoints follow in chapter 8.
+Criteria query and excludes drafts. Named entity graphs select compact list fields
+or the complete post.
 
 The schema is initialized lazily through the active CDI request's EntityManager.
 Do not access it during bootstrap or cache caller-specific permissions in it.
 `InstantConverter` preserves publication timestamps as ISO-8601 strings. Mapper
 tests verify all populated fields, omitted nulls, version zero, and denied writes.
+
+The public API returns entities in Data/Table envelopes through a custom JSON
+writer. Lists exclude content; details include it. Draft and unknown slugs return
+404. Pagination is bounded, and each response describes its selected fields.
+See the [public API guide](docs/public-rest.md) for the JSON contract, optional
+example posts, and curl commands.
 
 ### Prerequisites
 
@@ -133,7 +139,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **33 successful tests**. The BlogPost tests cover field and publication
+Expect **41 successful tests**. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
 slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
@@ -146,6 +152,8 @@ The persistence suite starts CDI and also checks discovery of a second test-only
 entity, its Hibernate mapping, and the exclusion of entities from CDI bean resolution.
 Schema tests compare the field model with Hibernate, query a published slug using
 typed attributes, and exercise real JSON serialization and protected writes.
+Eight public REST tests also verify list/detail projections, total counts, stable
+pagination, draft exclusion, invalid input, unsupported writes, and HEAD.
 The original HTTP and CDI lifecycle tests still run. Use `testFull` because
 sbt 2's incremental `test` can skip previously successful tests.
 
@@ -185,7 +193,9 @@ application with Ctrl+C; on Windows the sbt batch launcher may ask for confirmat
 6. The transaction commits successful writes, or rolls back reads and failures.
 7. The EntityManager closes, then the buffered response is sent.
 
-HEAD and responses without an entity finish in the response filter.
+Responses without an entity finish in the response filter. RESTEasy also invokes
+the writer for implicit HEAD responses before suppressing the body, so those
+requests keep the EntityManager open through serialization.
 An unfinished request rolls back during CDI destruction. `Persistence` closes
 the EntityManagerFactory and then the pool on shutdown.
 

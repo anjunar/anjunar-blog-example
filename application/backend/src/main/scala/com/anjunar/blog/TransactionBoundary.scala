@@ -33,7 +33,8 @@ class TransactionBoundary
     successful = response.getStatus < 400
     try {
       transaction.flush(successful)
-      if (!response.hasEntity || request.getMethod == "HEAD") transaction.finish(successful)
+      // RESTEasy also serializes implicit HEAD responses; its writer still needs the EntityManager.
+      if (!response.hasEntity) transaction.finish(successful)
     } catch {
       case NonFatal(error) =>
         abort(error)

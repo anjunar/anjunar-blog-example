@@ -2,14 +2,16 @@ package com.anjunar.blog
 
 import com.anjunar.hibernateddl.hibernate.annotation.SchemaId
 import com.anjunar.json.mapper.annotations.UseConverter
+import com.anjunar.json.mapper.provider.EntityProvider
 import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
 import com.anjunar.json.mapper.schema.property.SingularProperty
 import jakarta.json.bind.annotation.JsonbProperty
-import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, Enumerated, EnumType, GeneratedValue, GenerationType, Id, Table, Transient, UniqueConstraint, Version}
+import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
 import java.lang
 import java.time.Instant
+import java.util
 import java.util.UUID
 
 @Entity
@@ -19,7 +21,28 @@ import java.util.UUID
   uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_post_slug", columnNames = Array("slug"))),
   check = Array(new CheckConstraint(name = "ck_blog_post_publication",
     constraint = "(status = 'DRAFT' AND published_at IS NULL) OR (status = 'PUBLISHED' AND published_at IS NOT NULL)")))
-class BlogPost {
+@NamedEntityGraphs(Array(
+  new NamedEntityGraph(name = "BlogPost.list", attributeNodes = Array(
+    new NamedAttributeNode("id"),
+    new NamedAttributeNode("version"),
+    new NamedAttributeNode("slug"),
+    new NamedAttributeNode("title"),
+    new NamedAttributeNode("summary"),
+    new NamedAttributeNode("status"),
+    new NamedAttributeNode("publishedAt")
+  )),
+  new NamedEntityGraph(name = "BlogPost.detail", attributeNodes = Array(
+    new NamedAttributeNode("id"),
+    new NamedAttributeNode("version"),
+    new NamedAttributeNode("slug"),
+    new NamedAttributeNode("title"),
+    new NamedAttributeNode("content"),
+    new NamedAttributeNode("summary"),
+    new NamedAttributeNode("status"),
+    new NamedAttributeNode("publishedAt")
+  ))
+))
+class BlogPost extends EntityProvider {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   @Column(nullable = false, updatable = false)
@@ -31,7 +54,7 @@ class BlogPost {
   @Column(nullable = false)
   @SchemaId("dcb0681e")
   @JsonbProperty
-  var version: lang.Long = null
+  var version: Long = -1L
 
   @NotBlank
   @Size(min = 3, max = 220)
@@ -101,7 +124,7 @@ class BlogPost {
 object BlogPost extends SchemaProvider[BlogPost.Schema] {
   class Schema extends EntitySchema[BlogPost](RuntimeContext.entityManager()) {
     val id: SingularProperty[BlogPost, UUID] = reference(_.id)
-    val version: SingularProperty[BlogPost, lang.Long] = reference(_.version)
+    val version: SingularProperty[BlogPost, Long] = reference(_.version)
     val slug: SingularProperty[BlogPost, String] = reference(_.slug)
     val title: SingularProperty[BlogPost, String] = reference(_.title)
     val content: SingularProperty[BlogPost, String] = reference(_.content)
@@ -118,6 +141,31 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
       builder.equal(post.get(schema.slug), builder.parameter(classOf[String], "slug")),
       builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED)
     )
-    Option(entityManager.createQuery(query).setParameter("slug", slug).getSingleResultOrNull)
+    Option(entityManager.createQuery(query)
+      .setHint("jakarta.persistence.fetchgraph", entityManager.getEntityGraph("BlogPost.detail"))
+      .setParameter("slug", slug).getSingleResultOrNull)
+  }
+
+  def listPublished(offset: Int, limit: Int)(using entityManager: EntityManager): util.List[BlogPost] = {
+    val builder = entityManager.getCriteriaBuilder
+    val query = builder.createQuery(classOf[BlogPost])
+    val post = query.from(classOf[BlogPost])
+    query.select(post)
+      .where(Seq(builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED))*)
+      .orderBy(builder.desc(post.get(schema.publishedAt)), builder.asc(post.get(schema.id)))
+    entityManager.createQuery(query)
+      .setHint("jakarta.persistence.fetchgraph", entityManager.getEntityGraph("BlogPost.list"))
+      .setFirstResult(offset)
+      .setMaxResults(limit)
+      .getResultList
+  }
+
+  def countPublished()(using entityManager: EntityManager): Long = {
+    val builder = entityManager.getCriteriaBuilder
+    val query = builder.createQuery(classOf[lang.Long])
+    val post = query.from(classOf[BlogPost])
+    query.select(builder.count(post))
+      .where(Seq(builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED))*)
+    entityManager.createQuery(query).getSingleResult.longValue()
   }
 }
