@@ -339,3 +339,54 @@ An existing chapter 6/7/8 database needs no schema change.
 The [first interface guide](first-interface.md) explains the source files,
 asset workflow, test coverage, and current local-data scope. API loading and
 post routing follow in chapter 10.
+
+## 10 — Connecting the Frontend and Backend
+
+- Article slug: `abt-10-connecting-the-frontend-and-backend`
+- Source revision: [db99261](https://github.com/anjunar/anjunar-blog-example/tree/db992619d48e8938308216641856849e8be9bd97)
+
+This chapter replaces local previews with mirrored BlogPost models, a typed
+HTTP service, shared actions, and list/detail route loaders. It adds loading,
+empty, invalid-page, missing-post, and unavailable states, basic page links, and
+cancellation of superseded requests.
+
+### Check out and open this version
+
+```text
+git switch --detach db992619d48e8938308216641856849e8be9bd97
+sbt --server "application-frontend/update"
+sbt --server frontendAssets "application-backend/run"
+```
+
+Prepare a separate local PostgreSQL database using the README and SchemaMain.
+Existing chapter 6–9 databases need no schema change. Optionally load
+database/examples/public-posts.sql as described in the
+[connection guide](connecting-rest.md#run-with-real-data).
+
+Open http://127.0.0.1:8080/. Follow a post to /en/posts/:slug and reload that
+address. The English router generates /en URLs; / remains an entry point.
+The static document still answers 200 for an unknown post, followed by an API
+404 and a missing-post UI. Server-rendered status codes follow in chapter 19.
+
+### Verify
+
+```text
+npm ci
+npx playwright install chromium
+sbt --server "application-frontend/testFull"
+npm run test:browser
+```
+
+Expect 6 mapping tests and 11 browser contract tests. The browser project starts
+the actual backend but intercepts data requests for deterministic edge cases.
+
+With a dedicated migrated test database seeded with the unchanged SQL examples:
+
+```text
+sbt --server "application-backend/testFull"
+npm run test:browser:database
+```
+
+Expect 42 backend tests and 2 real database browser tests. Keep port 18080 free;
+Playwright starts and stops its own server. See the
+[connection guide](connecting-rest.md#verify) for test data requirements and limits.

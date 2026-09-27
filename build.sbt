@@ -42,7 +42,12 @@ lazy val root = Project("anjunar-blog-tutorial", file("."))
 lazy val frontend = Project("application-frontend", file("application/frontend"))
   .enablePlugins(ScalaJSPlugin)
   .settings(
-    libraryDependencies += "com.anjunar" %% "scalajs-ui-core" % "1.0.9",
+    libraryDependencies ++= Seq(
+      "com.anjunar" %% "scalajs-ui-core" % "1.0.9",
+      "com.anjunar" %% "scalajs-ui-json" % "1.0.9",
+      "com.anjunar" %% "scalajs-ui-router" % "1.0.9",
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test
+    ),
     scalaJSUseMainModuleInitializer := true,
     scalaJSLinkerConfig := scalaJSLinkerConfig.value.withModuleKind(ModuleKind.ESModule)
   )
