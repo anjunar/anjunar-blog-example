@@ -229,3 +229,35 @@ the old SQL scripts or the adoption flag.
 See the [complete command sequence](schema-evolution.md). Expect 28 successful
 tests after migration. Read-only previews of the existing publication check
 report INCOMPLETE (exit 3); execution verifies the predicate under its lock.
+
+## 07 — Describing an Entity with EntitySchema
+
+- Article slug: `abt-07-describing-an-entity-with-entity-schema`
+- Source revision: [ee01b68](https://github.com/anjunar/anjunar-blog-example/tree/ee01b68ac30a1a2f93f1d8153b7f08114637bef2)
+
+BlogPost.Schema describes every persistent field with SingularProperty. The
+same schema drives mapper rules and typed Criteria attributes. A published-slug
+query excludes drafts; mapper tests verify all populated fields, precise Instant
+values, omitted nulls, version zero, and the default prohibition on incoming writes.
+
+### Check out and run this version
+
+```text
+git switch --detach ee01b68ac30a1a2f93f1d8153b7f08114637bef2
+sbt --server "application-backend/update"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+sbt --server "application-backend/testFull"
+```
+
+Use JDK 25 and set BLOG_DB_URL, BLOG_DB_USER and BLOG_DB_PASSWORD for a separate
+local PostgreSQL database as described in the README. When starting with an older
+chapter 5 database, follow chapter 6's adoption sequence before this checkout.
+
+A chapter 6 database reports AlreadyApplied with zero SQL statements. An empty
+database is initialized by migrate. Expect 33 successful tests. The build
+explicitly resolves application dependencies from Maven Central; update refreshes
+resolution for existing checkouts that may previously have used local Ivy artifacts.
+
+The persistence tests activate CDI's request context before beginning a transaction.
+BlogPost.schema must first be evaluated with an active request EntityManager and
+initialized Hibernate metamodel. Normal startup and SchemaMain do not evaluate it.
