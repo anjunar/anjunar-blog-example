@@ -1,6 +1,7 @@
 package com.anjunar.blog
 
 import jakarta.enterprise.context.RequestScoped
+import jakarta.annotation.Priority
 import jakarta.inject.Inject
 import jakarta.ws.rs.container.{ContainerRequestContext, ContainerRequestFilter, ContainerResponseContext, ContainerResponseFilter, ResourceInfo}
 import jakarta.ws.rs.core.Context
@@ -11,6 +12,7 @@ import scala.compiletime.uninitialized
 import scala.util.control.NonFatal
 
 @Provider
+@Priority(2000)
 @RequestScoped
 class TransactionBoundary
     extends ContainerRequestFilter

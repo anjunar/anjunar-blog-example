@@ -51,6 +51,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
         nav {
           ariaLabel = translations.text(i18n"Main navigation")
           routerLink("/") { text(i18n"Latest posts") {} }
+          routerLink("/account") { text(i18n"Account") {} }
           anchor() {
             href = "https://github.com/anjunar/anjunar-blog-example"
             text(i18n"Source code") {}

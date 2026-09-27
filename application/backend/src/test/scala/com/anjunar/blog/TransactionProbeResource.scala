@@ -12,11 +12,13 @@ import java.lang
 import java.io.IOException
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import scala.compiletime.uninitialized
 
 object TransactionProbe {
   // Set once by the database suite; the generated identifier contains only letters and digits.
   var table: String = ""
+  val committed = ConcurrentHashMap.newKeySet[UUID]()
 }
 
 @Path("/_test/transactions")
@@ -25,6 +27,9 @@ object TransactionProbe {
 class TransactionProbeResource {
   @Inject
   var entityManager: EntityManager = uninitialized
+
+  @Inject
+  var transaction: RequestTransaction = uninitialized
 
   private def insert(id: UUID, parent: UUID = null): Unit = {
     entityManager.createNativeQuery(s"insert into ${TransactionProbe.table} (id, parent_id) values (:id, :parent)")
@@ -36,6 +41,7 @@ class TransactionProbeResource {
   @POST
   @Path("/{mode}/{id}")
   def write(@PathParam("mode") mode: String, @PathParam("id") id: UUID): Response = {
+    transaction.afterCommit(() => { TransactionProbe.committed.add(id); () })
     insert(id, if (mode == "commit-failure") UUID.randomUUID() else null)
     mode match {
       case "rejected" => Response.status(400).entity("Rejected\n").build()

@@ -61,7 +61,7 @@ not sort the whole result. Chapter 15 develops searching and sorting further.
 
 The English i18n runtime makes router links locale-aware: /en is the list and
 /en/posts/:slug is a detail. The root / remains an entry point. API URLs still
-start with /service. German catalogs and language selection follow in chapter 18.
+start with /service. German catalogs and language selection follow in chapter 19.
 
 Route loaders pass context.signal through BlogService to fetch. The router
 aborts the old request when navigation changes and uses a render token to reject
@@ -85,11 +85,11 @@ prevent the API from starting.
 A missing post's document currently returns 200 because Undertow only serves
 the static shell. Its subsequent API request returns 404 and the UI shows the
 missing-post page. Route.error records the route's status for the router; it
-cannot change an already sent document response. SSR in chapter 19 will connect
+cannot change an already sent document response. SSR in chapter 20 will connect
 data loading to the document status. Metadata and canonical URLs follow later.
 
 Content is plain text, including strings that resemble HTML. The structured
-editor enters in chapter 17; do not use innerHTML to display today's content.
+editor enters in chapter 18; do not use innerHTML to display today's content.
 
 ## Verify
 
