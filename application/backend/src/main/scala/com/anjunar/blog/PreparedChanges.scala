@@ -6,6 +6,7 @@ import com.anjunar.scala.universe.TypeResolver
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, LockModeType}
+import jakarta.validation.Validator
 import jakarta.ws.rs.NotFoundException
 
 import java.lang.reflect.{ParameterizedType, Type}
@@ -25,7 +26,7 @@ object PreparedChanges {
 class PreparedChanges {
   @Inject var manager: EntityManager = uninitialized
   @Inject var access: PostAccess = uninitialized
-  @Inject var validation: PostValidation = uninitialized
+  @Inject var validator: Validator = uninitialized
 
   def create(json: JsonObject): PreparedChange[BlogPost] = {
     val post = new BlogPost()
@@ -74,6 +75,6 @@ class PreparedChanges {
     }
     JsonMapper.prepare(json, post, TypeResolver.resolve(classOf[BlogPost]),
       manager.getEntityGraph("BlogPost.detail"), noReferences,
-      [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz), validation.validator)
+      [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz), validator)
   }
 }

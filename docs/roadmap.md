@@ -62,8 +62,9 @@ field rules. Per-response links drive available actions, and real HTTP/browser
 tests verify conflicts, revoked access and rollback.
 
 Chapter 14 creates and edits posts through PreparedChange. It requires the current
-version, preserves partial/null semantics, validates the complete entity and
-returns safe problem details with field errors. Concurrent requests and failed
+version, preserves partial/null semantics and uses the mapper's field validation.
+Hibernate's existing callbacks protect complete entities; safe problem details
+carry validation errors back to the client. Concurrent requests and failed
 writes are covered through real HTTP and PostgreSQL; the browser runs the exact
 article example. Reference loading stays closed until relationships in chapter 17.
 Chapter 15 will bind this write contract to an editing form.

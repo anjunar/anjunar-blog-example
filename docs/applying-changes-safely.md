@@ -2,7 +2,8 @@
 
 The editorial API now creates drafts and applies partial edits through the
 published JSON mapper's PreparedChange. The controller receives the original
-entity, checks access, applies once, validates the complete result and flushes.
+entity, checks access, applies once through the mapper and flushes. The mapper
+validates submitted values; Hibernate retains its existing entity-validation callbacks.
 The existing transaction boundary still waits for serialization and commit
 before sending a successful body.
 
@@ -82,14 +83,16 @@ Changing slug changes the public URL. Redirects are a later chapter.
 5. PreparedChanges checks metadata and scalar JSON shapes, then calls JsonMapper.prepare.
    Its providers deliberately support only PreparedChange[BlogPost] in this chapter.
 6. The controller checks change.getEntity() before calling applyChanges once.
-7. Mapper property rules and field validation apply. PostValidation then validates
-   the whole resulting entity, including missing required creation fields and
-   publication consistency.
+7. Mapper property rules and field validation apply inside applyChanges. A CDI
+   ValidationProducer supplies its Validator and owns the factory lifecycle;
+   the controller does not invoke a separate validation pass.
 8. The slug check queries with flush mode COMMIT, so it does not flush the pending
    edit before checking. The database unique constraint resolves racing inserts.
-9. Explicit flush assigns/checks database state. The response includes current
-   values, selected schema fields, version and fresh links; commit still follows
-   response serialization.
+9. Explicit flush assigns/checks database state. Hibernate's existing CALLBACK
+   validation checks the complete entity before insert/update, including omitted
+   required creation fields and publication consistency. The response includes
+   current values, selected schema fields, version and fresh links; commit still
+   follows response serialization.
 
 PreparedChange is deferred binding, not an immutable diff or a nested transaction.
 Applying can change some fields before another field fails. Let that exception

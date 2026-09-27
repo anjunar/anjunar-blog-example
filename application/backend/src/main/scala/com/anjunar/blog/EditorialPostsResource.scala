@@ -23,7 +23,6 @@ class EditorialPostsResource {
   @Inject var manager: EntityManager = uninitialized
   @Inject var access: PostAccess = uninitialized
   @Inject var links: PostLinks = uninitialized
-  @Inject var validation: PostValidation = uninitialized
   @Context var uriInfo: UriInfo = uninitialized
 
   @GET
@@ -52,7 +51,6 @@ class EditorialPostsResource {
   def create(change: PreparedChange[BlogPost]): Response = {
     if (!access.canEdit(change.getEntity())) throw new ForbiddenException()
     val post = change.applyChanges()
-    validation.requireValid(post)
     requireFreeSlug(post)
     manager.persist(post)
     manager.flush()
@@ -66,7 +64,6 @@ class EditorialPostsResource {
   def update(@PathParam("id") change: PreparedChange[BlogPost]): Data[BlogPost] = {
     if (!access.canEdit(change.getEntity())) throw new ForbiddenException()
     val post = change.applyChanges()
-    validation.requireValid(post)
     requireFreeSlug(post)
     manager.flush()
     result(post)

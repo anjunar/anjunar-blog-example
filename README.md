@@ -23,8 +23,9 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 ## Current state: applying changes safely
 
 The editorial API now creates drafts and applies partial edits through PreparedChange.
-It checks access before mutation, requires the saved version on updates, validates
-the complete result, and returns field errors or version conflicts as problem details.
+It checks access before mutation and requires the saved version on updates. The
+JSON mapper validates submitted fields; Hibernate's existing validation callbacks
+protect the persisted entity. Errors and version conflicts return problem details.
 Follow [Applying changes safely](docs/applying-changes-safely.md) for chapter 14
 and its runnable browser-console example. Editing forms arrive in chapter 15.
 
