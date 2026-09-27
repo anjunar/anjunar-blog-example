@@ -1,0 +1,11 @@
+{
+  "name": "anjunar-blog-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:browser": "sbt --server frontendAssets && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

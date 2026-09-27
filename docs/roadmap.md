@@ -52,7 +52,7 @@ write them together.
 The server starts locally, stores a post in PostgreSQL, and returns it through REST.
 
 The initial project revision lays the groundwork for topics 2 and 3:
-a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Chapter 6 adopts the existing schema with stable IDs and adds an optional summary through Hibernate DDL Manager. Chapter 7 defines the complete EntitySchema, queries published posts with typed Criteria attributes, and verifies the mapper contract. Chapter 8 serves public list and detail responses with entity graphs, Data/Table envelopes, and HTTP contract tests. This completes the first milestone; chapter 9 starts the Scala.js interface.
+a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Chapter 6 adopts the existing schema with stable IDs and adds an optional summary through Hibernate DDL Manager. Chapter 7 defines the complete EntitySchema, queries published posts with typed Criteria attributes, and verifies the mapper contract. Chapter 8 serves public list and detail responses with entity graphs, Data/Table envelopes, and HTTP contract tests. This completes the first milestone. Chapter 9 adds the first Scala.js interface with local post previews, reactive controls, accessible HTML, asset delivery, and browser tests. Chapter 10 connects it to the REST API.
 
 ## Further topics
 

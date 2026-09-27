@@ -20,7 +20,15 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: public post endpoints
+## Current state: the first Scala.js interface
+
+The root page is now an English journal built with Scala.js UI. It displays three
+local example posts, changes their order, and toggles summaries through reactive
+state. The complete UI tree stays in compose, with semantic HTML, visible focus,
+and a mobile layout. Chapter 10 connects this view to the existing REST API.
+
+See the [first interface guide](docs/first-interface.md) for its source files,
+build workflow, and browser checks.
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
@@ -58,18 +66,35 @@ example posts, and curl commands.
 
 - JDK 25. We will use GraalVM for server-side rendering later.
 - sbt; the project selects sbt 2.0.9 and Scala 3.9.0.
-- PostgreSQL 18, either installed locally or started with Docker Compose.
+- PostgreSQL 18 for API data and backend tests, either local or through Docker Compose.
+- Node.js and npm for browser tests (verified with Node 26.4.0).
 - Access to Maven Central for the initial build.
 
-All JVM library versions are pinned in `build.sbt`. Node/npm enters the project
-in the frontend chapters. No other Anjunar repository needs a local build.
+JVM and UI library versions are pinned in build.sbt, the Scala.js plugin in
+project/plugins.sbt, and browser-test dependencies in package-lock.json.
+No other Anjunar repository needs a local build.
 
 The build resolves application dependencies exclusively from Maven Central.
 When updating an existing checkout to this chapter, refresh resolution once:
 
 ```text
-sbt --server "application-backend/update"
+sbt --server "application-backend/update" "application-frontend/update"
 ```
+
+### Open the first interface
+
+From the repository root:
+
+```text
+sbt --server frontendAssets "application-backend/run"
+```
+
+Open http://127.0.0.1:8080/. This local-data preview works without PostgreSQL.
+Use Show summaries and the order button to see state update the page.
+
+After editing Scala, HTML, or CSS, run `sbt --server frontendAssets` in
+another terminal and reload. Stop the application with Ctrl+C.
+The database setup below is needed for API data and backend tests.
 
 ### Start a development database
 
@@ -139,7 +164,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **41 successful tests**. The BlogPost tests cover field and publication
+Expect **42 successful backend tests**. The BlogPost tests cover field and publication
 validation, optional summaries and their length limit, persisted values, unique
 slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
@@ -157,10 +182,23 @@ pagination, draft exclusion, invalid input, unsupported writes, and HEAD.
 The original HTTP and CDI lifecycle tests still run. Use `testFull` because
 sbt 2's incremental `test` can skip previously successful tests.
 
+### Check the browser interface
+
+```text
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
+
+Expect **4 successful browser tests**. They build the frontend, start the real
+HTTP server on port 18080, and stop it after testing. Keep that port free.
+PostgreSQL is not required. The checks cover rendered posts, reactive controls,
+keyboard focus, mobile layout, and static/API routing.
+
 ### Start the application
 
 ```text
-sbt --server "application-backend/run"
+sbt --server frontendAssets "application-backend/run"
 ```
 
 In another terminal:
