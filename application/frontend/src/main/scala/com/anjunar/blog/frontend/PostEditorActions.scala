@@ -28,10 +28,12 @@ final class PostEditorActions(initial: BlogPostData,
   val errors: Property[Seq[FieldError]] = Property(Seq.empty)
   val generalError: Property[String] = Property("")
   private var disposed = false
-  private val subscriptions = post.editableFields.map(_.observeWithoutInitial { _ =>
+  private def changed(): Unit = {
     dirty.set(post.isDirty)
     if (notice.get == Saved || notice.get == NewerEdits) notice.set(Idle)
-  })
+  }
+  private val subscriptions = post.editableFields.map(_.observeWithoutInitial(_ => changed())) ++ Seq(
+    post.author.observeWithoutInitial(_ => changed()), post.tags.observeWithoutInitial(_ => changed()))
 
   def save(onSaved: () => Unit): Unit = {
     if (disposed || busy.get || blocked.get) return

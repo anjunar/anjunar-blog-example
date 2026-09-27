@@ -31,6 +31,7 @@ final class EditorialListPage(table: BlogPostTable, search: PostSearch) extends 
       paragraph { text(i18n"Preview drafts and manage publication.") {} }
       if (table.links.exists(_.rel == "create")) {
         paragraph { routerLink("/editorial/new") { text(i18n"New post") {} } }
+        paragraph { routerLink("/editorial/relationships") { text(i18n"Manage authors and tags") {} } }
       }
       child(new PostSearchForm(search)) {}
       paragraph {

@@ -31,7 +31,7 @@ lazy val backend = Project("application-backend", file("application/backend"))
       "org.wildfly.security" % "wildfly-elytron-auth-server-http" % "2.8.4.Final",
       "org.wildfly.security" % "wildfly-elytron-http-util" % "2.8.4.Final",
       "org.wildfly.security.jakarta" % "jakarta-authentication" % "4.0.0.Final",
-      "com.anjunar" %% "json-mapper" % "1.1.5",
+      "com.anjunar" %% "json-mapper" % "1.1.6",
       // Already used by json-mapper; declare the streaming parser directly at our HTTP boundary.
       "tools.jackson.core" % "jackson-core" % "3.1.1",
       "com.anjunar.hibernateddl" %% "schema-integration" % "1.1.0",

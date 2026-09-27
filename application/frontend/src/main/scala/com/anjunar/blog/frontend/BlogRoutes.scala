@@ -8,6 +8,7 @@ import scala.util.control.NonFatal
 final class BlogRoutes(service: BlogService, actions: BlogActions)(using ExecutionContext) {
   private val accounts = new AccountService()
   private val editorial = new EditorialService(accounts)
+  private val catalog = new CatalogService(accounts)
   val routes: Seq[Route] = Seq("register", "confirm", "forgot-password", "reset-password").map { endpoint =>
     Route.view(s"/$endpoint") { _ =>
       Future.successful(new RecoveryPage(endpoint, AccountLink.takeToken(), accounts))
@@ -22,14 +23,19 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
       val search = PostSearch.parse(context.queryParams.get, editorial = true)
       editorial.list(search, context.signal).map(new EditorialListPage(_, search))
     },
+    Route.view("/editorial/relationships") { context =>
+      catalog.load(context.signal).map(value =>
+        new RelationshipPage(value.getOrElse(throw new HttpFailure(403)), catalog))
+    },
     Route.view("/editorial/new") { context =>
-      editorial.newPost(context.signal).map(value => new PostEditorPage(value, editorial))
+      editorial.newPost(context.signal).zip(catalog.load(context.signal))
+        .map((value, options) => new PostEditorPage(value, editorial, options, catalog))
     },
     Route.view("/editorial/posts/:id/edit") { context =>
-      editorial.detail(context.pathParams("id"), context.signal).map { value =>
+      editorial.detail(context.pathParams("id"), context.signal).zip(catalog.load(context.signal)).map { (value, options) =>
         val link = value.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
         link.path("PATCH")
-        new PostEditorPage(value, editorial)
+        new PostEditorPage(value, editorial, options, catalog)
       }
     },
     Route.view("/editorial/posts/:id") { context =>

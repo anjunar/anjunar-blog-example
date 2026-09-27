@@ -4,12 +4,13 @@ import com.anjunar.hibernateddl.hibernate.annotation.SchemaId
 import com.anjunar.json.mapper.annotations.UseConverter
 import com.anjunar.json.mapper.provider.EntityProvider
 import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
-import com.anjunar.json.mapper.schema.property.SingularProperty
+import com.anjunar.json.mapper.schema.property.{SetProperty, SingularProperty}
 import jakarta.json.bind.annotation.JsonbProperty
-import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
+import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, FetchType, ForeignKey, JoinColumn, JoinTable, ManyToMany, ManyToOne, NamedSubgraph, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
 import java.time.Instant
+import java.util
 import java.util.UUID
 
 @Entity
@@ -37,7 +38,17 @@ import java.util.UUID
     new NamedAttributeNode("content"),
     new NamedAttributeNode("summary"),
     new NamedAttributeNode("status"),
-    new NamedAttributeNode("publishedAt")
+    new NamedAttributeNode("publishedAt"),
+    new NamedAttributeNode(value = "author", subgraph = "public-author"),
+    new NamedAttributeNode(value = "tags", subgraph = "post-tags")
+  ), subgraphs = Array(
+    new NamedSubgraph(name = "public-author", attributeNodes = Array(
+      new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("displayName")
+    )),
+    new NamedSubgraph(name = "post-tags", attributeNodes = Array(
+      new NamedAttributeNode("id"), new NamedAttributeNode("version"),
+      new NamedAttributeNode("slug"), new NamedAttributeNode("name")
+    ))
   ))
 ))
 class BlogPost extends EntityProvider {
@@ -95,6 +106,23 @@ class BlogPost extends EntityProvider {
   @JsonbProperty
   var summary: String = null
 
+  // Nullable for existing posts and explicitly unassigned editorial work.
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "author_id", foreignKey = new ForeignKey(name = "fk_blog_post_author"))
+  @SchemaId("6a1eab40") @JsonbProperty
+  var author: Account = null
+
+  // Shared tags are not owned by a post: removing a link must never delete a tag.
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(name = "blog_post_tag", schema = "public",
+    joinColumns = Array(new JoinColumn(name = "post_id")),
+    inverseJoinColumns = Array(new JoinColumn(name = "tag_id")),
+    foreignKey = new ForeignKey(name = "fk_blog_post_tag_post"),
+    inverseForeignKey = new ForeignKey(name = "fk_blog_post_tag_tag"))
+  @NotNull @Size(max = 20)
+  @SchemaId("42b9d1ef") @JsonbProperty
+  var tags: util.Set[BlogTag] = new util.LinkedHashSet[BlogTag]()
+
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
@@ -129,6 +157,8 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
     val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status, classOf[PostReadRule])
     val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt, classOf[PostReadRule])
     val summary: SingularProperty[BlogPost, String] = reference(_.summary, classOf[PostEditRule])
+    val author: SingularProperty[BlogPost, Account] = reference(_.author, classOf[PostEditRule])
+    val tags: SetProperty[BlogPost, util.Set[BlogTag]] = set(_.tags, classOf[PostEditRule])
   }
 
   def findPublishedBySlug(slug: String)(using entityManager: EntityManager): Option[BlogPost] = {
