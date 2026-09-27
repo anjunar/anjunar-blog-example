@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import com.anjunar.blog.hibernate.search.HibernateSearch
+
 import jakarta.annotation.security.PermitAll
 
 import jakarta.enterprise.context.RequestScoped
@@ -17,6 +19,7 @@ import scala.jdk.CollectionConverters.*
 @RequestScoped
 class BlogPostsResource {
   @Inject var links: PostLinks = uninitialized
+  @Inject var queries: HibernateSearch = uninitialized
   @Inject
   var entityManager: EntityManager = uninitialized
 
@@ -25,11 +28,12 @@ class BlogPostsResource {
   def list(@BeanParam parameters: PostSearchParams): Table[Data[BlogPostSummary]] = {
     given EntityManager = entityManager
     val search = parameters.search(editorial = false)
-    val query = new BlogPostSearch(search)
+    val context = queries.searchContext(search)
     val schema = Schema.forGraph(BlogPost.schema, entityManager.getEntityGraph("BlogPost.list"))
-    val rows = query.rows().asScala
+    val rows = queries.entities(search.index, search.limit, classOf[BlogPost],
+      classOf[BlogPostSummary], context, BlogPostSummary.select).asScala
       .map(post => new Data(post, schema, links.summary(post, editorial = false))).toList.asJava
-    val total = query.count()
+    val total = queries.count(classOf[BlogPost], context)
     new Table(rows, total, links.page(search, total, editorial = false))
   }
 

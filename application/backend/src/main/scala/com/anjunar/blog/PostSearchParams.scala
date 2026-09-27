@@ -1,7 +1,6 @@
 package com.anjunar.blog
 
 import jakarta.ws.rs.{BadRequestException, DefaultValue, QueryParam}
-import jakarta.ws.rs.core.UriBuilder
 
 final class PostSearchParams {
   @QueryParam("q") var query: String = ""
@@ -10,7 +9,7 @@ final class PostSearchParams {
   @QueryParam("offset") @DefaultValue("0") var offset: String = "0"
   @QueryParam("limit") @DefaultValue("20") var limit: String = "20"
 
-  def search(editorial: Boolean): PostSearch = {
+  def search(editorial: Boolean): BlogPostSearch = {
     val text = Option(query).getOrElse("").trim
     if (text.length > 100 || text.exists(Character.isISOControl))
       throw new BadRequestException("q must contain at most 100 characters and no control characters")
@@ -27,17 +26,6 @@ final class PostSearchParams {
       .getOrElse(throw new BadRequestException("offset must be a nonnegative integer"))
     val size = Option(limit).flatMap(_.toIntOption).filter(value => value >= 1 && value <= 100)
       .getOrElse(throw new BadRequestException("limit must be between 1 and 100"))
-    PostSearch(text, if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED), selectedSort, start, size)
-  }
-}
-
-final case class PostSearch(query: String, status: Option[BlogPostStatus], sort: String, offset: Int, limit: Int) {
-  def pageUrl(path: String, start: Int): String = {
-    val uri = UriBuilder.fromPath(path).queryParam("offset", start).queryParam("limit", limit)
-    // Insert raw text as a template value: literal %20 and braces must be encoded as data.
-    if (query.nonEmpty) uri.queryParam("q", "{search}")
-    status.foreach(value => uri.queryParam("status", value.name()))
-    uri.queryParam("sort", sort)
-    (if (query.nonEmpty) uri.build(query) else uri.build()).toASCIIString
+    BlogPostSearch(text, if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED), selectedSort, start, size)
   }
 }

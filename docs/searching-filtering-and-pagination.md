@@ -56,9 +56,10 @@ never selects a permission boundary.
 
 | File | Responsibility |
 | --- | --- |
-| backend/PostSearchParams | Collect query parameters, validate and construct immutable PostSearch; create encoded page URLs. |
-| backend/BlogPostSearch | Typed Criteria predicates, parameter binding, ordering, constructor projection and count. |
-| backend/BlogPostSummary | Explicit read-only list projection with seven fields and no content. |
+| backend/PostSearchParams | Validate query parameters and choose the public/editorial scope before constructing BlogPostSearch. |
+| backend/hibernate/search | Reusable HibernateSearch engine, annotation reader, provider contracts and bounded paging. |
+| backend/BlogPostSearch | Annotated immutable search, CDI predicate/sort providers and encoded page URLs. |
+| backend/BlogPostSummary | Explicit read-only list projection and selection callback with seven fields and no content. |
 | BlogPostsResource / EditorialPostsResource | Choose visibility scope, execute the search and return Data/Table metadata and links. |
 | PostLinks | Build filter-preserving pagination links and row links from summary data. |
 | frontend/PostSearch | Parse route state, encode URLs and preserve defaults. |
@@ -80,6 +81,40 @@ uses Locale.ROOT on the JVM; database case and collation rules still apply.
 Every sort ends with ascending UUID. Equal titles or timestamps therefore
 have a stable relative order. Date sorts place undated drafts after dated
 posts in either direction.
+
+## Use the stack's search infrastructure
+
+The backend ports the reusable HibernateSearch architecture from Anjunar Stack
+into com.anjunar.blog.hibernate.search. This is the application's Criteria
+helper, not the separate Hibernate Search full-text product. The stack remains
+a reference, with no local build dependency and no tenant context.
+
+PostSearchParams validates the HTTP values and returns BlogPostSearch, an
+AbstractSearch. Its JsonbProperty fields carry RestPredicate and RestSort
+annotations. SearchBeanReader reads those annotations through the existing
+AnnotationIntrospector and resolves ApplicationScoped providers through CDI.
+Predicate providers receive a field value; the sort provider receives the
+entire search object. Providers use BlogPost.schema for typed Criteria paths.
+
+Both resources inject HibernateSearch. searchContext captures only the
+immutable search; entities and count create separate Criteria roots, call
+the same providers, and bind their parameter values. BlogPostSummary.select
+chooses the seven result columns independently of the filter providers.
+No Criteria nodes or caller-specific state are cached in application-scoped
+beans. The injected EntityManager resolves to the existing request context.
+
+The port keeps the stack's provider/context/projection structure. Its
+AbstractSearch exposes index (the row offset) and limit; PostSearchParams
+retains the chapter's HTTP offset contract and strict 400 errors.
+RestSort requires an explicit provider for our four whitelisted orders.
+The stack's generic field-path sorting and query-cache hints are not needed
+here; this chapter configures no query cache. QuerySurface validates internal
+callers' bounds as well.
+
+A missing CDI provider or unreadable annotated property fails the operation.
+Silently ignoring it could drop a visibility predicate. HibernateSearchSpec
+verifies a separate CDI provider with entity and scalar projections, matching
+counts, missing-provider failures and internal paging limits.
 
 ## A projection is different from an entity graph
 
@@ -144,7 +179,7 @@ npx playwright test --project=contracts
 npx playwright test --project=search --project=forms --project=changes --project=editorial --project=database --project=authentication --project=recovery
 ```
 
-Expected totals: 121 backend tests, 26 Scala.js tests and 56 browser tests
+Expected totals: 125 backend tests, 26 Scala.js tests and 56 browser tests
 (48 controlled contracts and eight real workflows).
 
 The search project needs BLOG_TEST_ADMIN_EMAIL/PASSWORD and psql on PATH, or

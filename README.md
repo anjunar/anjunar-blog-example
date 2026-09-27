@@ -24,7 +24,8 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 
 Both post lists now search title, slug and summary, offer fixed sorting and
 preserve their filters in the URL. Editorial adds a status filter; public
-searches always exclude drafts. Typed Criteria queries return compact list
+searches always exclude drafts. The stack's HibernateSearch architecture resolves annotated CDI providers and
+executes typed Criteria queries that return compact list
 projections and the matching total. Follow
 [Searching, filtering and pagination](docs/searching-filtering-and-pagination.md)
 for chapter 16 and its runnable examples.
@@ -203,7 +204,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **121 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **125 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.

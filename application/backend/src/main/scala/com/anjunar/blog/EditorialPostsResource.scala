@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import com.anjunar.blog.hibernate.search.HibernateSearch
+
 import com.anjunar.json.mapper.{ErrorRequest, PreparedChange}
 import jakarta.annotation.security.RolesAllowed
 import jakarta.enterprise.context.RequestScoped
@@ -23,6 +25,7 @@ class EditorialPostsResource {
   @Inject var manager: EntityManager = uninitialized
   @Inject var access: PostAccess = uninitialized
   @Inject var links: PostLinks = uninitialized
+  @Inject var queries: HibernateSearch = uninitialized
   @Context var uriInfo: UriInfo = uninitialized
 
   @GET
@@ -30,11 +33,12 @@ class EditorialPostsResource {
   def list(@BeanParam parameters: PostSearchParams): Table[Data[BlogPostSummary]] = {
     given EntityManager = manager
     val search = parameters.search(editorial = true)
-    val query = new BlogPostSearch(search)
+    val context = queries.searchContext(search)
     val schema = Schema.forGraph(BlogPost.schema, manager.getEntityGraph("BlogPost.list"))
-    val rows = query.rows().asScala
+    val rows = queries.entities(search.index, search.limit, classOf[BlogPost],
+      classOf[BlogPostSummary], context, BlogPostSummary.select).asScala
       .map(post => new Data(post, schema, links.summary(post, editorial = true))).asJava
-    val total = query.count()
+    val total = queries.count(classOf[BlogPost], context)
     new Table(rows, total, links.page(search, total, editorial = true))
   }
 

@@ -64,7 +64,7 @@ class PostLinks {
     values
   }
 
-  def page(search: PostSearch, total: Long, editorial: Boolean): util.List[Link] = {
+  def page(search: BlogPostSearch, total: Long, editorial: Boolean): util.List[Link] = {
     val path = if (editorial) "/service/editorial/posts" else "/service/blog/posts"
     def link(rel: String, start: Int) =
       new Link(rel, search.pageUrl(path, start), "GET", "BlogPost")
