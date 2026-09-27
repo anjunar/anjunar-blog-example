@@ -6,44 +6,43 @@ import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, S
 import java.lang
 import java.time.Instant
 import java.util.UUID
-import scala.annotation.meta.field
 
 @Entity
 @Access(AccessType.FIELD)
 @Table(name = "blog_post", schema = "public",
   uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_post_slug", columnNames = Array("slug"))))
 class BlogPost {
-  @(Id @field)
-  @(GeneratedValue @field)(strategy = GenerationType.UUID)
-  @(Column @field)(nullable = false, updatable = false)
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(nullable = false, updatable = false)
   var id: UUID = null
 
-  @(Version @field)
-  @(Column @field)(nullable = false)
+  @Version
+  @Column(nullable = false)
   var version: lang.Long = null
 
-  @(NotBlank @field)
-  @(Size @field)(min = 3, max = 220)
-  @(Pattern @field)(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$")
-  @(Column @field)(nullable = false, length = 220)
+  @NotBlank
+  @Size(min = 3, max = 220)
+  @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$")
+  @Column(nullable = false, length = 220)
   var slug: String = ""
 
-  @(NotBlank @field)
-  @(Size @field)(min = 3, max = 180)
-  @(Column @field)(nullable = false, length = 180)
+  @NotBlank
+  @Size(min = 3, max = 180)
+  @Column(nullable = false, length = 180)
   var title: String = ""
 
-  @(NotNull @field)
-  @(Size @field)(max = 100000)
-  @(Column @field)(nullable = false, columnDefinition = "text")
+  @NotNull
+  @Size(max = 100000)
+  @Column(nullable = false, columnDefinition = "text")
   var content: String = ""
 
-  @(NotNull @field)
-  @(Enumerated @field)(EnumType.STRING)
-  @(Column @field)(nullable = false, length = 24)
+  @NotNull
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 24)
   var status: BlogPostStatus = BlogPostStatus.DRAFT
 
-  @(Column @field)(name = "published_at")
+  @Column(name = "published_at")
   var publishedAt: Instant = null
 
   def publish(at: Instant): Unit = {
