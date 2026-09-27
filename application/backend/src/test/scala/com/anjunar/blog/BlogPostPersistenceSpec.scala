@@ -1,5 +1,6 @@
 package com.anjunar.blog
 
+import jakarta.enterprise.inject.se.{SeContainer, SeContainerInitializer}
 import jakarta.persistence.{EntityManager, OptimisticLockException}
 import jakarta.validation.ConstraintViolationException
 import org.hibernate.exception.{ConstraintViolationException as SqlConstraintViolationException}
@@ -13,13 +14,16 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 
 class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
-  private val persistence = new Persistence()
+  private var container: SeContainer = null
+  private var persistence: Persistence = null
   private val ownedIds = mutable.Set.empty[UUID]
   private var initialized = false
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    persistence.initialize()
+    container = SeContainerInitializer.newInstance().initialize()
+    persistence = container.select(classOf[Persistence]).get()
+    persistence.openEntityManager().close()
     initialized = true
   }
 
@@ -32,7 +36,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
         }
       }
     } finally {
-      try { if (initialized) persistence.close() }
+      try { if (container != null) container.close() }
       finally super.afterAll()
     }
 
@@ -72,6 +76,21 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   private def load(id: UUID): BlogPost =
     inTransaction(readOnly = true)(_.find(classOf[BlogPost], id))
+
+  test("CDI discovers entity classes without making their instances injectable") {
+    val registry = container.select(classOf[EntityRegistry]).get()
+    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[EntityDiscoveryProbe]))
+    assert(container.select(classOf[BlogPost]).isUnsatisfied)
+    assert(container.select(classOf[EntityDiscoveryProbe]).isUnsatisfied)
+  }
+
+  test("Hibernate maps an additional discovered entity without a manual class registration") {
+    val saved = savedDraft()
+    val probe = inTransaction(readOnly = true)(_.find(classOf[EntityDiscoveryProbe], saved.id))
+    assert(probe != null)
+    assert(probe.id == saved.id)
+    assert(probe.title == saved.title)
+  }
 
   test("a persisted draft receives a UUID and version and survives a new persistence context") {
     val saved = savedDraft()

@@ -31,6 +31,12 @@ unique slug, title, content, publication status, and publication time. Bean
 Validation checks fields and publication consistency before inserts and updates.
 The model is exercised through persistence tests; public post endpoints come later.
 
+`EntityExtension` discovers `@Entity` classes through CDI and supplies an injectable
+`EntityRegistry` to the Hibernate bootstrap. Entity-containing archives use
+`bean-discovery-mode="all"`. The extension excludes entity classes from CDI bean
+registration; Hibernate manages their instances. No entity list is maintained in
+`Persistence`.
+
 ### Prerequisites
 
 - JDK 25. We will use GraalVM for server-side rendering later.
@@ -105,7 +111,7 @@ With the development database running and the initial table created:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **24 successful tests**. The BlogPost tests cover field and publication
+Expect **26 successful tests**. The BlogPost tests cover field and publication
 validation, persisted values, unique slugs, version increments, and stale edits.
 They remove only the rows they created. The transaction suite creates its own uniquely
 named probe table and drops it afterward. It verifies committed and rolled-back
@@ -113,6 +119,8 @@ rows through separate JDBC connections. It also checks serialization failures,
 deferred constraint failures, rollback-only transactions, GET/HEAD, and
 responses without a body. Intentional failure cases produce server error logs.
 
+The persistence suite starts CDI and also checks discovery of a second test-only
+entity, its Hibernate mapping, and the exclusion of entities from CDI bean resolution.
 The original HTTP and CDI lifecycle tests still run. Use `testFull` because
 sbt 2's incremental `test` can skip previously successful tests.
 

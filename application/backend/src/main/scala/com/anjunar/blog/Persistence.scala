@@ -9,6 +9,7 @@ import io.agroal.narayana.NarayanaTransactionIntegration
 import jakarta.annotation.{PostConstruct, PreDestroy}
 import jakarta.enterprise.context.{ApplicationScoped, RequestScoped}
 import jakarta.enterprise.inject.Produces
+import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, EntityManagerFactory}
 import org.hibernate.boot.MetadataSources
 import org.hibernate.boot.registry.{StandardServiceRegistry, StandardServiceRegistryBuilder}
@@ -16,10 +17,14 @@ import org.hibernate.engine.transaction.jta.platform.internal.NarayanaJtaPlatfor
 import org.postgresql.xa.PGXADataSource
 
 import java.time.Duration
+import scala.compiletime.uninitialized
 import scala.util.control.NonFatal
 
 @ApplicationScoped
 class Persistence {
+  @Inject
+  var entityRegistry: EntityRegistry = uninitialized
+
   private var pool: AgroalDataSource = null
   private var factory: EntityManagerFactory = null
 
@@ -52,10 +57,9 @@ class Persistence {
         .applySetting("hibernate.hbm2ddl.auto", "validate")
         .applySetting("jakarta.persistence.validation.mode", "CALLBACK")
         .build()
-      factory = new MetadataSources(registry)
-        .addAnnotatedClass(classOf[BlogPost])
-        .buildMetadata()
-        .buildSessionFactory()
+      val sources = new MetadataSources(registry)
+      entityRegistry.entityClasses.foreach(sources.addAnnotatedClass)
+      factory = sources.buildMetadata().buildSessionFactory()
     } catch {
       case NonFatal(error) =>
         try {
