@@ -12,6 +12,7 @@
 - Name article slugs abt-NN-title-in-kebab-case, where NN is the two-digit article number (for example, abt-01-building-a-complete-web-application-with-scala).
 - English is the application's primary language. Introduce German as the second language in the internationalization chapter.
 - Preserve the contract across the entity, EntitySchema, REST graph, and frontend model.
+- Discover entity classes through EntityExtension and EntityRegistry. Entity-containing archives need beans.xml with bean-discovery-mode="all"; do not maintain a manual entity list in Persistence.
 - Keep each UI tree together in compose; use the i18n macro for new translatable UI messages.
 - Add appropriate functional checks alongside each feature.
 - Current check: sbt --server "application-backend/testFull". Use a separate local PostgreSQL database, BLOG_DB_PASSWORD, and the chapter 5 SQL schema; see README.md for setup. Model tests remove their own rows; transaction tests create and drop a uniquely named probe table.

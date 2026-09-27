@@ -25,7 +25,7 @@ write them together.
 | 2 | From an empty directory to a runnable project | Tools, sbt, modules, published dependencies, and the first startup. |
 | 3 | Starting an HTTP server with Jakarta components | Connecting Undertow, RESTEasy, and Weld; an endpoint, CDI, and shutdown. |
 | 4 | Understanding database access and transactions | PostgreSQL, Hibernate, Agroal, Narayana, and EntityManager; commit, rollback, and serialization. |
-| 5 | Our first domain model | BlogPost, slugs, publication status, IDs, versions, Bean Validation, and business rules. |
+| 5 | Our first domain model | BlogPost, slugs, publication status, IDs, versions, Bean Validation, business rules, and automatic entity discovery through CDI. |
 | 6 | Evolving the data model | Hibernate DDL Manager, SchemaId, schema changes, and preserving existing data. |
 | 7 | Describing an entity with EntitySchema | Fields, rules, property, reference, set, list, and Criteria attributes. |
 | 8 | Serving posts through REST | Lists and details, the JSON mapper, entity graphs, Data, and Table. |
@@ -52,7 +52,7 @@ write them together.
 The server starts locally, stores a post in PostgreSQL, and returns it through REST.
 
 The initial project revision lays the groundwork for topics 2 and 3:
-a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 persists BlogPost and verifies its validation, uniqueness, and optimistic locking. Public REST reads follow in chapter 8.
+a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Public REST reads follow in chapter 8.
 
 ## Further topics
 
