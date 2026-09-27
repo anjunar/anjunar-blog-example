@@ -33,7 +33,11 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
   }
 
   private def validate(result: BlogPostData): BlogPostData = {
-    require(result.data != null && result.data.content.get.nonEmpty, "Missing editorial detail")
+    require(result.data != null, "Missing editorial detail")
+    // The backend mapper omits empty strings. A draft detail may legitimately have an empty body.
+    if (result.data.status.get == "DRAFT" && result.data.content.get.isEmpty)
+      result.data.content.set(Some(""))
+    require(result.data.content.get.nonEmpty, "Missing editorial content")
     result
   }
 }

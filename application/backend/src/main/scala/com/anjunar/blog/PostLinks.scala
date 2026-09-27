@@ -1,5 +1,6 @@
 package com.anjunar.blog
 
+import com.anjunar.json.mapper.PreparedChange
 import com.anjunar.json.mapper.schema.Link
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -14,7 +15,11 @@ class PostLinks {
   @Inject var caller: CallerAccess = uninitialized
 
   private def endpoint(name: String): Boolean = {
-    val parameters = if (name == "list") Array(classOf[String], classOf[String]) else Array(classOf[String])
+    val parameters: Seq[Class[?]] = name match {
+      case "list" => Seq(classOf[String], classOf[String])
+      case "create" | "update" => Seq(classOf[PreparedChange[?]])
+      case _ => Seq(classOf[String])
+    }
     val method = classOf[EditorialPostsResource].getMethod(name, parameters*)
     EndpointPolicy.of(method, classOf[EditorialPostsResource]).allows(caller.hasRole)
   }
@@ -35,6 +40,8 @@ class PostLinks {
     val path = s"/service/editorial/posts/${post.id}"
     val links = new util.ArrayList[Link]()
     links.add(new Link("self", path, "GET", "BlogPost"))
+    if (endpoint("update") && access.canEdit(post))
+      links.add(new Link("update", path, "PATCH", "BlogPost"))
     if (endpoint("publish") && access.canPublish(post))
       links.add(new Link("publish", s"$path/publish", "POST", "BlogPost"))
     if (endpoint("retract") && access.canRetract(post))
@@ -48,6 +55,7 @@ class PostLinks {
     def link(rel: String, start: Int) =
       new Link(rel, s"/service/editorial/posts?offset=$start&limit=$limit", "GET", "BlogPost")
     val values = Seq(Some(link("self", offset)),
+      Option.when(endpoint("create"))(new Link("create", "/service/editorial/posts", "POST", "BlogPost")),
       Option.when(offset > 0)(link("previous", math.max(0, offset - limit))),
       Option.when(offset.toLong + limit < total && offset <= Int.MaxValue - limit)(link("next", offset + limit)))
     values.flatten.asJava

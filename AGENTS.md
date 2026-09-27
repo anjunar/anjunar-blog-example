@@ -15,7 +15,7 @@
 - Discover entity classes through EntityExtension and EntityRegistry. Entity-containing archives need beans.xml with bean-discovery-mode="all"; do not maintain a manual entity list in Persistence.
 - BlogPost.Schema is the complete mapper and Criteria field model. Use reference for persistent singular attributes and preserve SingularProperty types; property is for mapper-only or transient fields. Keep every published @JsonbProperty field in the schema.
 - Initialize SchemaProvider schemas only after Hibernate is ready and a CDI request transaction is active. RuntimeContext resolves the request EntityManager. Never store caller-specific permission state in a cached schema.
-- Default mapper rules allow reads and deny writes. Public row visibility still belongs in queries/endpoint checks; findPublishedBySlug excludes drafts. Introduce authenticated write rules in their planned chapter.
+- Default mapper rules allow reads and deny writes. Public row visibility still belongs in queries/endpoint checks; findPublishedBySlug excludes drafts. Authenticated PostEditRule controls the four editable post fields; lifecycle fields stay read-only.
 - Public reads use BlogPost.list/detail named graphs, Data/Table envelopes, and MapperMessageBodyWriter. Keep version in both graphs; a graph selects fields, while queries enforce published-row visibility. Schema response metadata describes structure, not permissions.
 - Keep each UI tree together in compose; use the i18n macro for new translatable UI messages.
 - The frontend uses scalajs-ui-core/json/router/forms 1.0.9 from Maven Central. BlogPost mirrors the published entity fields; JsonSchema is derived locally, independently of REST schema metadata. Routes load through BlogService/HttpJson and forward their AbortSignal. Preserve omitted rows, optional fields, and version zero. Keep editorial text separate from i18n UI messages.
@@ -30,7 +30,7 @@
 - Auth writes require CSRF and JSON credentials are a separate bounded command, not a general entity update. AuthenticationFilter enters Undertow/Elytron/Soteria after TransactionBoundary begins; AuthorizationFilter enforces endpoint policies and CSRF on auth/recovery/editorial writes. Do not replace the container identity with a hand-written JAX-RS SecurityContext.
 - Session changes for login/logout belong in RequestTransaction.afterCommit. Preserve rollback/writer-failure coverage. SessionServer closes sessions while Weld is still active.
 - Secure cookies default to true; set BLOG_COOKIE_SECURE=false only for local HTTP. Keep HttpOnly, SameSite, cookie-only tracking, expiry and database revocation checks.
-- Verify 89 backend tests, 9 frontend mapping tests, 28 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
+- Verify 112 backend tests, 12 frontend model/problem tests, 29 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
 - Soteria's IdentityStoreHandler and HttpAuthenticationMechanismHandler come from the library, with the official Weld bean decorator. PasswordIdentityStore verifies credentials; SoteriaAuthenticationMechanism calls notifyContainerAboutLogin. Keep the verified initializer, BeanManager JNDI lookup, CallerDetailsResolver service registration and Elytron configuration together.
 - Persist authentication in afterCommit, without AutoApplySession/registerSession. request.logout must reach Soteria cleanSubject; current database roles and session revocation are verified through all three security APIs.
 
@@ -44,8 +44,16 @@
 
 - Chapter 13 requires explicit endpoint policies: a method overrides its class; unannotated resources are denied. AuthorizationFilter enforces them after Soteria resolves the caller.
 - PostAccess is shared by publication commands and PostLinks. Recheck role, CSRF and current entity state on every POST; a response link is not authorization.
-- Publication commands lock the row and call the domain transition. Preserve conflict, rollback and version tests; general entity updates belong to PreparedChange in chapter 14.
+- Publication commands lock the row and call the domain transition. Preserve conflict, rollback and version tests; general entity updates use PreparedChange in chapter 14.
 - PostEditRule resolves the current CDI caller; lifecycle fields use read-only rules. Cache rule classes in EntitySchema, never permission results.
 - Build links per Data/Table/SessionState response; keep them out of JPA state. Schema.forGraph still describes structure, not writable-field capabilities. Responses with caller-specific links use no-store.
 - The editorial frontend follows supplied command URLs/methods, validates same-origin /service/ destinations, and replaces values/version/links on success. Clear stale actions on failure and ignore replies after disposal.
-- test:browser:editorial needs the dedicated test admin plus psql on PATH or BLOG_PSQL. It creates/deletes its own UUID draft in the test database. All browser projects now contain 33 checks.
+- test:browser:editorial needs the dedicated test admin plus psql on PATH or BLOG_PSQL. It creates/deletes its own UUID draft in the test database. All browser projects now contain 35 checks.
+
+- Chapter 14 supports PreparedChange[BlogPost] for POST creation and PATCH editing. Check change.getEntity() before applying once, then validate the complete entity. Propagate failed application/validation to roll back; preparation is not an independent transaction.
+- PATCH requires a nonnegative integer version. Lock the current row before comparing; never assign the request's version. Preserve missing versus null, server-generated identity, property rules and publication invariants.
+- RequestJson accepts at most 1 MiB of strict UTF-8 JSON, rejects duplicate keys and limits nesting. PreparedChanges checks known fields, metadata and scalar shapes. Reference loading is deliberately rejected until authorized relationships arrive in chapter 17.
+- Use the typed EntitySchema for slug checks, with query flush mode COMMIT to avoid premature writes; the database unique constraint still handles races. Preserve both adopted and explicitly named slug-constraint error handling.
+- Return application/problem+json with safe details and field paths. Unexpected errors expose a correlation ID, never driver text. Keep HTTP status authoritative when parsing ProblemDetails in the browser.
+- The mapper omits empty strings; editorial draft detail normalizes missing content to an empty value. Published detail still requires content.
+- test:browser:changes executes docs/examples/post-changes.js unchanged against real HTTP and PostgreSQL, then deletes its own draft. Keep the article example executable and tested.
