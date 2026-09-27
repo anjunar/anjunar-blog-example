@@ -3,6 +3,10 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
+  projects: [
+    { name: "contracts", testMatch: "frontend.spec.mjs" },
+    { name: "database", testMatch: "database.spec.mjs" },
+  ],
   use: {
     baseURL: "http://127.0.0.1:18080",
     browserName: "chromium",

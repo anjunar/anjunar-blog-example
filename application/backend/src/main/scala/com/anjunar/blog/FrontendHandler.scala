@@ -11,23 +11,31 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     .setDirectoryListingEnabled(false)
     .setWelcomeFiles("index.html")
   private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css")
+  private val postPage = "/en/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
     val path = exchange.getRequestPath
+    val page = path == "/en" || path == "/en/" || postPage.matches(path)
     if (path == "/service" || path.startsWith("/service/")) api.handleRequest(exchange)
-    else if (!publicPaths.contains(path)) {
+    else if (!publicPaths.contains(path) && !page) {
       exchange.setStatusCode(StatusCodes.NOT_FOUND)
       exchange.endExchange()
     } else if (exchange.getRequestMethod != Methods.GET && exchange.getRequestMethod != Methods.HEAD) {
       exchange.setStatusCode(StatusCodes.METHOD_NOT_ALLOWED)
       exchange.getResponseHeaders.put(Headers.ALLOW, "GET, HEAD")
       exchange.endExchange()
+    } else if (path == "/index.html") {
+      exchange.setStatusCode(StatusCodes.TEMPORARY_REDIRECT)
+      val query = exchange.getQueryString
+      exchange.getResponseHeaders.put(Headers.LOCATION, if (query.isEmpty) "/" else s"/?$query")
+      exchange.endExchange()
     } else if (!Files.isDirectory(assets)) {
       exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE)
       exchange.getResponseHeaders.put(Headers.CONTENT_TYPE, "text/plain; charset=UTF-8")
       exchange.getResponseSender.send("Frontend assets are unavailable.\n")
     } else {
-      // Development assets have stable names; a rebuild must be visible after reload.
+      // Known browser routes load the shell; REST still decides whether a post exists.
+      if (page) exchange.setRelativePath("/index.html")
       exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, "no-cache")
       files.handleRequest(exchange)
     }

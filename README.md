@@ -20,15 +20,17 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: the first Scala.js interface
+## Current state: a blog backed by the REST API
 
-The root page is now an English journal built with Scala.js UI. It displays three
-local example posts, changes their order, and toggles summaries through reactive
-state. The complete UI tree stays in compose, with semantic HTML, visible focus,
-and a mobile layout. Chapter 10 connects this view to the existing REST API.
+The Scala.js journal now loads published posts from PostgreSQL through REST.
+Its frontend model mirrors the entity contract, and the router opens full posts
+with loading, empty, and error states. Visitors can follow article links, reload
+a detail page, use browser history, toggle summaries, and page through results.
 
-See the [first interface guide](docs/first-interface.md) for its source files,
-build workflow, and browser checks.
+See [Connecting the frontend and backend](docs/connecting-rest.md) for the
+model, service, actions, routes, and complete verification workflow.
+The [chapter 9 interface guide](docs/first-interface.md) describes its historical
+local-data checkpoint.
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
@@ -81,7 +83,7 @@ When updating an existing checkout to this chapter, refresh resolution once:
 sbt --server "application-backend/update" "application-frontend/update"
 ```
 
-### Open the first interface
+### Open the blog
 
 From the repository root:
 
@@ -89,12 +91,14 @@ From the repository root:
 sbt --server frontendAssets "application-backend/run"
 ```
 
-Open http://127.0.0.1:8080/. This local-data preview works without PostgreSQL.
-Use Show summaries and the order button to see state update the page.
+First prepare the database and schema using the steps below. Then open
+http://127.0.0.1:8080/. An empty database shows an empty list; load the optional
+SQL examples from [the API guide](docs/public-rest.md) to read the first post.
+Article links open /en/posts/:slug; the English router uses /en for the list.
 
 After editing Scala, HTML, or CSS, run `sbt --server frontendAssets` in
 another terminal and reload. Stop the application with Ctrl+C.
-The database setup below is needed for API data and backend tests.
+The database setup below is needed for the blog data and backend tests.
 
 ### Start a development database
 
@@ -190,10 +194,15 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **4 successful browser tests**. They build the frontend, start the real
-HTTP server on port 18080, and stop it after testing. Keep that port free.
-PostgreSQL is not required. The checks cover rendered posts, reactive controls,
-keyboard focus, mobile layout, and static/API routing.
+Expect **11 successful browser contract tests**. They build the frontend, start
+the real HTTP server on port 18080, and stop it after testing. Keep that port free.
+These tests intercept data requests; PostgreSQL is not required.
+
+Run the six Scala.js JSON mapping tests with
+`sbt --server "application-frontend/testFull"`. With a dedicated migrated test
+database containing database/examples/public-posts.sql, run
+`npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
+See [the chapter 10 guide](docs/connecting-rest.md#verify) for the setup and limits.
 
 ### Start the application
 

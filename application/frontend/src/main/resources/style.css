@@ -90,3 +90,16 @@ h3 { margin: 0; font: 400 clamp(24px, 3vw, 29px)/1.25 Georgia, "Times New Roman"
   .post-date { margin: 0; }
   .site-footer { margin-top: 44px; font-size: 12px; }
 }
+
+.post h3 a { text-decoration-thickness: 1px; }
+.pagination { margin-top: 24px; justify-content: space-between; }
+.pagination a, .post-detail > a { display: inline-flex; align-items: center; min-height: 44px; }
+.post-detail { max-width: 800px; padding-top: 48px; }
+.post-detail .post-date { margin: 36px 0 18px; }
+.post-detail h1 { overflow-wrap: anywhere; }
+.detail-summary { margin: 28px 0; color: var(--muted); font-size: 20px; line-height: 1.6; }
+.post-content { margin-top: 36px; white-space: pre-wrap; overflow-wrap: anywhere; font: 19px/1.8 Georgia, serif; }
+.loading-state, .error-state { min-height: 360px; padding: 72px 0; }
+.error-state h1 { font-size: clamp(36px, 5vw, 56px); }
+.error-state p, .empty-state { margin: 28px 0; line-height: 1.7; color: var(--muted); }
+.error-state button { margin-right: 24px; }

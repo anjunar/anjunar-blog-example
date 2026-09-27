@@ -1,3 +1,6 @@
+> Historical chapter 9 guide: use the [chapter 9 checkpoint](article-checkpoints.md#09--building-the-first-interface-with-scalajs).
+> For the current application, follow [Connecting the frontend and backend](connecting-rest.md).
+
 # First Scala.js interface
 
 Chapter 9 renders an English journal page with three local example posts.
