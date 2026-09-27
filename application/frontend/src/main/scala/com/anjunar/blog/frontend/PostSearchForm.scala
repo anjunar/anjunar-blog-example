@@ -1,9 +1,11 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
+import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
+import ui.core.dsl.EventDsl.on
 import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Button.{button, buttonType}
 import ui.core.layout.Condition.when
@@ -14,7 +16,7 @@ import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
 import ui.core.state.Property
 import ui.forms.Form.form
-import ui.forms.Input.input
+import ui.forms.Input.{input, inputType, inputType_=}
 import ui.forms.SelectInput.selectInput
 import ui.forms.SelectOption
 import ui.forms.validators.Size
@@ -51,8 +53,8 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
       form(fields) { mountedForm ?=>
         classes = "search-form"
         role = "search"
-        mountedForm.setAttribute("novalidate", "")
-        mountedForm.onHandler("submit") { event =>
+        AttributeDsl.setAttribute("novalidate", "")
+        on("submit") { event =>
           event.preventDefault()
           invalid.set(false)
           val bindings = mountedForm.validateBindings()
@@ -65,18 +67,18 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         }
         div {
           classes = "search-query"
-          label { element ?=>
-            element.setAttribute("for", "post-query")
+          label {
+            AttributeDsl.setAttribute("for", "post-query")
             text(i18n"Search posts") {}
           }
-          val control = input("query") { element ?=>
+          val control = input("query") { fieldInput ?=>
             id = "post-query"
-            element.setAttribute("type", "search")
-            element.setAttribute("maxlength", "100")
-            element.setAttribute("aria-describedby", "search-help search-errors")
+            inputType = "search"
+            AttributeDsl.setAttribute("maxlength", "100")
+            AttributeDsl.setAttribute("aria-describedby", "search-help search-errors")
+            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+              AttributeDsl.setAttribute("aria-invalid", value.toString)))
           }
-          control.addDisposable(control.invalid.observe(value =>
-            control.setAttribute("aria-invalid", value.toString)))
           paragraph {
             id = "search-help"
             classes = "field-help"
@@ -90,8 +92,8 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         }
         if (search.editorial) {
           div {
-            label { element ?=>
-              element.setAttribute("for", "post-status")
+            label {
+              AttributeDsl.setAttribute("for", "post-status")
               text(i18n"Publication status") {}
             }
             selectInput("status", Seq(
@@ -102,8 +104,8 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
           }
         }
         div {
-          label { element ?=>
-            element.setAttribute("for", "post-sort")
+          label {
+            AttributeDsl.setAttribute("for", "post-sort")
             text(i18n"Sort by") {}
           }
           selectInput("sort", Seq(
@@ -114,8 +116,8 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
           )) { id = "post-sort" }
         }
         div {
-          label { element ?=>
-            element.setAttribute("for", "post-limit")
+          label {
+            AttributeDsl.setAttribute("for", "post-limit")
             text(i18n"Posts per page") {}
           }
           selectInput("limit", (Seq(10, 20, 50, 100) :+ search.limit).distinct.sorted.map(value =>

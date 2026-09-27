@@ -151,6 +151,10 @@ matching page. Reset deliberately removes all search parameters.
 
 The reusable form has a real job on both list pages: binding, submission,
 accessible controls and search feedback. Its complete tree remains in compose.
+Attributes use AttributeDsl.setAttribute with an imported AttributeDsl object
+to avoid shadowing by the inherited component setter. The reactive aria-invalid observer
+lives inside the input block, where the DSL targets that input, and is disposed
+with the control. Submit events use EventDsl.on.
 All new UI messages use the i18n macro. Disposed routes still abort loading;
 a delayed old result cannot replace a later navigation.
 
