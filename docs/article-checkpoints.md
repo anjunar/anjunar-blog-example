@@ -148,10 +148,10 @@ stops the database while retaining its data volume.
 ## 05 — Our First Domain Model
 
 - Article slug: `abt-05-our-first-domain-model`
-- Source revision: [b9dad8b](https://github.com/anjunar/anjunar-blog-example/tree/b9dad8b7696f08d77c69fe342d5b08ff5b1179c3)
+- Source revision: [7259db3](https://github.com/anjunar/anjunar-blog-example/tree/7259db379231b095c503069f6a5950f385302e01)
 
 This chapter introduces BlogPost, its UUID and optimistic-lock version, unique
-slug, publication state, Bean Validation, and the first PostgreSQL table.
+slug, publication state, Bean Validation, and the first PostgreSQL table. A CDI extension discovers entity classes and supplies them to Hibernate through an injectable registry.
 
 ### Check out this version
 
@@ -160,7 +160,7 @@ In a directory where `anjunar-blog-example` does not yet exist:
 ```text
 git clone https://github.com/anjunar/anjunar-blog-example.git
 cd anjunar-blog-example
-git switch --detach b9dad8b7696f08d77c69fe342d5b08ff5b1179c3
+git switch --detach 7259db379231b095c503069f6a5950f385302e01
 ```
 
 Use JDK 25 and the [README database setup](../README.md#start-a-development-database).
@@ -190,10 +190,12 @@ sbt --server "application-backend/testFull"
 sbt --server "application-backend/run"
 ```
 
-Expect **24 successful tests**. The model tests cover generated values,
+Expect **26 successful tests**. The model tests cover generated values,
 publication transitions, Bean Validation on inserts and updates, slug
-uniqueness, and stale versions. They remove only their own rows. The existing
-HTTP, CDI, and transaction tests still run.
+uniqueness, and stale versions. They remove only their own rows. CDI discovery
+is exercised with a second test-only entity mapped to the same table; no
+manual registration or extra table is needed. The existing HTTP, CDI lifecycle,
+and transaction tests still run.
 
 In another terminal:
 
