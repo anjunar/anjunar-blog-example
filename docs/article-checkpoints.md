@@ -671,3 +671,62 @@ constraints, server field errors, slow responses, edits during creation, duplica
 submission guards, stale versions and disposal. Desktop and mobile form layouts
 were also checked. Navigating away or reloading discards unsaved text; automatic
 retries, autosave and offline storage are outside this chapter.
+
+
+## 16 — Searching, Filtering and Pagination
+
+- Article slug: `abt-16-searching-filtering-and-pagination`
+- Source revision: [4106366](https://github.com/anjunar/anjunar-blog-example/tree/4106366cb683e4cb61c232a9bd2afd587c20fb3f)
+- Starting revision: chapter 15, `9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b`.
+
+Public and editorial lists search title, slug and summary with shared typed
+Criteria predicates for rows and count. Editorial adds a status filter.
+Whitelisted sorting, UUID tie-breakers and filter-preserving URLs make the
+page navigation predictable. SQL constructor projections omit the post body.
+
+### Check out and run
+
+```text
+git switch --detach 4106366cb683e4cb61c232a9bd2afd587c20fb3f
+sbt --server frontendAssets
+sbt --server "application-backend/run"
+```
+
+Use the existing migrated development database and administrator. There are no
+database mapping or dependency version changes. Follow
+[the chapter guide](searching-filtering-and-pagination.md) for the request
+contract, implementation map and complete walkthrough.
+
+Open /en, enter a phrase, choose a sort and page size, then submit Search.
+Follow Next page, go back and reload: the controls and URL retain the search.
+Changing filters starts at offset zero. Sign in at /en/account to use the
+editorial status filter. Public searches exclude drafts even for administrators.
+
+### Verify
+
+Use the isolated database with the previous sample posts, bootstrapped test
+administrator and chapter 12 SMTP capture settings. Keep port 18080 and the
+capture port free; run backend and browser suites sequentially.
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test --project=contracts
+npx playwright test --project=search --project=forms --project=changes --project=editorial --project=database --project=authentication --project=recovery
+```
+
+This checkpoint passes 121 backend tests, 26 Scala.js tests and all 56 browser
+tests: 48 controlled contracts and eight real workflows. Desktop and mobile
+search layouts were checked.
+
+The search project uses BLOG_TEST_ADMIN_EMAIL/PASSWORD and psql on PATH or
+BLOG_PSQL. It creates four UUID-owned posts and removes only those rows in
+finally. It checks real query matching, page changes, reload, the list
+projection, editorial drafts and public visibility after sign-in.
+
+Coverage includes literal LIKE punctuation, URL-encoded Unicode, percent escapes
+and braces, equal-key ties, null-date ordering, filtered counts, empty pages,
+invalid query values and a delayed search disposed by later navigation.
+
+Substring search can scan rows; offset pagination is not a snapshot under
+concurrent changes. These limits and the projection's authorization boundary
+are explained in the guide and article.
