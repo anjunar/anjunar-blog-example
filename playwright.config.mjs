@@ -4,9 +4,10 @@ export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
   projects: [
-    { name: "contracts", testMatch: ["frontend.spec.mjs", "account.spec.mjs"] },
+    { name: "contracts", testMatch: ["frontend.spec.mjs", "account.spec.mjs", "recovery.spec.mjs"] },
     { name: "database", testMatch: "database.spec.mjs" },
     { name: "authentication", testMatch: "auth-database.spec.mjs" },
+    { name: "recovery", testMatch: "recovery-database.spec.mjs" },
   ],
   use: {
     baseURL: "http://127.0.0.1:18080",

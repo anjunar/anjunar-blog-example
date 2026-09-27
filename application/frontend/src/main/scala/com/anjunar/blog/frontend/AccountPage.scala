@@ -13,6 +13,7 @@ import ui.core.layout.Label.label
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
+import ui.router.RouterLink.routerLink
 import ui.forms.Form.{form, editable, editable_=}
 import ui.forms.Input.{input, inputType, inputType_=}
 
@@ -47,6 +48,8 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
         }
         when(actions.session.map(_.account.isEmpty)) {
           paragraph { text(i18n"Sign in with your email and password.") {} }
+          paragraph { routerLink("/register") { text(i18n"Create an account") {} } }
+          paragraph { routerLink("/forgot-password") { text(i18n"Forgot your password?") {} } }
           form(actions.credentials) {
             classes = "sign-in-form"
             editable = actions.busy.map(!_)

@@ -11,11 +11,12 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     .setDirectoryListingEnabled(false)
     .setWelcomeFiles("index.html")
   private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css")
+  private val accountPages = Set("/en/account", "/en/register", "/en/confirm", "/en/forgot-password", "/en/reset-password")
   private val postPage = "/en/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
     val path = exchange.getRequestPath
-    val page = path == "/en" || path == "/en/" || path == "/en/account" || postPage.matches(path)
+    val page = path == "/en" || path == "/en/" || accountPages.contains(path) || postPage.matches(path)
     if (path == "/service" || path.startsWith("/service/")) api.handleRequest(exchange)
     else if (!publicPaths.contains(path) && !page) {
       exchange.setStatusCode(StatusCodes.NOT_FOUND)
@@ -36,7 +37,8 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     } else {
       // Known browser routes load the shell; REST still decides whether a post exists.
       if (page) exchange.setRelativePath("/index.html")
-      exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, "no-cache")
+      exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, if (accountPages.contains(path)) "no-store" else "no-cache")
+      exchange.getResponseHeaders.put(Headers.REFERRER_POLICY, "no-referrer")
       files.handleRequest(exchange)
     }
   }

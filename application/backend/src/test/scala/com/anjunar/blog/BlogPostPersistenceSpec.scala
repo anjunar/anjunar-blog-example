@@ -87,7 +87,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("CDI discovers entity classes without making their instances injectable") {
     val registry = container.select(classOf[EntityRegistry]).get()
-    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[Account], classOf[EntityDiscoveryProbe]))
+    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[Account], classOf[AccountToken], classOf[EntityDiscoveryProbe]))
     assert(container.select(classOf[BlogPost]).isUnsatisfied)
     assert(container.select(classOf[EntityDiscoveryProbe]).isUnsatisfied)
   }

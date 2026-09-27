@@ -7,7 +7,11 @@ import scala.util.control.NonFatal
 
 final class BlogRoutes(service: BlogService, actions: BlogActions)(using ExecutionContext) {
   private val accounts = new AccountService()
-  val routes: Seq[Route] = Seq(
+  val routes: Seq[Route] = Seq("register", "confirm", "forgot-password", "reset-password").map { endpoint =>
+    Route.view(s"/$endpoint") { _ =>
+      Future.successful(new RecoveryPage(endpoint, AccountLink.takeToken(), accounts))
+    }
+  } ++ Seq(
     Route.view("/account") { context =>
       accounts.session(context.signal)
         .map(state => new AccountPage(Some(state), accounts, () => actions.retry()))
