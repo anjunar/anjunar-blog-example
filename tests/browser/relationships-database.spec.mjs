@@ -14,6 +14,8 @@ async function signIn(page) {
   await page.getByLabel("Email", { exact: true }).fill(process.env.BLOG_TEST_ADMIN_EMAIL);
   await page.getByLabel("Password", { exact: true }).fill(process.env.BLOG_TEST_ADMIN_PASSWORD);
   const attempt = async () => {
+    // The UI clears password memory after every attempt, including a throttled one.
+    await page.getByLabel("Password", { exact: true }).fill(process.env.BLOG_TEST_ADMIN_PASSWORD);
     const response = page.waitForResponse(value => value.request().method() === "POST" &&
       new URL(value.url()).pathname === "/service/auth/login");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
