@@ -31,6 +31,10 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
 
   override def compose(cursor: Cursor): Unit = {
     I18nRuntime.provide(translations)(using this)
+    if (cursor.isBrowser) {
+      val stopListening = AccountLink.listen()
+      addDisposable(() => stopListening())
+    }
     val router = new Router(pages.routes, cursor.browserUrl.getOrElse("/"), pages.config)
     Router.provide(router)(using this)
 

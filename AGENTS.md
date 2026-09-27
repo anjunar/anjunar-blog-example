@@ -30,6 +30,14 @@
 - Auth writes require CSRF and JSON credentials are a separate bounded command, not a general entity update. AuthenticationFilter enters Undertow/Elytron/Soteria after TransactionBoundary begins and protects AuthenticationResource. Do not replace the container identity with a hand-written JAX-RS SecurityContext.
 - Session changes for login/logout belong in RequestTransaction.afterCommit. Preserve rollback/writer-failure coverage. SessionServer closes sessions while Weld is still active.
 - Secure cookies default to true; set BLOG_COOKIE_SECURE=false only for local HTTP. Keep HttpOnly, SameSite, cookie-only tracking, expiry and database revocation checks.
-- Verify 64 backend tests, 9 frontend mapping tests, 16 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
+- Verify 79 backend tests, 9 frontend mapping tests, 20 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
 - Soteria's IdentityStoreHandler and HttpAuthenticationMechanismHandler come from the library, with the official Weld bean decorator. PasswordIdentityStore verifies credentials; SoteriaAuthenticationMechanism calls notifyContainerAboutLogin. Keep the verified initializer, BeanManager JNDI lookup, CallerDetailsResolver service registration and Elytron configuration together.
 - Persist authentication in afterCommit, without AutoApplySession/registerSession. request.logout must reach Soteria cleanSubject; current database roles and session revocation are verified through all three security APIs.
+
+- Chapter 12 verifies email ownership before setting the initial password or creating a READER. Never accept a role in public registration or overwrite an existing account.
+- AccountToken is internal state with stable SchemaId values, digest-only token storage, purpose, expiry and credential-version binding. It is not a public entity contract.
+- Serialize token issuance/consumption by canonical email with the transaction advisory lock. Password reset locks/refreshes Account, updates its hash and authenticationVersion, and consumes the token in the same transaction.
+- AccountRecoveryResource requires the existing CSRF filter and strict bounded commands. GET must never consume a link. Preserve generic request responses, throttling, expiry, replay and rollback tests.
+- AccountMail enqueues immutable values only after commit. Its bounded queue is in memory, not a durable outbox; never claim guaranteed delivery or log mail tokens. Production SMTP requires STARTTLS and an HTTPS configured origin.
+- The complete backend suite needs a free local SMTP capture port via BLOG_SMTP_HOST=127.0.0.1, BLOG_SMTP_PORT, BLOG_SMTP_MODE=local, BLOG_MAIL_FROM and BLOG_PUBLIC_ORIGIN. See docs/registration-and-recovery.md.
+- Browser recovery tests capture SMTP locally and leave one uniquely named READER in the dedicated test database. Do not run them concurrently with the backend SMTP suite.

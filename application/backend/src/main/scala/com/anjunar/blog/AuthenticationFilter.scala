@@ -21,7 +21,8 @@ class AuthenticationFilter extends ContainerRequestFilter with ContainerResponse
   override def filter(request: ContainerRequestContext): Unit = {
     if (resource.getResourceClass != classOf[HealthResource]) {
       SoteriaIntegration.resolve(httpRequest)
-      if (resource.getResourceClass == classOf[AuthenticationResource] &&
+      if ((resource.getResourceClass == classOf[AuthenticationResource] ||
+          resource.getResourceClass == classOf[AccountRecoveryResource]) &&
           request.getMethod != "GET" && request.getMethod != "HEAD" && request.getMethod != "OPTIONS")
         identity.checkCsrf()
     }

@@ -20,7 +20,7 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: user accounts and sign-in
+## Current state: registration and account recovery
 
 The journal reads published posts from PostgreSQL and now has an account page
 at /en/account. An operator creates the first administrator with an explicit
@@ -30,7 +30,9 @@ server-side sessions retain CSRF protection, rotation, revocation, and logout.
 
 Follow [User accounts and sign-in](docs/user-accounts.md) to migrate the
 database, bootstrap the administrator, configure local HTTP cookies, and test
-the account page. Public registration and password recovery follow in chapter 12.
+the account page. Chapter 12 adds email-first registration and single-use password
+reset links. Follow [Registration and account recovery](docs/registration-and-recovery.md)
+for migration, local Mailpit, SMTP configuration and the complete browser workflow.
 
 The [REST connection guide](docs/connecting-rest.md) explains the public
 list/detail flow. The [chapter 9 guide](docs/first-interface.md) describes its
@@ -175,7 +177,9 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **64 successful backend tests**. The account tests verify password
+Expect **79 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+[the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
+The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
 They also verify the same caller through Servlet/JAX-RS/Jakarta Security and
 failed login/logout serialization or commit without a persistent session change. The BlogPost tests cover field and publication
@@ -204,7 +208,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **16 successful browser contract tests**. They build the frontend, start
+Expect **20 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
@@ -214,6 +218,8 @@ database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
 Run `npm run test:browser:auth` for one additional real administrator workflow.
 See [the account guide](docs/user-accounts.md#verify) for credentials and setup.
+Run `npm run test:browser:recovery` with the local SMTP test environment for one
+complete registration, confirmation, reset and session-revocation workflow.
 
 ### Start the application
 

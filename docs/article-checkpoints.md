@@ -451,3 +451,64 @@ sign-in/reload/sign-out workflow. The guide documents fixture setup.
 The checkpoint uses in-memory sessions and rate limits in one server process.
 HTTPS deployment, registration/recovery, and editorial permissions remain
 separate roadmap steps.
+
+## 12 — Registration and Account Recovery
+
+- Article slug: `abt-12-registration-and-account-recovery`
+- Source revision: [f1599a3](https://github.com/anjunar/anjunar-blog-example/tree/f1599a3904737ba63ce413e2f5db14fd2f38569f)
+- Starting revision: chapter 11's Soteria source, `8c7f7a93fa164a3a3f64395e529a358605621f22`.
+
+Readers can request a confirmation email, prove address ownership and choose
+their first password. Existing users can request a single-use reset link;
+a successful reset revokes older sessions through authenticationVersion.
+Sign-in continues through Soteria.
+
+### Check out and migrate
+
+```text
+git switch --detach f1599a3904737ba63ce413e2f5db14fd2f38569f
+sbt --server "application-backend/update"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain preview"
+```
+
+Configure a dedicated local database and stop its HTTP server before migration.
+The preview proposes only blog_account_token. The existing named publication
+check causes the familiar INCOMPLETE/exit 3 result from chapter 6.
+Review it, then run migrate as a separate command:
+
+```text
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+```
+
+A chapter 11 database advances to revision 3 with one CREATE TABLE. Repeating
+migrate reports AlreadyApplied and zero statements. A fresh database starts
+at revision 1 with all three tables.
+
+### Start and verify
+
+Follow [the recovery guide](registration-and-recovery.md) for local Mailpit,
+SMTP settings, the configured public origin and local HTTP cookie settings.
+Start at /en/register; confirmation and reset links arrive in the local inbox.
+
+The guide also gives the separate SMTP capture configuration for automated tests.
+Keep its chosen SMTP port and HTTP port 18080 free, and run the suites sequentially:
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test --project=contracts
+npx playwright test --project=recovery
+```
+
+Expect 79 backend tests, 9 Scala.js tests, 20 browser contracts and one real
+registration/recovery browser workflow. With the earlier sample posts and test
+administrator configured, all four browser projects pass 24 tests.
+
+The backend suite covers token storage, expiry, replacement, purpose separation,
+parallel consumption, generic responses, limits, CSRF, rollback and session
+revocation. The browser workflow uses captured SMTP and real PostgreSQL data.
+
+Mail uses an after-commit worker with a bounded in-memory queue. Delivery is
+not durable; a lost message requires requesting a new link. External SMTP/TLS
+and the optional Docker Mailpit service were not exercised on the Windows test
+host; the tests use native PostgreSQL and a local SMTP capture server.
