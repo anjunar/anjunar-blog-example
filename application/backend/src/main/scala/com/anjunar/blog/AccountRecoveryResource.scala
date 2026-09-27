@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import com.anjunar.json.mapper.provider.DTO
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -13,6 +15,7 @@ import scala.compiletime.uninitialized
 
 final class RecoveryResult(@(JsonbProperty @field) val outcome: String) extends DTO
 
+@PermitAll
 @Path("/auth")
 @RequestScoped
 @Consumes(Array(MediaType.APPLICATION_JSON))

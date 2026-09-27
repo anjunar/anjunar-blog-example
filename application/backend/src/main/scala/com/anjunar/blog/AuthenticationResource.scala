@@ -1,6 +1,9 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import com.anjunar.json.mapper.provider.DTO
+import com.anjunar.json.mapper.schema.Link
 import jakarta.inject.Inject
 import jakarta.enterprise.context.RequestScoped
 import jakarta.json.bind.annotation.JsonbProperty
@@ -12,18 +15,22 @@ import jakarta.servlet.http.{HttpServletRequest, HttpServletResponse}
 import jakarta.ws.rs.{Consumes, GET, NotAuthorizedException, POST, Path, Produces, WebApplicationException}
 import jakarta.ws.rs.core.{Context, MediaType, Response}
 
+import java.util
 import scala.compiletime.uninitialized
 import scala.annotation.meta.field
 
 final class SessionState(
     @(JsonbProperty @field) val csrfToken: String,
-    @(JsonbProperty @field) val account: Account
+    @(JsonbProperty @field) val account: Account,
+    @(JsonbProperty @field)("$links") val links: util.List[Link] = util.List.of()
 ) extends DTO
 
+@PermitAll
 @Path("/auth")
 @RequestScoped
 @Produces(Array(MediaType.APPLICATION_JSON))
 class AuthenticationResource {
+  @Inject var links: PostLinks = uninitialized
   @Inject var manager: EntityManager = uninitialized
   @Inject var identity: SessionIdentity = uninitialized
   @Inject var limiter: LoginLimiter = uninitialized
@@ -35,7 +42,7 @@ class AuthenticationResource {
   @GET
   @Path("/session")
   @EntityGraph("Account.self")
-  def session(): SessionState = new SessionState(identity.csrfToken(), identity.account.orNull)
+  def session(): SessionState = new SessionState(identity.csrfToken(), identity.account.orNull, links.session())
 
   @GET
   @Path("/me")
@@ -59,7 +66,7 @@ class AuthenticationResource {
     val token = SessionIdentity.newToken()
     val principal = identity.principal
     transaction.afterCommit(() => identity.establish(principal, token))
-    new SessionState(token, account)
+    new SessionState(token, account, links.session())
   }
 
   @POST

@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import jakarta.annotation.PreDestroy
 import jakarta.enterprise.context.{ApplicationScoped, RequestScoped}
 import jakarta.inject.Inject
@@ -43,6 +45,7 @@ class ApplicationProbe {
   }
 }
 
+@PermitAll
 @Path("/_test/scopes")
 @RequestScoped
 class ScopeProbeResource {

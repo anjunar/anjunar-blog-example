@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import com.arjuna.ats.jta.{UserTransaction as NarayanaUserTransaction}
 import io.undertow.servlet.handlers.ServletRequestContext
 import jakarta.annotation.Priority
@@ -18,6 +20,7 @@ import java.io.IOException
 import java.security.Principal
 import scala.compiletime.uninitialized
 
+@PermitAll
 @Path("/auth/probe")
 @RequestScoped
 class AuthenticationProbeResource {

@@ -22,6 +22,8 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
       role = "alert"
       heading(1) {
         text(status match {
+          case 401 => i18n"Sign in required"
+          case 403 => i18n"Access denied"
           case 404 => i18n"Post not found"
           case 400 => i18n"Invalid page"
           case _ => i18n"Posts are unavailable"
@@ -29,6 +31,8 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
       }
       paragraph {
         text(status match {
+          case 401 => i18n"Sign in to open the editorial workspace."
+          case 403 => i18n"Your account does not have access to this workspace."
           case 404 => i18n"This post is not available to read."
           case 400 => i18n"Open the latest posts to start again."
           case _ => i18n"We could not load the posts. Please try again."
@@ -39,6 +43,9 @@ final class ErrorPage(status: Int, actions: BlogActions) extends AbstractCompone
           buttonType("button")
           onClick(_ => actions.retry())
         }
+      }
+      if (status == 401 || status == 403) {
+        paragraph { routerLink("/account") { text(i18n"Your account") {} } }
       }
       routerLink("/") { text(i18n"Back to latest posts") {} }
     }

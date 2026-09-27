@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import com.arjuna.ats.jta.{UserTransaction as NarayanaUserTransaction}
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -21,6 +23,7 @@ object TransactionProbe {
   val committed = ConcurrentHashMap.newKeySet[UUID]()
 }
 
+@PermitAll
 @Path("/_test/transactions")
 @RequestScoped
 @Produces(Array("text/plain"))

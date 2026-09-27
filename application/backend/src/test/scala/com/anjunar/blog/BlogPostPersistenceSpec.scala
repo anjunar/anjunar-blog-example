@@ -253,7 +253,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
-  private val constructRule = [T] => (clazz: Class[T]) => clazz.getDeclaredConstructor().newInstance()
+  private val constructRule = [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz)
 
   private def json(post: BlogPost): JsonObject =
     JsonParser.parse(JsonMapper.serialize(

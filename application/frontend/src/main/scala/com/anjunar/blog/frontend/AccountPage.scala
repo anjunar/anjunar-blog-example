@@ -88,6 +88,9 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
             text(actions.session.flatMap(state => translations.text(
               if (state.account.exists(_.role.get == "ADMIN")) i18n"Administrator" else i18n"Reader"))) {}
           }
+          when(actions.session.map(_.links.exists(_.rel == "editorial"))) {
+            paragraph { routerLink("/editorial") { text(i18n"Open editorial") {} } }
+          }
           button(i18n"Sign out") {
             buttonType("button")
             disabled = actions.busy

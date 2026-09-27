@@ -125,12 +125,12 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
   class Schema extends EntitySchema[BlogPost](RuntimeContext.entityManager()) {
     val id: SingularProperty[BlogPost, UUID] = reference(_.id)
     val version: SingularProperty[BlogPost, Long] = reference(_.version)
-    val slug: SingularProperty[BlogPost, String] = reference(_.slug)
-    val title: SingularProperty[BlogPost, String] = reference(_.title)
-    val content: SingularProperty[BlogPost, String] = reference(_.content)
-    val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status)
-    val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt)
-    val summary: SingularProperty[BlogPost, String] = reference(_.summary)
+    val slug: SingularProperty[BlogPost, String] = reference(_.slug, classOf[PostEditRule])
+    val title: SingularProperty[BlogPost, String] = reference(_.title, classOf[PostEditRule])
+    val content: SingularProperty[BlogPost, String] = reference(_.content, classOf[PostEditRule])
+    val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status, classOf[PostReadRule])
+    val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt, classOf[PostReadRule])
+    val summary: SingularProperty[BlogPost, String] = reference(_.summary, classOf[PostEditRule])
   }
 
   def findPublishedBySlug(slug: String)(using entityManager: EntityManager): Option[BlogPost] = {
