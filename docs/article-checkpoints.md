@@ -148,7 +148,7 @@ stops the database while retaining its data volume.
 ## 05 — Our First Domain Model
 
 - Article slug: `abt-05-our-first-domain-model`
-- Source revision: [f962700](https://github.com/anjunar/anjunar-blog-example/tree/f962700f5105edd62913e7e16f04fce7039269c6)
+- Source revision: [b9dad8b](https://github.com/anjunar/anjunar-blog-example/tree/b9dad8b7696f08d77c69fe342d5b08ff5b1179c3)
 
 This chapter introduces BlogPost, its UUID and optimistic-lock version, unique
 slug, publication state, Bean Validation, and the first PostgreSQL table.
@@ -160,7 +160,7 @@ In a directory where `anjunar-blog-example` does not yet exist:
 ```text
 git clone https://github.com/anjunar/anjunar-blog-example.git
 cd anjunar-blog-example
-git switch --detach f962700f5105edd62913e7e16f04fce7039269c6
+git switch --detach b9dad8b7696f08d77c69fe342d5b08ff5b1179c3
 ```
 
 Use JDK 25 and the [README database setup](../README.md#start-a-development-database).
