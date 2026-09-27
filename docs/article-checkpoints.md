@@ -512,3 +512,51 @@ Mail uses an after-commit worker with a bounded in-memory queue. Delivery is
 not durable; a lost message requires requesting a new link. External SMTP/TLS
 and the optional Docker Mailpit service were not exercised on the Windows test
 host; the tests use native PostgreSQL and a local SMTP capture server.
+
+## 13 — Permissions and HATEOAS
+
+- Article slug: `abt-13-permissions-and-hateoas`
+- Source revision: [37f2a3e](https://github.com/anjunar/anjunar-blog-example/tree/37f2a3e6a7d440be4bbc99730bc430915f1bdaa4)
+- Starting revision: chapter 12, `f1599a3904737ba63ce413e2f5db14fd2f38569f`.
+
+Administrators can preview drafts, publish and retract posts. Explicit endpoint
+policies, entity-state checks and request-scoped mapper rules enforce access.
+Response-specific $links advertise the operations the editorial UI can offer.
+
+### Check out and run
+
+```text
+git switch --detach 37f2a3e6a7d440be4bbc99730bc430915f1bdaa4
+sbt --server frontendAssets
+sbt --server "application-backend/run"
+```
+
+Use the chapter 12 development database and an explicitly bootstrapped
+administrator. Follow [the chapter guide](permissions-and-hateoas.md) for local
+cookie settings, sample data and the editorial walkthrough. Chapter 13 changes
+no database mapping; migration reports AlreadyApplied with zero statements.
+
+### Verify
+
+Configure the isolated database and local SMTP capture settings from chapter 12.
+Keep HTTP port 18080 and the configured capture port free; run backend and
+browser suites sequentially.
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test --project=contracts
+npx playwright test --project=editorial
+```
+
+Expect 89 backend tests, 9 Scala.js model tests, 28 browser contracts and one
+real editorial workflow. The editorial project also needs the dedicated
+BLOG_TEST_ADMIN_EMAIL/PASSWORD and psql on PATH, or BLOG_PSQL pointing to it.
+It inserts and removes its own UUID draft in the test database.
+
+The earlier database, authentication and recovery browser projects contribute
+four more checks, for 33 browser tests overall. Publication tests cover current
+roles, CSRF, state conflicts, mapper rules, version updates, concurrency,
+serialization/commit rollback and visibility before/after publication.
+
+The actions are narrow state transitions. PreparedChange, general post editing
+and form binding remain chapters 14 and 15.
