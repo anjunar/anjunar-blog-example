@@ -25,6 +25,16 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
         .filter(value => value >= 1 && value <= 100).getOrElse(throw new HttpFailure(400))
       editorial.list(offset, limit, context.signal).map(new EditorialListPage(_))
     },
+    Route.view("/editorial/new") { context =>
+      editorial.newPost(context.signal).map(value => new PostEditorPage(value, editorial))
+    },
+    Route.view("/editorial/posts/:id/edit") { context =>
+      editorial.detail(context.pathParams("id"), context.signal).map { value =>
+        val link = value.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
+        link.path("PATCH")
+        new PostEditorPage(value, editorial)
+      }
+    },
     Route.view("/editorial/posts/:id") { context =>
       editorial.detail(context.pathParams("id"), context.signal)
         .map(value => new EditorialPostPage(value, editorial, () => actions.retry()))

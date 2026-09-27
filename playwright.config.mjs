@@ -4,7 +4,8 @@ export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
   projects: [
-    { name: "contracts", testMatch: ["frontend.spec.mjs", "account.spec.mjs", "recovery.spec.mjs", "editorial.spec.mjs"] },
+    { name: "contracts", testMatch: ["frontend.spec.mjs", "account.spec.mjs", "recovery.spec.mjs", "editorial.spec.mjs", "post-editor.spec.mjs"] },
+    { name: "forms", testMatch: "post-editor-database.spec.mjs" },
     { name: "changes", testMatch: "changes-database.spec.mjs" },
     { name: "editorial", testMatch: "editorial-database.spec.mjs" },
     { name: "database", testMatch: "database.spec.mjs" },

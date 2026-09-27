@@ -36,9 +36,12 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         text(actions.current.flatMap(value => translations.text(
           if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft"))) {}
       }
-      paragraph { text(actions.current.flatMap(_.data.summary.map(_.getOrElse("")))) {} }
+      paragraph { text(actions.current.flatMap(_.data.summary.map(value => Option(value).getOrElse("")))) {} }
       div {
         classes = "editorial-controls"
+        when(actions.current.map(_.links.exists(_.rel == "update"))) {
+          routerLink(s"/editorial/posts/${initial.data.id.get}/edit") { text(i18n"Edit post") {} }
+        }
         when(actions.current.map(_.links.exists(_.rel == "publish"))) {
           button(i18n"Publish") { buttonType("button"); disabled = actions.busy; onClick(_ => actions.run("publish")) }
         }
@@ -66,7 +69,7 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         }
       }
       when(actions.busy) { paragraph { role = "status"; text(i18n"Saving…") {} } }
-      paragraph { classes = "post-content"; text(actions.current.flatMap(_.data.content.map(_.getOrElse("")))) {} }
+      paragraph { classes = "post-content"; text(actions.current.flatMap(_.data.content.map(value => Option(value).getOrElse("")))) {} }
       routerLink("/editorial") { text(i18n"Back to editorial") {} }
     }
   }

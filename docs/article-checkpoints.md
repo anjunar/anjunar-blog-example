@@ -616,3 +616,58 @@ or contains null values.
 
 The current providers support BlogPost only. Its contract has no relationships;
 reference loading is rejected until chapter 17 adds authorized target loading.
+
+
+## 15 — Building a Form from End to End
+
+- Article slug: `abt-15-building-a-form-from-end-to-end`
+- Source revision: [9e3edb2](https://github.com/anjunar/anjunar-blog-example/tree/9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b)
+- Starting revision: chapter 14, `bb212a133dc20f9647ead13d5347be42e5829592`.
+
+The editorial form binds directly to the frontend BlogPost and uses the chapter
+14 create/update API. Mapper-generated partial payloads carry the current version.
+Acknowledged values update the model without erasing newer typing, and typed
+server errors return to the affected inputs.
+
+### Check out and run
+
+```text
+git switch --detach 9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b
+sbt --server frontendAssets
+sbt --server "application-backend/run"
+```
+
+Use the existing migrated development database and explicitly bootstrapped
+administrator. No database mapping or dependency versions change. Follow
+[the chapter guide](building-a-form-from-end-to-end.md) for the complete walkthrough.
+
+Sign in at /en/account and choose New post in editorial. Save a draft, edit its
+title and clear its summary. Reload to verify persistence. Open its edit URL in
+two tabs: after saving in one, the second keeps its input when its stale version
+receives 409. Discard my edits and reload explicitly adopts the current server
+state. Publishing remains available in the existing preview.
+
+### Verify
+
+Use the isolated database, sample posts, administrator and local SMTP capture
+settings from the earlier chapters. Keep HTTP port 18080 and the SMTP capture
+port free, and run backend and browser suites sequentially.
+
+```text
+sbt --server "application-frontend/testFull" frontendAssets
+sbt --server "application-backend/testOnly com.anjunar.blog.ServerIntegrationSpec com.anjunar.blog.PostChangesSpec"
+npx playwright test --project=contracts --project=forms --project=changes --project=editorial --project=database --project=authentication --project=recovery
+```
+
+This chapter passes 21 Scala.js tests, 18 affected backend integration tests and
+all 49 browser tests: 42 controlled contracts and seven real workflows. The full,
+unchanged backend suite still contains 112 tests; the targeted command above
+runs the two affected suites. The forms project needs BLOG_TEST_ADMIN_EMAIL,
+BLOG_TEST_ADMIN_PASSWORD and psql on PATH or BLOG_PSQL. It deletes only its own
+created post UUID.
+
+Coverage includes mapper partial writes, version zero, explicit nulls, local
+constraints, server field errors, slow responses, edits during creation, duplicate
+submission guards, stale versions and disposal. Desktop and mobile form layouts
+were also checked. Navigating away or reloading discards unsaved text; automatic
+retries, autosave and offline storage are outside this chapter.

@@ -25,6 +25,30 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
   def detail(id: String, signal: Option[dom.AbortSignal]): Future[BlogPostData] =
     HttpJson.get[BlogPostData](s"/service/editorial/posts/${encodeURIComponent(id)}", signal).map(validate)
 
+  def newPost(signal: Option[dom.AbortSignal]): Future[BlogPostData] =
+    list(0, 1, signal).map { table =>
+      val link = table.links.find(_.rel == "create").getOrElse(throw new HttpFailure(403))
+      link.path("POST")
+      val post = new BlogPost()
+      post.content.set("")
+      post.content.setDefault("")
+      new BlogPostData(post, Seq(link))
+    }
+
+  def save(link: ApiLink, body: js.Dynamic): Future[BlogPostData] = {
+    val expectedMethod = if (link.rel == "create") "POST" else {
+      require(link.rel == "update", "Unexpected save relation")
+      "PATCH"
+    }
+    val path = link.path(expectedMethod)
+    accounts.session().flatMap(state =>
+      HttpJson.write[BlogPostData](path, expectedMethod, body, state.csrfToken)).map { result =>
+        val saved = validate(result)
+        require(saved.data.id.get.nonEmpty && saved.data.version.get >= 0, "Missing saved identity or version")
+        saved
+      }
+  }
+
   def execute(link: ApiLink): Future[BlogPostData] = {
     // Validate before fetching CSRF or sending a command.
     val path = link.path("POST")
@@ -35,9 +59,9 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
   private def validate(result: BlogPostData): BlogPostData = {
     require(result.data != null, "Missing editorial detail")
     // The backend mapper omits empty strings. A draft detail may legitimately have an empty body.
-    if (result.data.status.get == "DRAFT" && result.data.content.get.isEmpty)
-      result.data.content.set(Some(""))
-    require(result.data.content.get.nonEmpty, "Missing editorial content")
+    if (result.data.status.get == "DRAFT" && result.data.content.get == null)
+      { result.data.content.set(""); result.data.content.setDefault("") }
+    require(result.data.content.get != null, "Missing editorial content")
     result
   }
 }

@@ -21,16 +21,16 @@ class BlogPostJsonSpec extends AnyFunSuite {
     assert(post.title.get == "First post")
     assert(post.status.get == "PUBLISHED")
     assert(post.publishedAt.get.contains("2026-09-27T10:15:42.123456Z"))
-    assert(post.content.get.isEmpty)
-    assert(post.summary.get.isEmpty)
+    assert(post.content.get == null)
+    assert(post.summary.get == null)
   }
 
   test("detail content and optional summary map without changing editorial text") {
     val row = JsonMapper.deserialize[BlogPostData](js.JSON.parse(
       """{"data":{"content":"<script>literal text</script>","summary":"A summary","version":7}}"""
     ))
-    assert(row.data.content.get.contains("<script>literal text</script>"))
-    assert(row.data.summary.get.contains("A summary"))
+    assert(row.data.content.get == "<script>literal text</script>")
+    assert(row.data.summary.get == "A summary")
     assert(row.data.version.get == 7L)
   }
 
@@ -46,13 +46,13 @@ class BlogPostJsonSpec extends AnyFunSuite {
     assert(table.size == 23L)
   }
 
-  test("explicit null optional values map to None") {
+  test("explicit null values preserve nullable text and an optional timestamp") {
     val row = JsonMapper.deserialize[BlogPostData](js.JSON.parse(
       """{"data":{"summary":null,"publishedAt":null,"content":null}}"""
     ))
-    assert(row.data.summary.get.isEmpty)
+    assert(row.data.summary.get == null)
     assert(row.data.publishedAt.get.isEmpty)
-    assert(row.data.content.get.isEmpty)
+    assert(row.data.content.get == null)
   }
 
   test("missing version is distinguishable from version zero") {

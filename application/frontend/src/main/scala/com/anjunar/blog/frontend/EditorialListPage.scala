@@ -29,6 +29,9 @@ final class EditorialListPage(table: BlogPostTable) extends AbstractComponent {
       paragraph { classes = "eyebrow"; text(i18n"Your workspace") {} }
       heading(1) { text(i18n"Editorial") {} }
       paragraph { text(i18n"Preview drafts and manage publication.") {} }
+      if (table.links.exists(_.rel == "create")) {
+        paragraph { routerLink("/editorial/new") { text(i18n"New post") {} } }
+      }
       if (table.rows.isEmpty) paragraph { text(i18n"No posts on this page.") {} }
       ul {
         classes = "editorial-posts"
@@ -41,7 +44,7 @@ final class EditorialListPage(table: BlogPostTable) extends AbstractComponent {
               classes = "publication-status"
               text(if (row.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft") {}
             }
-            paragraph { text(row.data.summary.map(_.getOrElse(""))) {} }
+            paragraph { text(row.data.summary.map(value => Option(value).getOrElse(""))) {} }
           }
         }
       }
