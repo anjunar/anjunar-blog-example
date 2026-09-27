@@ -3,18 +3,19 @@ package com.anjunar.blog
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
+import jakarta.security.enterprise.CallerPrincipal
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.ws.rs.{NotAuthorizedException, WebApplicationException}
 import jakarta.ws.rs.core.Response
 
 import java.nio.charset.StandardCharsets.UTF_8
-import java.security.{MessageDigest, Principal, SecureRandom}
+import java.security.{MessageDigest, SecureRandom}
 import java.time.Instant
 import java.util.{Base64, UUID}
 import scala.compiletime.uninitialized
 
 final case class SessionPrincipal(accountId: UUID, authenticationVersion: Long, issuedAt: Instant)
-    extends Principal {
+    extends CallerPrincipal(accountId.toString) {
   override def getName: String = accountId.toString
 
   def active(account: Account, now: Instant): Boolean =
@@ -40,20 +41,43 @@ class SessionIdentity {
   private var request: HttpServletRequest = null
 
   private var resolved: Option[Account] = None
+  private var authenticated: SessionPrincipal = null
   def account: Option[Account] = resolved
+  def principal: SessionPrincipal = {
+    requireAccount()
+    authenticated
+  }
 
-  def resolve(httpRequest: HttpServletRequest): Unit = {
+  def resolve(httpRequest: HttpServletRequest): Option[SessionPrincipal] = {
     request = httpRequest
     val session = request.getSession(false)
-    if (session != null) {
-      Option(session.getAttribute(SessionIdentity.principalKey)) match {
-        case Some(principal: SessionPrincipal) =>
-          val value = manager.find(classOf[Account], principal.accountId)
-          if (principal.active(value, Instant.now())) resolved = Some(value)
-          else session.invalidate()
-        case _ => ()
-      }
+    Option(session).flatMap(value => Option(value.getAttribute(SessionIdentity.principalKey))) match {
+      case Some(principal: SessionPrincipal) =>
+        val value = manager.find(classOf[Account], principal.accountId)
+        if (principal.active(value, Instant.now())) {
+          resolved = Some(value)
+          authenticated = principal
+          Some(principal)
+        } else {
+          session.invalidate()
+          None
+        }
+      case _ => None
     }
+  }
+
+  def accept(httpRequest: HttpServletRequest, principal: SessionPrincipal): Unit = {
+    request = httpRequest
+    val value = manager.find(classOf[Account], principal.accountId)
+    if (!principal.active(value, Instant.now())) throw new NotAuthorizedException("Session")
+    resolved = Some(value)
+    authenticated = principal
+  }
+
+  def clear(httpRequest: HttpServletRequest): Unit = {
+    Option(httpRequest.getSession(false)).foreach(_.removeAttribute(SessionIdentity.principalKey))
+    resolved = None
+    authenticated = null
   }
 
   def requireAccount(): Account = resolved.getOrElse(throw new NotAuthorizedException("Session"))
@@ -86,6 +110,7 @@ class SessionIdentity {
   }
 
   def end(token: String): Unit = {
+    request.logout()
     Option(request.getSession(false)).foreach(_.invalidate())
     val anonymous = request.getSession(true)
     anonymous.setAttribute(SessionIdentity.csrfKey, token)

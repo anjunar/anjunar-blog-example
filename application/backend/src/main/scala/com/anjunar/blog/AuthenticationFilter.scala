@@ -5,10 +5,9 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.ws.rs.container.{ContainerRequestContext, ContainerRequestFilter, ContainerResponseContext, ContainerResponseFilter, ResourceInfo}
-import jakarta.ws.rs.core.{Context, SecurityContext}
+import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.ext.Provider
 
-import java.security.Principal
 import scala.compiletime.uninitialized
 
 @Provider
@@ -21,20 +20,10 @@ class AuthenticationFilter extends ContainerRequestFilter with ContainerResponse
 
   override def filter(request: ContainerRequestContext): Unit = {
     if (resource.getResourceClass != classOf[HealthResource]) {
-      identity.resolve(httpRequest)
+      SoteriaIntegration.resolve(httpRequest)
       if (resource.getResourceClass == classOf[AuthenticationResource] &&
           request.getMethod != "GET" && request.getMethod != "HEAD" && request.getMethod != "OPTIONS")
         identity.checkCsrf()
-      val previous = request.getSecurityContext
-      request.setSecurityContext(new SecurityContext {
-        override def getUserPrincipal: Principal =
-          identity.account.map(account => new Principal {
-            override def getName: String = account.id.toString
-          }).orNull
-        override def isUserInRole(role: String): Boolean = identity.account.exists(_.role == role)
-        override def isSecure: Boolean = previous.isSecure
-        override def getAuthenticationScheme: String = "SESSION"
-      })
     }
   }
 

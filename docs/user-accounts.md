@@ -5,6 +5,65 @@ sessions, and an account page. Chapter 12 will add public registration, email
 confirmation, and password recovery. Permission policies and editing follow
 after that.
 
+## Soteria in an embedded container
+
+The backend uses Jakarta Security 4.0 with Soteria 4.0.2 and its official Weld
+bean-decorator adapter 4.0.2. Elytron's Undertow adapter 4.2.1.Final and Jakarta
+Authentication implementation 4.0.0.Final connect Soteria to the servlet container.
+All artifacts, including the provided APIs Soteria needs at runtime, are pinned
+in build.sbt and resolved from Maven Central.
+
+```text
+sbt --server "application-backend/update"
+```
+
+ApplicationMain calls SoteriaIntegration.configure before deployment. The
+integration supplies an Elytron security domain, the Jakarta Authentication
+factory, declared roles, and Soteria's servlet initializer. The initializer
+must register a provider for this servlet context; otherwise startup fails.
+
+Two small adapters fill gaps normally supplied by an application server:
+
+- CdiNamingFactory exposes the active Weld BeanManager at java:comp/BeanManager
+  (and java:comp/env/BeanManager). Other names fail. It is selected only when
+  the process has no configured initial-context factory.
+- SoteriaCallerDetails reads principal and roles from Undertow's servlet request
+  for the Jakarta Security API. Its service-provider registration lives under
+  META-INF/services.
+
+The official Weld decorator is required: it gives Soteria's generated
+IdentityStoreHandler and HttpAuthenticationMechanismHandler beans distinct Weld
+identities. Do not replace these with application implementations.
+
+The authentication path is:
+
+1. TransactionBoundary begins the database transaction. AuthenticationFilter
+   then asks the actual Undertow security context to resolve the session.
+2. Elytron invokes Soteria's HttpBridgeServerAuthModule, which calls the
+   CDI HttpAuthenticationMechanismHandler and our SoteriaAuthenticationMechanism.
+3. On login, the resource calls Jakarta SecurityContext.authenticate with a
+   UsernamePasswordCredential. The mechanism calls Soteria's IdentityStoreHandler,
+   which dispatches to PasswordIdentityStore.
+4. The store verifies the password and returns a SessionPrincipal and role.
+   The mechanism uses notifyContainerAboutLogin; Elytron installs the caller in
+   Undertow. Servlet, JAX-RS, and Jakarta Security now report the same identity.
+5. After successful serialization and commit, the application persists the
+   principal in the session and rotates its ID/CSRF token. Logout similarly calls
+   request.logout through Elytron/Soteria before invalidating the session.
+
+The mechanism does no database work during Undertow's early authentication pass,
+before the JAX-RS transaction exists. The filter explicitly enters it afterward.
+Liveness and frontend assets stay independent of account database work.
+
+IntegratedJaspi=false means the verified Soteria identity does not require a
+second lookup in an Elytron realm. Password verification still happens in the
+IdentityStore. We do not request automatic registerSession or use AutoApplySession:
+each authenticated application REST request revalidates the stored principal
+against the database, and persistent session changes wait for commit.
+
+This chapter establishes caller identity and roles. Endpoint/object/field
+permission policies follow in chapter 13.
+
 ## Upgrade the database
 
 Configure a separate local PostgreSQL database as described in the README.
@@ -99,11 +158,15 @@ Backend files under application/backend/src/main/scala/com/anjunar/blog:
 | --- | --- |
 | Account.scala | Entity, stable schema IDs, safe mapper fields, typed email lookup. |
 | PasswordHash.scala | JDK PBKDF2-HMAC-SHA256, salts, bounded hash parsing and verification. |
+| PasswordIdentityStore.scala | Jakarta credential validation and caller groups, invoked by Soteria's handler. |
+| SoteriaAuthenticationMechanism.scala | Validate credentials or a stored session and notify the container. |
+| SoteriaIntegration.scala / SoteriaInitializer.scala | Elytron/Undertow configuration and verified Soteria module registration. |
+| CdiNamingFactory.scala / SoteriaCallerDetails.scala | Embedded BeanManager lookup and Jakarta caller access. |
 | BootstrapAdminMain.scala | Explicit first-admin command with a database lock. |
 | LoginRequest.scala | A bounded, strict credential command reader, separate from entity writes. |
 | LoginLimiter.scala | Per-account/address attempt windows and bounded concurrent hashing. |
 | SessionIdentity.scala | Session principal, CSRF, account revocation and absolute expiry. |
-| AuthenticationFilter.scala | Resolve the current identity, protect auth writes, set no-store. |
+| AuthenticationFilter.scala | Enter container authentication after transaction startup, protect auth writes, set no-store. |
 | AuthenticationResource.scala | Session state, current account, login and logout. |
 | SecurityConfig.scala | Secure-cookie default, idle and absolute lifetimes. |
 | ApplicationMain.scala / SessionServer.scala | Cookie-only session tracking, capacity and shutdown ordering. |
@@ -159,8 +222,8 @@ Requests marked Sec-Fetch-Site: cross-site are also rejected. SameSite supplemen
 this check. Successful login rotates both session ID and CSRF token.
 
 An authenticated principal contains only account UUID, authenticationVersion,
-and sign-in time. On authenticated application REST requests, the filter reloads
-the account (health checks are excluded). Deletion, locked=true, an authentication
+and sign-in time. On authenticated application REST requests, the Soteria mechanism
+reloads the account through SessionIdentity (liveness is excluded). Deletion, locked=true, an authentication
 version change, or eight hours since sign-in invalidates
 the session. Current roles come from the database. The JPA optimistic-lock
 version and authenticationVersion serve different purposes.
@@ -170,7 +233,8 @@ restart signs everyone out. The session manager permits at most 2,048 active
 sessions. SessionServer ends session listeners before RESTEasy shuts down Weld,
 because RESTEasy 7.0.5 otherwise closes CDI first.
 
-Session creation/rotation for login and logout runs only after serialization
+The container authenticates the current request before the resource returns.
+Persistent session creation/rotation for login and logout runs only after serialization
 and successful database commit. Rejected requests, writer failures and rollback
 discard these callbacks. The anonymous GET session is read-only database work
 and creates only container session state. This is not a distributed transaction
@@ -200,7 +264,7 @@ sbt --server "application-frontend/testFull"
 npm run test:browser
 ```
 
-Expect 61 backend tests, 9 Scala.js mapping tests and 16 Chromium contract tests.
+Expect 64 backend tests, 9 Scala.js mapping tests and 16 Chromium contract tests.
 The browser contract project intercepts data requests and needs no database.
 The backend tests own and remove their account fixtures; existing rows remain.
 
@@ -221,5 +285,7 @@ server and explicitly uses development cookies for its local HTTP origin.
 
 Verification includes valid/invalid login, CSRF, session/token rotation, cookie
 flags, logout replay, revocation, throttling, bounded input, private responses,
-callback execution after commit, browser reload, field binding, double-submit
+the same principal/roles through Servlet, REST and Jakarta Security, changed roles,
+failed login/logout serialization or commit without a session change, browser reload,
+field binding, double-submit
 prevention, error recovery and mobile layout. Screenshots live in test-results.
