@@ -7,14 +7,13 @@ import scala.scalajs.js
 import scala.scalajs.js.URIUtils.encodeURIComponent
 
 final class EditorialService(accounts: AccountService)(using ExecutionContext) {
-  def list(offset: Int, limit: Int, signal: Option[dom.AbortSignal]): Future[BlogPostTable] =
+  def list(search: PostSearch, signal: Option[dom.AbortSignal]): Future[BlogPostTable] =
     accounts.session(signal).flatMap { state =>
       state.links.find(_.rel == "editorial") match {
         case None => Future.failed(new HttpFailure(if (state.account.isEmpty) 401 else 403))
         case Some(link) =>
           val target = new dom.URL(link.path("GET"), dom.window.location.origin)
-          target.searchParams.set("offset", offset.toString)
-          target.searchParams.set("limit", limit.toString)
+          target.search = search.queryString(includeDefaults = true)
           HttpJson.get[BlogPostTable](target.pathname + target.search, signal).map { table =>
             require(table.size >= 0 && table.rows.forall(row => row.data != null), "Invalid editorial table")
             table
@@ -26,7 +25,7 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
     HttpJson.get[BlogPostData](s"/service/editorial/posts/${encodeURIComponent(id)}", signal).map(validate)
 
   def newPost(signal: Option[dom.AbortSignal]): Future[BlogPostData] =
-    list(0, 1, signal).map { table =>
+    list(PostSearch(sort = "title", limit = 1, editorial = true), signal).map { table =>
       val link = table.links.find(_.rel == "create").getOrElse(throw new HttpFailure(403))
       link.path("POST")
       val post = new BlogPost()

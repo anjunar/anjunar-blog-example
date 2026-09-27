@@ -4,8 +4,8 @@ import org.scalajs.dom
 import ui.core.component.AbstractComponent
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
-import ui.core.dsl.DslLayer.render
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.dsl.DslLayer.{child, render}
+import ui.core.i18n.{I18n, I18nRuntime, i18n}
 import ui.core.layout.Heading.heading
 import ui.core.layout.Li.li
 import ui.core.layout.Nav.nav
@@ -19,7 +19,7 @@ import ui.router.RouterLink.routerLink
 
 import scala.scalajs.js
 
-final class EditorialListPage(table: BlogPostTable) extends AbstractComponent {
+final class EditorialListPage(table: BlogPostTable, search: PostSearch) extends AbstractComponent {
   val tagName = "section"
   private val rows = ListProperty(js.Array(table.rows*))
 
@@ -32,7 +32,20 @@ final class EditorialListPage(table: BlogPostTable) extends AbstractComponent {
       if (table.links.exists(_.rel == "create")) {
         paragraph { routerLink("/editorial/new") { text(i18n"New post") {} } }
       }
-      if (table.rows.isEmpty) paragraph { text(i18n"No posts on this page.") {} }
+      child(new PostSearchForm(search)) {}
+      paragraph {
+        classes = "list-note"
+        text(i18n"Showing ${I18n.named("count", table.rows.size)} of ${I18n.named("total", table.size)} posts") {}
+      }
+      if (table.rows.isEmpty) {
+        paragraph {
+          text(if (search.filtered && table.size == 0) i18n"No posts match your search."
+            else i18n"No posts on this page.") {}
+        }
+        if (search.offset > 0) {
+          routerLink(search.copy(offset = 0).url) { text(i18n"First matching page") {} }
+        }
+      }
       ul {
         classes = "editorial-posts"
         foreach(rows) { row =>

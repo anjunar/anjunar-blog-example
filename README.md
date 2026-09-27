@@ -20,7 +20,14 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: a form from end to end
+## Current state: search, filters and pagination
+
+Both post lists now search title, slug and summary, offer fixed sorting and
+preserve their filters in the URL. Editorial adds a status filter; public
+searches always exclude drafts. Typed Criteria queries return compact list
+projections and the matching total. Follow
+[Searching, filtering and pagination](docs/searching-filtering-and-pagination.md)
+for chapter 16 and its runnable examples.
 
 Administrators can now create and edit posts through a form bound directly to
 BlogPost. It displays field errors, sends the current version and preserves text
@@ -74,16 +81,17 @@ registration; Hibernate manages their instances. No entity list is maintained in
 The mapper uses the same schema to apply field rules; default rules allow reading
 and ignore incoming writes. Chapter 13 adds request-scoped read/edit rules to
 BlogPost's editorial fields; status changes remain domain commands. `findPublishedBySlug` uses the schema directly in a
-Criteria query and excludes drafts. Named entity graphs select compact list fields
-or the complete post.
+Criteria query and excludes drafts. Named entity graphs describe the list/detail response fields; chapter 16
+selects list columns explicitly through BlogPostSummary. Detail still returns
+the real BlogPost entity.
 
 The schema is initialized lazily through the active CDI request's EntityManager.
 Do not access it during bootstrap or cache caller-specific permissions in it.
 `InstantConverter` preserves publication timestamps as ISO-8601 strings. Mapper
 tests verify all populated fields, omitted nulls, version zero, and denied writes.
 
-The public API returns entities in Data/Table envelopes through a custom JSON
-writer. Lists exclude content; details include it. Draft and unknown slugs return
+The public API returns summary projections and entity details in Data/Table
+envelopes through a custom JSON writer. Lists exclude content; details include it. Draft and unknown slugs return
 404. Pagination is bounded, and each response describes its selected fields.
 See the [public API guide](docs/public-rest.md) for the JSON contract, optional
 example posts, and curl commands.
@@ -195,7 +203,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **112 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **121 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -228,11 +236,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **42 successful browser contract tests**. They build the frontend, start
+Expect **48 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 21 Scala.js model, form-state and problem-details tests with
+Run the 26 Scala.js model, form-state, search and problem-details tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -245,7 +253,9 @@ Run `npm run test:browser:editorial` for publication/retraction and
 reject a stale edit. Both require the test administrator and psql on PATH or
 BLOG_PSQL; each removes its own post. Run `npm run test:browser:forms` with the
 same settings to create/edit a post and resolve a real version conflict through
-the form. All seven browser projects contain 49 tests.
+the form. `npm run test:browser:search` covers real filtering and pagination
+using the same dedicated test database/admin/psql setup. All eight browser
+projects contain 56 tests.
 
 ### Start the application
 

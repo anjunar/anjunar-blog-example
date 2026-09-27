@@ -9,9 +9,7 @@ import jakarta.json.bind.annotation.JsonbProperty
 import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
-import java.lang
 import java.time.Instant
-import java.util
 import java.util.UUID
 
 @Entity
@@ -146,26 +144,4 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
       .setParameter("slug", slug).getSingleResultOrNull)
   }
 
-  def listPublished(offset: Int, limit: Int)(using entityManager: EntityManager): util.List[BlogPost] = {
-    val builder = entityManager.getCriteriaBuilder
-    val query = builder.createQuery(classOf[BlogPost])
-    val post = query.from(classOf[BlogPost])
-    query.select(post)
-      .where(Seq(builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED))*)
-      .orderBy(builder.desc(post.get(schema.publishedAt)), builder.asc(post.get(schema.id)))
-    entityManager.createQuery(query)
-      .setHint("jakarta.persistence.fetchgraph", entityManager.getEntityGraph("BlogPost.list"))
-      .setFirstResult(offset)
-      .setMaxResults(limit)
-      .getResultList
-  }
-
-  def countPublished()(using entityManager: EntityManager): Long = {
-    val builder = entityManager.getCriteriaBuilder
-    val query = builder.createQuery(classOf[lang.Long])
-    val post = query.from(classOf[BlogPost])
-    query.select(builder.count(post))
-      .where(Seq(builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED))*)
-    entityManager.createQuery(query).getSingleResult.longValue()
-  }
 }

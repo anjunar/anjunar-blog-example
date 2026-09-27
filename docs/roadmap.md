@@ -71,7 +71,11 @@ Chapter 15 binds this write contract directly to BlogPost in an accessible creat
 form. It displays local and server errors, follows create/update links, preserves
 newer typing across delayed saves, and keeps conflicts until explicit discard/reload.
 The real browser workflow creates and edits a post against PostgreSQL.
-Chapter 16 adds search, filtering and richer pagination.
+Chapter 16 searches title, slug and summary with typed Criteria predicates shared
+by rows and count. Lists select compact read-only projections; public visibility,
+editorial status filters, stable sorting and literal punctuation are tested.
+Bound search controls keep filters in the URL across paging, reload and history.
+Chapter 17 adds relationships and media.
 
 ## Further topics
 
@@ -85,6 +89,6 @@ Chapter 16 adds search, filtering and richer pagination.
 - Each article delivers a concrete, verifiable result.
 - Examples come from this runnable project.
 - A commit or tag connects each published article to its project revision.
-- Excerpts identify the file, where the code belongs, how to run it, and the expected result.
+- Examples include imports, full relevant implementations, exact file locations and expected results. Show the complete changed path and executable checks for difficult behavior instead of isolated one-line fragments.
 - We explain architectural decisions when they become relevant.
 - Tests accompany each feature; article 23 brings the testing strategy together.

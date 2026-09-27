@@ -25,9 +25,11 @@ import ui.router.RouterLink.routerLink
 import scala.scalajs.js
 import scala.scalajs.js.URIUtils.encodeURIComponent
 
-final class PostListPage(table: BlogPostTable, offset: Int, pageSize: Int, actions: BlogActions)
+final class PostListPage(table: BlogPostTable, search: PostSearch, actions: BlogActions)
     extends AbstractComponent {
   val tagName = "div"
+  private val offset = search.offset
+  private val pageSize = search.limit
   private val posts = ListProperty(js.Array(table.rows.map(_.data)*))
 
   override def compose(cursor: Cursor): Unit =
@@ -45,13 +47,14 @@ final class PostListPage(table: BlogPostTable, offset: Int, pageSize: Int, actio
           text(i18n"Notes on Scala, the web, and the decisions in between.") {}
         }
       }
+      child(new PostSearchForm(search)) {}
       section {
         id = "posts"
         ariaLabelledBy = "posts-title"
         div {
           classes = "list-heading"
           div {
-            heading(2) { id = "posts-title"; text(i18n"Latest posts") {} }
+            heading(2) { id = "posts-title"; text(if (search.query.nonEmpty) i18n"Search results" else i18n"Latest posts") {} }
             paragraph {
               classes = "list-note"
               text(i18n"Showing ${I18n.named("count", table.rows.size)} of ${I18n.named("total", table.size)} posts") {}
@@ -69,11 +72,14 @@ final class PostListPage(table: BlogPostTable, offset: Int, pageSize: Int, actio
         if (table.rows.isEmpty) {
           paragraph {
             classes = "empty-state"
-            text(if (table.size == 0) i18n"No posts have been published yet."
+            text(if (table.size == 0 && search.filtered) i18n"No posts match your search."
+              else if (table.size == 0) i18n"No posts have been published yet."
               else i18n"There are no posts on this page.") {}
           }
           if (offset > 0) {
-            routerLink("/") { text(i18n"Back to latest posts") {} }
+            routerLink(search.copy(offset = 0).url) {
+              text(if (search.filtered) i18n"First matching page" else i18n"Back to latest posts") {}
+            }
           }
         } else {
           ul {
@@ -114,13 +120,13 @@ final class PostListPage(table: BlogPostTable, offset: Int, pageSize: Int, actio
             classes = "pagination"
             ariaLabel = I18nRuntime.current.get.text(i18n"Post pages")
             if (offset > 0) {
-              routerLink(s"/?offset=${math.max(0, offset - pageSize)}") {
-                text(i18n"Newer posts") {}
+              routerLink(search.copy(offset = math.max(0, offset - pageSize)).url) {
+                text(i18n"Previous page") {}
               }
             }
             if (offset.toLong + pageSize < table.size && offset <= Int.MaxValue - pageSize) {
-              routerLink(s"/?offset=${offset + pageSize}") {
-                text(i18n"Older posts") {}
+              routerLink(search.copy(offset = offset + pageSize).url) {
+                text(i18n"Next page") {}
               }
             }
           }
