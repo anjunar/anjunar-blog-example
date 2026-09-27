@@ -50,10 +50,12 @@ Client validation helps the user; the JSON mapper remains responsible for
 server-side field validation, with Hibernate's existing callbacks guarding
 complete entity invariants.
 
-Raw setAttribute calls use the actual label/control as their receiver. In a
-component class, an unqualified call can resolve to the outer component.
-Labels use for/id pairs; each control has aria-describedby and reactive
-aria-invalid. The whole UI tree stays in compose.
+Attributes use AttributeDsl.setAttribute with an imported AttributeDsl object,
+so the inherited component setter cannot shadow the DSL function. Each call targets the component
+provided by its enclosing DSL block. Reactive aria-invalid observers stay
+inside the input/textarea block and are disposed with that control. Labels use
+for/id pairs; each control has aria-describedby. The whole UI tree stays in
+compose, including attribute and submit-event bindings.
 
 ## Text, null and partial writes
 

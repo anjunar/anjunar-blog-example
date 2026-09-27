@@ -116,10 +116,10 @@ test("paging keeps server order and query state in browser history", async ({ pa
     return json(route, table(query.get("offset") === "0" ? posts : [posts[1]], 21));
   });
   await page.goto("/");
-  await page.getByRole("link", { name: "Older posts" }).click();
+  await page.getByRole("link", { name: "Next page" }).click();
   await expect(page).toHaveURL(/\/en\?offset=20$/);
   await expect(page.getByRole("heading", { level: 3 })).toHaveText([posts[1].title]);
-  await expect(page.getByRole("link", { name: "Older posts" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Next page" })).toHaveCount(0);
   await page.goBack();
   await expect(page.getByRole("heading", { level: 3 })).toHaveText(posts.map(post => post.title));
   expect(requests).toEqual([["0", "20"], ["20", "20"], ["0", "20"]]);

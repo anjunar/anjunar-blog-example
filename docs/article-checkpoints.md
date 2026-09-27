@@ -622,6 +622,7 @@ reference loading is rejected until chapter 17 adds authorized target loading.
 
 - Article slug: `abt-15-building-a-form-from-end-to-end`
 - Source revision: [9e3edb2](https://github.com/anjunar/anjunar-blog-example/tree/9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b)
+- Corrected editor: [214eeb6](https://github.com/anjunar/anjunar-blog-example/blob/214eeb6d5a2c6062013d95abf7f990a1cb032cce/application/frontend/src/main/scala/com/anjunar/blog/frontend/PostEditorPage.scala). The run commands apply this DSL correction to the chapter 15 snapshot.
 - Starting revision: chapter 14, `bb212a133dc20f9647ead13d5347be42e5829592`.
 
 The editorial form binds directly to the frontend BlogPost and uses the chapter
@@ -633,6 +634,7 @@ server errors return to the affected inputs.
 
 ```text
 git switch --detach 9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b
+git restore --source 214eeb6d5a2c6062013d95abf7f990a1cb032cce -- application/frontend/src/main/scala/com/anjunar/blog/frontend/PostEditorPage.scala
 sbt --server frontendAssets
 sbt --server "application-backend/run"
 ```
@@ -671,3 +673,68 @@ constraints, server field errors, slow responses, edits during creation, duplica
 submission guards, stale versions and disposal. Desktop and mobile form layouts
 were also checked. Navigating away or reloading discards unsaved text; automatic
 retries, autosave and offline storage are outside this chapter.
+
+
+## 16 — Searching, Filtering and Pagination
+
+- Article slug: `abt-16-searching-filtering-and-pagination`
+- Source revision: [214eeb6](https://github.com/anjunar/anjunar-blog-example/tree/214eeb6d5a2c6062013d95abf7f990a1cb032cce)
+- Starting revision: chapter 15, `9e3edb2af6d498cf299ffbb2c898bf37aeeedf1b`.
+
+Public and editorial lists use the stack's HibernateSearch architecture with
+AbstractSearch, annotated fields and CDI predicate/sort providers. Both rows
+and count use the same search context and typed EntitySchema attributes.
+Editorial adds a status filter.
+Whitelisted sorting, UUID tie-breakers and filter-preserving URLs make the
+page navigation predictable. SQL constructor projections omit the post body.
+Form attributes use AttributeDsl.setAttribute inside their DSL blocks; reactive
+attribute observers are attached and disposed within their target control.
+
+### Check out and run
+
+```text
+git switch --detach 214eeb6d5a2c6062013d95abf7f990a1cb032cce
+sbt --server frontendAssets
+sbt --server "application-backend/run"
+```
+
+Use the existing migrated development database and administrator. There are no
+database mapping or dependency version changes. Follow
+[the chapter guide](searching-filtering-and-pagination.md) for the request
+contract, implementation map and complete walkthrough.
+
+Open /en, enter a phrase, choose a sort and page size, then submit Search.
+Follow Next page, go back and reload: the controls and URL retain the search.
+Changing filters starts at offset zero. Sign in at /en/account to use the
+editorial status filter. Public searches exclude drafts even for administrators.
+
+### Verify
+
+Use the isolated database with the previous sample posts, bootstrapped test
+administrator and chapter 12 SMTP capture settings. Keep port 18080 and the
+capture port free; run backend and browser suites sequentially.
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test --project=contracts
+npx playwright test --project=search --project=forms --project=changes --project=editorial --project=database --project=authentication --project=recovery
+```
+
+This checkpoint passes 125 backend tests, 26 Scala.js tests and all 56 browser
+tests: 48 controlled contracts and eight real workflows. Desktop and mobile
+search layouts were checked.
+
+The search project uses BLOG_TEST_ADMIN_EMAIL/PASSWORD and psql on PATH or
+BLOG_PSQL. It creates four UUID-owned posts and removes only those rows in
+finally. It checks real query matching, page changes, reload, the list
+projection, editorial drafts and public visibility after sign-in.
+
+Coverage includes literal LIKE punctuation, URL-encoded Unicode, percent escapes
+and braces, equal-key ties, null-date ordering, filtered counts, empty pages,
+invalid query values and a delayed search disposed by later navigation.
+HibernateSearchSpec also covers an independent CDI provider with entity/scalar
+projections, missing-provider failures and generic page bounds.
+
+Substring search can scan rows; offset pagination is not a snapshot under
+concurrent changes. These limits and the projection's authorization boundary
+are explained in the guide and article.

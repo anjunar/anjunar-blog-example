@@ -19,11 +19,8 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
         .recover { case NonFatal(_) => new AccountPage(None, accounts, () => actions.retry()) }
     },
     Route.view("/editorial") { context =>
-      val offset = context.queryParams.get("offset").getOrElse("0").toIntOption
-        .filter(_ >= 0).getOrElse(throw new HttpFailure(400))
-      val limit = context.queryParams.get("limit").getOrElse("20").toIntOption
-        .filter(value => value >= 1 && value <= 100).getOrElse(throw new HttpFailure(400))
-      editorial.list(offset, limit, context.signal).map(new EditorialListPage(_))
+      val search = PostSearch.parse(context.queryParams.get, editorial = true)
+      editorial.list(search, context.signal).map(new EditorialListPage(_, search))
     },
     Route.view("/editorial/new") { context =>
       editorial.newPost(context.signal).map(value => new PostEditorPage(value, editorial))
@@ -46,10 +43,9 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
       Future.successful(new ErrorPage(403, actions))
     },
     Route.view("/") { context =>
-      val offset = context.queryParams.get("offset").getOrElse("0").toIntOption
-        .filter(_ >= 0).getOrElse(throw new HttpFailure(400))
-      service.list(offset, context.signal)
-        .map(table => new PostListPage(table, offset, service.pageSize, actions))
+      val search = PostSearch.parse(context.queryParams.get, editorial = false)
+      service.list(search, context.signal)
+        .map(table => new PostListPage(table, search, actions))
     },
     Route.view("/posts/:slug") { context =>
       service.detail(context.pathParams("slug"), context.signal).map(new PostPage(_))

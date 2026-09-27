@@ -6,10 +6,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.URIUtils.encodeURIComponent
 
 final class BlogService(using ExecutionContext) {
-  val pageSize = 20
-
-  def list(offset: Int, signal: Option[dom.AbortSignal]): Future[BlogPostTable] =
-    HttpJson.get[BlogPostTable](s"/service/blog/posts?offset=$offset&limit=$pageSize", signal)
+  def list(search: PostSearch, signal: Option[dom.AbortSignal]): Future[BlogPostTable] =
+    HttpJson.get[BlogPostTable](s"/service/blog/posts?${search.queryString(includeDefaults = true)}", signal)
       .map { table =>
         require(table.size >= 0 && table.rows != null, "Invalid post table")
         table.rows.foreach(row => require(row != null && row.data != null, "Missing post data"))

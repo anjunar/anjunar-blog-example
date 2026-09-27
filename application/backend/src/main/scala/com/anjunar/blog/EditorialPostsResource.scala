@@ -1,11 +1,13 @@
 package com.anjunar.blog
 
+import com.anjunar.blog.hibernate.search.HibernateSearch
+
 import com.anjunar.json.mapper.{ErrorRequest, PreparedChange}
 import jakarta.annotation.security.RolesAllowed
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, FlushModeType, LockModeType}
-import jakarta.ws.rs.{BadRequestException, Consumes, DefaultValue, ForbiddenException, GET, NotFoundException, PATCH, POST, Path, PathParam, Produces, QueryParam}
+import jakarta.ws.rs.{BeanParam, Consumes, ForbiddenException, GET, NotFoundException, PATCH, POST, Path, PathParam, Produces}
 import jakarta.ws.rs.core.{Context, GenericEntity, MediaType, Response, UriInfo}
 
 import java.lang
@@ -23,26 +25,21 @@ class EditorialPostsResource {
   @Inject var manager: EntityManager = uninitialized
   @Inject var access: PostAccess = uninitialized
   @Inject var links: PostLinks = uninitialized
+  @Inject var queries: HibernateSearch = uninitialized
   @Context var uriInfo: UriInfo = uninitialized
 
   @GET
   @EntityGraph("BlogPost.list")
-  def list(@QueryParam("offset") @DefaultValue("0") rawOffset: String,
-      @QueryParam("limit") @DefaultValue("20") rawLimit: String): Table[Data[BlogPost]] = {
-    val offset = rawOffset.toIntOption.getOrElse(throw new BadRequestException())
-    val limit = rawLimit.toIntOption.getOrElse(throw new BadRequestException())
-    if (offset < 0 || limit < 1 || limit > 100) throw new BadRequestException()
-    val builder = manager.getCriteriaBuilder
-    val query = builder.createQuery(classOf[BlogPost])
-    val post = query.from(classOf[BlogPost])
-    query.select(post).orderBy(builder.asc(post.get(BlogPost.schema.title)), builder.asc(post.get(BlogPost.schema.id)))
-    val values = manager.createQuery(query).setFirstResult(offset).setMaxResults(limit).getResultList.asScala
-    val countQuery = builder.createQuery(classOf[lang.Long])
-    countQuery.select(builder.count(countQuery.from(classOf[BlogPost])))
-    val size = manager.createQuery(countQuery).getSingleResult.longValue()
+  def list(@BeanParam parameters: PostSearchParams): Table[Data[BlogPostSummary]] = {
+    given EntityManager = manager
+    val search = parameters.search(editorial = true)
+    val context = queries.searchContext(search)
     val schema = Schema.forGraph(BlogPost.schema, manager.getEntityGraph("BlogPost.list"))
-    new Table(values.map(post => new Data(post, schema, links.editorialPost(post))).asJava,
-      size, links.page(offset, limit, size))
+    val rows = queries.entities(search.index, search.limit, classOf[BlogPost],
+      classOf[BlogPostSummary], context, BlogPostSummary.select).asScala
+      .map(post => new Data(post, schema, links.summary(post, editorial = true))).asJava
+    val total = queries.count(classOf[BlogPost], context)
+    new Table(rows, total, links.page(search, total, editorial = true))
   }
 
   @POST

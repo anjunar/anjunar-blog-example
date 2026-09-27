@@ -1,6 +1,7 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
+import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
@@ -59,8 +60,8 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
               input("email") {
                 inputType = "email"
                 autoComplete = "username"
-                setAttribute("required", "")
-                setAttribute("maxlength", "254")
+                AttributeDsl.setAttribute("required", "")
+                AttributeDsl.setAttribute("maxlength", "254")
               }
             }
             label {
@@ -68,8 +69,8 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
               input("password") {
                 inputType = "password"
                 autoComplete = "current-password"
-                setAttribute("required", "")
-                setAttribute("maxlength", "128")
+                AttributeDsl.setAttribute("required", "")
+                AttributeDsl.setAttribute("maxlength", "128")
               }
             }
             button(i18n"Sign in") {

@@ -2,10 +2,11 @@ package com.anjunar.blog.frontend
 
 import org.scalajs.dom
 import ui.core.component.AbstractComponent
+import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
-import ui.core.dsl.EventDsl.onClick
+import ui.core.dsl.EventDsl.{on, onClick}
 import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
@@ -45,10 +46,10 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService)
       paragraph { text(i18n"Save your text here. Publication is managed from the preview.") {} }
       form(post) { mountedForm ?=>
         classes = "post-form"
-        mountedForm.setAttribute("novalidate", "")
+        AttributeDsl.setAttribute("novalidate", "")
         mountedForm.addDisposable(actions.errors.observe(values =>
           mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
-        mountedForm.onHandler("submit") { event =>
+        on("submit") { event =>
           event.preventDefault()
           if (!actions.busy.get && !actions.blocked.get) {
             mountedForm.clearErrors()
@@ -64,48 +65,52 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService)
         }
         div {
           classes = "post-field"
-          label { fieldLabel ?=> fieldLabel.setAttribute("for", "post-title"); text(i18n"Title") {} }
+          label { AttributeDsl.setAttribute("for", "post-title"); text(i18n"Title") {} }
           val control = input("title") { fieldInput ?=>
             id = "post-title"
-            fieldInput.setAttribute("aria-describedby", "post-title-errors")
+            AttributeDsl.setAttribute("aria-describedby", "post-title-errors")
+            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+              AttributeDsl.setAttribute("aria-invalid", value.toString)))
           }
-          control.addDisposable(control.invalid.observe(value => control.setAttribute("aria-invalid", value.toString)))
           paragraph { id = "post-title-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
         }
         div {
           classes = "post-field"
-          label { fieldLabel ?=> fieldLabel.setAttribute("for", "post-slug"); text(i18n"Slug") {} }
+          label { AttributeDsl.setAttribute("for", "post-slug"); text(i18n"Slug") {} }
           val control = input("slug") { fieldInput ?=>
             id = "post-slug"
             spellCheck = false
-            fieldInput.setAttribute("aria-describedby", "post-slug-help post-slug-errors")
+            AttributeDsl.setAttribute("aria-describedby", "post-slug-help post-slug-errors")
+            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+              AttributeDsl.setAttribute("aria-invalid", value.toString)))
           }
-          control.addDisposable(control.invalid.observe(value => control.setAttribute("aria-invalid", value.toString)))
           paragraph { id = "post-slug-help"; classes = "field-help"; text(i18n"Use lowercase words separated by hyphens. Changing this changes the public URL.") {} }
           paragraph { id = "post-slug-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
         }
         div {
           classes = "post-field"
-          label { fieldLabel ?=> fieldLabel.setAttribute("for", "post-summary"); text(i18n"Summary (optional)") {} }
+          label { AttributeDsl.setAttribute("for", "post-summary"); text(i18n"Summary (optional)") {} }
           val control = textAreaInput("summary") { fieldInput ?=>
             id = "post-summary"
-            fieldInput.setAttribute("rows", "3")
-            fieldInput.setAttribute("aria-describedby", "post-summary-help post-summary-errors")
+            AttributeDsl.setAttribute("rows", "3")
+            AttributeDsl.setAttribute("aria-describedby", "post-summary-help post-summary-errors")
+            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+              AttributeDsl.setAttribute("aria-invalid", value.toString)))
           }
-          control.addDisposable(control.invalid.observe(value => control.setAttribute("aria-invalid", value.toString)))
           paragraph { id = "post-summary-help"; classes = "field-help"; text(i18n"Up to 300 characters. Leave it empty to clear the summary.") {} }
           paragraph { id = "post-summary-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
         }
         div {
           classes = "post-field"
-          label { fieldLabel ?=> fieldLabel.setAttribute("for", "post-content"); text(i18n"Content") {} }
+          label { AttributeDsl.setAttribute("for", "post-content"); text(i18n"Content") {} }
           val control = textAreaInput("content") { fieldInput ?=>
             id = "post-content"
             classes = "post-content-input"
-            fieldInput.setAttribute("rows", "12")
-            fieldInput.setAttribute("aria-describedby", "post-content-help post-content-errors")
+            AttributeDsl.setAttribute("rows", "12")
+            AttributeDsl.setAttribute("aria-describedby", "post-content-help post-content-errors")
+            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+              AttributeDsl.setAttribute("aria-invalid", value.toString)))
           }
-          control.addDisposable(control.invalid.observe(value => control.setAttribute("aria-invalid", value.toString)))
           paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Plain text for now. A draft may be empty; a published post needs content.") {} }
           paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
         }

@@ -1,6 +1,7 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
+import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
@@ -70,9 +71,9 @@ final class RecoveryPage(endpoint: String, token: Option[String], accounts: Acco
                 input("password") {
                   inputType = "password"
                   autoComplete = "new-password"
-                  setAttribute("required", "")
-                  setAttribute("minlength", "15")
-                  setAttribute("maxlength", "128")
+                  AttributeDsl.setAttribute("required", "")
+                  AttributeDsl.setAttribute("minlength", "15")
+                  AttributeDsl.setAttribute("maxlength", "128")
                 }
               }
             } else {
@@ -81,8 +82,8 @@ final class RecoveryPage(endpoint: String, token: Option[String], accounts: Acco
                 input("email") {
                   inputType = "email"
                   autoComplete = "email"
-                  setAttribute("required", "")
-                  setAttribute("maxlength", "254")
+                  AttributeDsl.setAttribute("required", "")
+                  AttributeDsl.setAttribute("maxlength", "254")
                 }
               }
             }
