@@ -92,6 +92,6 @@ REST graphs and bound forms. Chapter 18 adds uploads, image delivery and media c
 - Each article delivers a concrete, verifiable result.
 - Examples come from this runnable project.
 - A commit or tag connects each published article to its project revision.
-- Examples include imports, full relevant implementations, exact file locations and expected results. Show the complete changed path and executable checks for difficult behavior instead of isolated one-line fragments.
+- Select examples that explain the chapter's central ideas. Give excerpts enough context and the necessary imports; link the complete implementation at the checkpoint. Full files belong in the article only when they help the explanation. Code volume is not a quality target.
 - We explain architectural decisions when they become relevant.
 - Tests accompany each feature; article 24 brings the testing strategy together.
