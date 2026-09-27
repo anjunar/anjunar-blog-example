@@ -206,3 +206,26 @@ curl -i http://127.0.0.1:8080/service/health/ready
 Expect HTTP 200 and `UP`; an absent table causes readiness to fail with HTTP 500.
 Use `curl.exe` in Windows PowerShell if needed. Stop the application with Ctrl+C.
 Public post endpoints follow in chapter 8.
+
+## 06 — Evolving the Data Model
+
+- Article slug: `abt-06-evolving-the-data-model`
+- Adoption baseline: [b693dba](https://github.com/anjunar/anjunar-blog-example/tree/b693dba5c8e3402a1249bdebf38bc9503d45e99a)
+- Completed source: [185a0fd](https://github.com/anjunar/anjunar-blog-example/tree/185a0fd7634f1da3e7f7b420a806a022033cd242)
+
+This chapter uses Hibernate DDL Manager 1.1.0 from Maven Central. SchemaMain
+discovers entities through CDI, previews or applies migrations through a JDBC
+transaction, and keeps normal application startup in Hibernate validate mode.
+
+For an existing chapter 5 database, first use the adoption baseline. Rename the
+enum check once with database/002-adopt-check-name.sql, inspect the preview and
+run migrate --adopt-existing. Only then switch to the completed source and run
+migrate to add the nullable summary column. Existing rows and publication checks
+remain in place.
+
+For an empty database, use the completed source directly and run migrate without
+the old SQL scripts or the adoption flag.
+
+See the [complete command sequence](schema-evolution.md). Expect 28 successful
+tests after migration. Read-only previews of the existing publication check
+report INCOMPLETE (exit 3); execution verifies the predicate under its lock.

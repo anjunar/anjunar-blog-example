@@ -55,10 +55,10 @@ named publication check without creating a probe table. Inspect its findings:
 there should be no blocker. Migration verifies the predicate under its lock
 and reports Adopted: revision 1, 0 SQL statements. The zero excludes history writes.
 
-Now switch to the [final chapter 6 checkpoint](article-checkpoints.md#06--evolving-the-data-model)
-and run:
+Now switch to the completed chapter 6 source and run:
 
 ```text
+git switch --detach 185a0fd7634f1da3e7f7b420a806a022033cd242
 sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain preview"
 sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
 sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
