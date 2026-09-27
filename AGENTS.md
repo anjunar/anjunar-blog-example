@@ -7,6 +7,7 @@
 - Use libraries from Maven Central; do not introduce ProjectRef or publishLocal dependencies.
 - Examples must run against the corresponding project revision.
 - Import types and APIs instead of using fully qualified names in code. Import java.lang and use lang.Long, lang.Integer, etc. for Java wrappers. Use import aliases for name collisions.
+- Use plain JPA and Bean Validation annotations on fields declared in the class body. An explicit @field target is unnecessary there; use it when an annotation on a constructor parameter needs to target the backing field.
 - Write the blog articles, documentation, roadmap, code comments, and example text in English.
 - Name article slugs abt-NN-title-in-kebab-case, where NN is the two-digit article number (for example, abt-01-building-a-complete-web-application-with-scala).
 - English is the application's primary language. Introduce German as the second language in the internationalization chapter.
