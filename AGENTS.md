@@ -27,10 +27,10 @@
 
 - Chapter 11 adds Account; CDI discovers it alongside BlogPost. Keep all existing SchemaId values stable. Account.self and the frontend expose only id, version, email and role; never serialize passwordHash or authenticationVersion.
 - BootstrapAdminMain is an explicit operator command guarded by a database advisory lock. Never add automatic first-user administrator promotion or reset existing credentials on startup.
-- Auth writes require CSRF and JSON credentials are a separate bounded command, not a general entity update. AuthenticationFilter enters Undertow/Elytron/Soteria after TransactionBoundary begins and protects AuthenticationResource. Do not replace the container identity with a hand-written JAX-RS SecurityContext.
+- Auth writes require CSRF and JSON credentials are a separate bounded command, not a general entity update. AuthenticationFilter enters Undertow/Elytron/Soteria after TransactionBoundary begins; AuthorizationFilter enforces endpoint policies and CSRF on auth/recovery/editorial writes. Do not replace the container identity with a hand-written JAX-RS SecurityContext.
 - Session changes for login/logout belong in RequestTransaction.afterCommit. Preserve rollback/writer-failure coverage. SessionServer closes sessions while Weld is still active.
 - Secure cookies default to true; set BLOG_COOKIE_SECURE=false only for local HTTP. Keep HttpOnly, SameSite, cookie-only tracking, expiry and database revocation checks.
-- Verify 79 backend tests, 9 frontend mapping tests, 20 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
+- Verify 89 backend tests, 9 frontend mapping tests, 28 browser contract tests. test:browser:auth needs a dedicated bootstrapped test administrator via BLOG_TEST_ADMIN_EMAIL/PASSWORD. No password or cookie should be committed or printed.
 - Soteria's IdentityStoreHandler and HttpAuthenticationMechanismHandler come from the library, with the official Weld bean decorator. PasswordIdentityStore verifies credentials; SoteriaAuthenticationMechanism calls notifyContainerAboutLogin. Keep the verified initializer, BeanManager JNDI lookup, CallerDetailsResolver service registration and Elytron configuration together.
 - Persist authentication in afterCommit, without AutoApplySession/registerSession. request.logout must reach Soteria cleanSubject; current database roles and session revocation are verified through all three security APIs.
 
@@ -41,3 +41,11 @@
 - AccountMail enqueues immutable values only after commit. Its bounded queue is in memory, not a durable outbox; never claim guaranteed delivery or log mail tokens. Production SMTP requires STARTTLS and an HTTPS configured origin.
 - The complete backend suite needs a free local SMTP capture port via BLOG_SMTP_HOST=127.0.0.1, BLOG_SMTP_PORT, BLOG_SMTP_MODE=local, BLOG_MAIL_FROM and BLOG_PUBLIC_ORIGIN. See docs/registration-and-recovery.md.
 - Browser recovery tests capture SMTP locally and leave one uniquely named READER in the dedicated test database. Do not run them concurrently with the backend SMTP suite.
+
+- Chapter 13 requires explicit endpoint policies: a method overrides its class; unannotated resources are denied. AuthorizationFilter enforces them after Soteria resolves the caller.
+- PostAccess is shared by publication commands and PostLinks. Recheck role, CSRF and current entity state on every POST; a response link is not authorization.
+- Publication commands lock the row and call the domain transition. Preserve conflict, rollback and version tests; general entity updates belong to PreparedChange in chapter 14.
+- PostEditRule resolves the current CDI caller; lifecycle fields use read-only rules. Cache rule classes in EntitySchema, never permission results.
+- Build links per Data/Table/SessionState response; keep them out of JPA state. Schema.forGraph still describes structure, not writable-field capabilities. Responses with caller-specific links use no-store.
+- The editorial frontend follows supplied command URLs/methods, validates same-origin /service/ destinations, and replaces values/version/links on success. Clear stale actions on failure and ignore replies after disposal.
+- test:browser:editorial needs the dedicated test admin plus psql on PATH or BLOG_PSQL. It creates/deletes its own UUID draft in the test database. All browser projects now contain 33 checks.

@@ -20,9 +20,14 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: registration and account recovery
+## Current state: permissions and HATEOAS
 
-The journal reads published posts from PostgreSQL and now has an account page
+The editorial workspace now lets administrators preview, publish and retract posts.
+Endpoint and entity-state checks enforce access; mapper rules govern fields, and
+response-specific $links drive the available UI actions. Follow
+[Permissions and HATEOAS](docs/permissions-and-hateoas.md) to run chapter 13.
+
+The journal reads published posts from PostgreSQL and has an account page
 at /en/account. An operator creates the first administrator with an explicit
 command. Sign-in uses Jakarta Security/Soteria, an IdentityStore, and Elytron's
 Undertow integration. The container supplies the authenticated principal and roles;
@@ -55,7 +60,8 @@ registration; Hibernate manages their instances. No entity list is maintained in
 
 `BlogPost.Schema` describes all eight persistent fields with typed JPA attributes.
 The mapper uses the same schema to apply field rules; default rules allow reading
-and ignore incoming writes. `findPublishedBySlug` uses the schema directly in a
+and ignore incoming writes. Chapter 13 adds request-scoped read/edit rules to
+BlogPost's editorial fields; status changes remain domain commands. `findPublishedBySlug` uses the schema directly in a
 Criteria query and excludes drafts. Named entity graphs select compact list fields
 or the complete post.
 
@@ -177,7 +183,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **79 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **89 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -208,7 +214,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **20 successful browser contract tests**. They build the frontend, start
+Expect **28 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 

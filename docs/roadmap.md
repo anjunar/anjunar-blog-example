@@ -56,6 +56,12 @@ The server starts locally, stores a post in PostgreSQL, and returns it through R
 The initial project revision lays the groundwork for topics 2 and 3:
 a reproducible build, HTTP, REST, and CDI. Chapter 4 adds PostgreSQL access and request transactions. Chapter 5 discovers entity classes through CDI, persists BlogPost, and verifies its validation, uniqueness, and optimistic locking. Chapter 6 adopts the existing schema with stable IDs and adds an optional summary through Hibernate DDL Manager. Chapter 7 defines the complete EntitySchema, queries published posts with typed Criteria attributes, and verifies the mapper contract. Chapter 8 serves public list and detail responses with entity graphs, Data/Table envelopes, and HTTP contract tests. This completes the first milestone. Chapter 9 adds the first Scala.js interface with local post previews, reactive controls, accessible HTML, asset delivery, and browser tests. Chapter 10 connects it to REST with mirrored JSON models, a same-origin HTTP service, actions, list/detail routes, loading and error boundaries, basic page links, and tests using both controlled responses and real PostgreSQL data. Chapter 11 adds the first administrator, password authentication through Jakarta Security/Soteria and Elytron's Undertow integration, server-side sessions, CSRF protection, session revocation, and the account page. Chapter 12 adds email-first reader registration, confirmation, expiring single-use tokens, SMTP delivery, password reset, and revocation of older sessions. The local mailbox and automated SMTP/browser checks make the full workflow reproducible.
 
+Chapter 13 adds the administrator's editorial list and preview, publication and
+retraction commands, explicit endpoint policies, object/state checks and CDI
+field rules. Per-response links drive available actions, and real HTTP/browser
+tests verify conflicts, revoked access and rollback. General post editing remains
+chapter 14 (PreparedChange), followed by forms in chapter 15.
+
 ## Further topics
 
 - Passkeys

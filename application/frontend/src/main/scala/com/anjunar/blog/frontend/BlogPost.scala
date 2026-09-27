@@ -1,7 +1,8 @@
 package com.anjunar.blog.frontend
 
 import ui.core.state.Property
-import ui.json.JsonId
+import ui.json.{JsonId, JsonProperty}
+import scala.annotation.meta.field
 
 final class BlogPost {
   @JsonId
@@ -16,9 +17,11 @@ final class BlogPost {
   val publishedAt: Property[Option[String]] = Property(None)
 }
 
-final class BlogPostData(var data: BlogPost = null)
+final class BlogPostData(var data: BlogPost = null,
+    @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty)
 
 final class BlogPostTable(
     var rows: Seq[BlogPostData] = Seq.empty,
-    var size: Long = -1L
+    var size: Long = -1L,
+    @(JsonProperty @field)("$links") var links: Seq[ApiLink] = Seq.empty
 )

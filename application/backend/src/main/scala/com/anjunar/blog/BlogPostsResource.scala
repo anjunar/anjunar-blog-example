@@ -1,5 +1,7 @@
 package com.anjunar.blog
 
+import jakarta.annotation.security.PermitAll
+
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
@@ -9,10 +11,12 @@ import jakarta.ws.rs.core.MediaType
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
+@PermitAll
 @Path("/blog/posts")
 @Produces(Array(MediaType.APPLICATION_JSON))
 @RequestScoped
 class BlogPostsResource {
+  @Inject var links: PostLinks = uninitialized
   @Inject
   var entityManager: EntityManager = uninitialized
 
@@ -28,7 +32,7 @@ class BlogPostsResource {
     given EntityManager = entityManager
     val schema = Schema.forGraph(BlogPost.schema, entityManager.getEntityGraph("BlogPost.list"))
     val rows = BlogPost.listPublished(offset, limit).asScala
-      .map(post => new Data(post, schema)).toList.asJava
+      .map(post => new Data(post, schema, links.publicPost(post))).toList.asJava
     new Table(rows, BlogPost.countPublished())
   }
 
@@ -39,6 +43,6 @@ class BlogPostsResource {
     given EntityManager = entityManager
     val post = BlogPost.findPublishedBySlug(slug).getOrElse(throw new NotFoundException())
     val schema = Schema.forGraph(BlogPost.schema, entityManager.getEntityGraph("BlogPost.detail"))
-    new Data(post, schema)
+    new Data(post, schema, links.publicPost(post))
   }
 }
