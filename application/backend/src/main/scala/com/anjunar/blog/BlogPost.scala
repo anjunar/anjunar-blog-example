@@ -1,7 +1,11 @@
 package com.anjunar.blog
 
 import com.anjunar.hibernateddl.hibernate.annotation.SchemaId
-import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, Enumerated, EnumType, GeneratedValue, GenerationType, Id, Table, Transient, UniqueConstraint, Version}
+import com.anjunar.json.mapper.annotations.UseConverter
+import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
+import com.anjunar.json.mapper.schema.property.SingularProperty
+import jakarta.json.bind.annotation.JsonbProperty
+import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, Enumerated, EnumType, GeneratedValue, GenerationType, Id, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
 import java.lang
@@ -20,11 +24,13 @@ class BlogPost {
   @GeneratedValue(strategy = GenerationType.UUID)
   @Column(nullable = false, updatable = false)
   @SchemaId("a2473e8b")
+  @JsonbProperty
   var id: UUID = null
 
   @Version
   @Column(nullable = false)
   @SchemaId("dcb0681e")
+  @JsonbProperty
   var version: lang.Long = null
 
   @NotBlank
@@ -32,33 +38,40 @@ class BlogPost {
   @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$")
   @Column(nullable = false, length = 220)
   @SchemaId("682d9ace")
+  @JsonbProperty
   var slug: String = ""
 
   @NotBlank
   @Size(min = 3, max = 180)
   @Column(nullable = false, length = 180)
   @SchemaId("46fdb02a")
+  @JsonbProperty
   var title: String = ""
 
   @NotNull
   @Size(max = 100000)
   @Column(nullable = false, columnDefinition = "text")
   @SchemaId("7b20efc1")
+  @JsonbProperty
   var content: String = ""
 
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 24)
   @SchemaId("cf271a06")
+  @JsonbProperty
   var status: BlogPostStatus = BlogPostStatus.DRAFT
 
   @Column(name = "published_at")
   @SchemaId("398bfd50")
+  @JsonbProperty
+  @UseConverter(classOf[InstantConverter])
   var publishedAt: Instant = null
 
   @Size(max = 300)
   @Column(length = 300)
   @SchemaId("0ca6e520")
+  @JsonbProperty
   var summary: String = null
 
   def publish(at: Instant): Unit = {
@@ -83,4 +96,28 @@ class BlogPost {
       case BlogPostStatus.PUBLISHED => publishedAt != null && content != null && !content.isBlank
       case null => false
     }
+}
+
+object BlogPost extends SchemaProvider[BlogPost.Schema] {
+  class Schema extends EntitySchema[BlogPost](RuntimeContext.entityManager()) {
+    val id: SingularProperty[BlogPost, UUID] = reference(_.id)
+    val version: SingularProperty[BlogPost, lang.Long] = reference(_.version)
+    val slug: SingularProperty[BlogPost, String] = reference(_.slug)
+    val title: SingularProperty[BlogPost, String] = reference(_.title)
+    val content: SingularProperty[BlogPost, String] = reference(_.content)
+    val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status)
+    val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt)
+    val summary: SingularProperty[BlogPost, String] = reference(_.summary)
+  }
+
+  def findPublishedBySlug(slug: String)(using entityManager: EntityManager): Option[BlogPost] = {
+    val builder = entityManager.getCriteriaBuilder
+    val query = builder.createQuery(classOf[BlogPost])
+    val post = query.from(classOf[BlogPost])
+    query.select(post).where(
+      builder.equal(post.get(schema.slug), builder.parameter(classOf[String], "slug")),
+      builder.equal(post.get(schema.status), BlogPostStatus.PUBLISHED)
+    )
+    Option(entityManager.createQuery(query).setParameter("slug", slug).getSingleResultOrNull)
+  }
 }

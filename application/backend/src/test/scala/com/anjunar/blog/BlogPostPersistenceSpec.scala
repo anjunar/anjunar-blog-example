@@ -1,8 +1,13 @@
 package com.anjunar.blog
 
+import com.anjunar.json.mapper.{EntityLoader, JsonMapper}
+import com.anjunar.json.mapper.intermediate.JsonParser
+import com.anjunar.json.mapper.intermediate.model.JsonObject
+import com.anjunar.scala.universe.TypeResolver
+import jakarta.enterprise.context.control.RequestContextController
 import jakarta.enterprise.inject.se.{SeContainer, SeContainerInitializer}
 import jakarta.persistence.{EntityManager, OptimisticLockException}
-import jakarta.validation.ConstraintViolationException
+import jakarta.validation.{ConstraintViolationException, Validation}
 import org.hibernate.exception.{ConstraintViolationException as SqlConstraintViolationException}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -11,6 +16,8 @@ import java.sql.{DriverManager, SQLException}
 import java.time.Instant
 import java.util.UUID
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.*
+import scala.util.Using
 import scala.util.control.NonFatal
 
 class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
@@ -41,10 +48,11 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     }
 
   private def inTransaction[A](readOnly: Boolean = false)(work: EntityManager => A): A = {
-    val transaction = new RequestTransaction()
-    transaction.persistence = persistence
-    transaction.begin(readOnly)
+    val request = container.select(classOf[RequestContextController]).get()
+    assert(request.activate())
+    val transaction = container.select(classOf[RequestTransaction]).get()
     try {
+      transaction.begin(readOnly)
       val result = work(transaction.entityManager)
       transaction.flush(true)
       transaction.finish(true)
@@ -54,7 +62,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
         try transaction.finish(false)
         catch { case NonFatal(cleanup) => error.addSuppressed(cleanup) }
         throw error
-    }
+    } finally request.deactivate()
   }
 
   private def draft(): BlogPost = {
@@ -213,5 +221,104 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       } finally command.close()
     } finally connection.close()
     assert(load(id) == null)
+  }
+
+  test("the schema covers every persistent field and exposes real JPA attributes") {
+    inTransaction(readOnly = true) { manager =>
+      val schema = BlogPost.schema
+      val mappedNames = manager.getMetamodel.entity(classOf[BlogPost])
+        .getAttributes.asScala.map(_.getName).toSet
+      assert(schema.properties.keySet.toSet == mappedNames)
+      assert(schema.id.isId)
+      assert(schema.version.isVersion)
+      assert(schema.slug.getJavaType == classOf[String])
+      assert(!schema.slug.isAssociation)
+
+      val post = draft()
+      post.title = "A title read through the schema"
+      assert(schema.title.get(post) == post.title)
+    }
+  }
+
+  test("typed Criteria finds a published slug and excludes drafts and missing posts") {
+    val published = savedDraft()
+    val unpublished = savedDraft()
+    inTransaction()(_.find(classOf[BlogPost], published.id).publish(Instant.parse("2026-09-27T10:00:00Z")))
+
+    // The schema was initialized in an earlier request; its attributes remain reusable.
+    inTransaction(readOnly = true) { manager =>
+      assert(BlogPost.findPublishedBySlug(published.slug)(using manager).map(_.id).contains(published.id))
+      assert(BlogPost.findPublishedBySlug(unpublished.slug)(using manager).isEmpty)
+      assert(BlogPost.findPublishedBySlug(s"missing-${UUID.randomUUID()}")(using manager).isEmpty)
+    }
+  }
+
+  private val constructRule = [T] => (clazz: Class[T]) => clazz.getDeclaredConstructor().newInstance()
+
+  private def json(post: BlogPost): JsonObject =
+    JsonParser.parse(JsonMapper.serialize(
+      post, TypeResolver.resolve(classOf[BlogPost]), null, constructRule
+    )).asInstanceOf[JsonObject]
+
+  test("the mapper publishes every populated schema field and preserves the Instant precision") {
+    val post = draft()
+    val publishedAt = Instant.parse("2026-09-27T10:15:42.123456Z")
+    post.summary = "A concise introduction."
+    post.publish(publishedAt)
+    val saved = inTransaction()(manager => persist(manager, post))
+
+    inTransaction(readOnly = true) { manager =>
+      val loaded = manager.find(classOf[BlogPost], saved.id)
+      val output = json(loaded)
+      assert(output.value.keySet().asScala.toSet == Set(
+        "@type", "id", "version", "slug", "title", "content", "summary", "status", "publishedAt"))
+      assert(output.getString("@type") == "BlogPost")
+      assert(output.getString("id") == saved.id.toString)
+      assert(output.value.get("version").value == saved.version.toString)
+      assert(output.getString("slug") == saved.slug)
+      assert(output.getString("title") == saved.title)
+      assert(output.getString("content") == saved.content)
+      assert(output.getString("summary") == saved.summary)
+      assert(output.getString("status") == "PUBLISHED")
+      assert(output.getString("publishedAt") == publishedAt.toString)
+    }
+  }
+
+  test("the mapper omits null optional values but retains version zero") {
+    val saved = savedDraft()
+    inTransaction(readOnly = true) { manager =>
+      val output = json(manager.find(classOf[BlogPost], saved.id))
+      assert(!output.value.containsKey("summary"))
+      assert(!output.value.containsKey("publishedAt"))
+      assert(output.value.get("version").value == "0")
+    }
+  }
+
+  test("default schema rules ignore incoming writes without changing the stored post") {
+    val saved = savedDraft()
+    inTransaction() { manager =>
+      val post = manager.find(classOf[BlogPost], saved.id)
+      val input = JsonParser.parse(
+        """{"title":"Unauthorized title","summary":"Unauthorized summary","version":999,
+          |"status":"PUBLISHED","publishedAt":"2026-09-27T10:00:00Z"}""".stripMargin)
+      val noReferences = new EntityLoader {
+        override def load(id: UUID, clazz: Class[?]): Any =
+          throw new AssertionError("This scalar input must not load references")
+      }
+      Using.resource(Validation.buildDefaultValidatorFactory()) { factory =>
+        JsonMapper.deserialize(input, post, TypeResolver.resolve(classOf[BlogPost]),
+          null, noReferences, constructRule, factory.getValidator)
+      }
+      assert(post.title == saved.title)
+      assert(post.summary == null)
+      assert(post.status == BlogPostStatus.DRAFT)
+      assert(post.publishedAt == null)
+      assert(post.version == saved.version)
+    }
+    val unchanged = load(saved.id)
+    assert(unchanged.title == saved.title)
+    assert(unchanged.summary == null)
+    assert(unchanged.status == BlogPostStatus.DRAFT)
+    assert(unchanged.version == saved.version)
   }
 }
