@@ -4,7 +4,7 @@ import com.anjunar.json.mapper.EntityLoader
 import com.anjunar.json.mapper.intermediate.model.{JsonArray, JsonNull, JsonObject, JsonString}
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-import jakarta.persistence.EntityManager
+import jakarta.persistence.{EntityManager, LockModeType}
 import jakarta.ws.rs.ForbiddenException
 
 import java.util.UUID
@@ -15,6 +15,7 @@ import scala.jdk.CollectionConverters.*
 class ReferenceAccess extends EntityLoader {
   @Inject var manager: EntityManager = uninitialized
   @Inject var caller: CallerAccess = uninitialized
+  @Inject var media: MediaLifecycle = uninitialized
 
   override def load(id: UUID, clazz: Class[?]): Any = {
     if (!caller.administrator) throw new ForbiddenException()
@@ -23,6 +24,11 @@ class ReferenceAccess extends EntityLoader {
       if (account == null || account.locked || account.role != "ADMIN")
         Problem.invalidField("author", "Choose an available author.")
       account
+    } else if (clazz == classOf[Media]) {
+      val image = manager.find(classOf[Media], id, LockModeType.PESSIMISTIC_WRITE)
+      if (image == null || !media.canUse(image))
+        Problem.invalidField("coverImage", "Choose an available image that you may use.")
+      image
     } else if (clazz == classOf[BlogTag]) {
       val tag = manager.find(classOf[BlogTag], id)
       if (tag == null) Problem.invalidField("tags", "Choose an available tag.")
@@ -34,6 +40,10 @@ class ReferenceAccess extends EntityLoader {
 
   // These endpoints accept links to shared entities, not nested edits or new children.
   def checkPostInput(json: JsonObject): Unit = {
+    Option(json.value.get("coverImage")).foreach {
+      case _: JsonNull => ()
+      case value => referenceId(value, "coverImage")
+    }
     Option(json.value.get("author")).foreach {
       case _: JsonNull => ()
       case value => referenceId(value, "author")

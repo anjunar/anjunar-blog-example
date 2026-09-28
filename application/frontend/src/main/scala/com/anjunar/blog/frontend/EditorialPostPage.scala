@@ -9,6 +9,7 @@ import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Div.div
+import ui.core.layout.Image
 import ui.core.layout.Heading.heading
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
@@ -79,6 +80,13 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         }
       }
       when(actions.busy) { paragraph { role = "status"; text(i18n"Saving…") {} } }
+      when(actions.current.map(_.data.coverImage.get != null)) {
+        Image.image {
+          classes = "post-cover"
+          Image.src = actions.current.map(value => Option(value.data.coverImage.get).map(_.source).getOrElse(""))
+          Image.alt = actions.current.map(value => Option(value.data.coverAlt.get).getOrElse(""))
+        }
+      }
       paragraph { classes = "post-content"; text(actions.current.flatMap(_.data.content.map(value => Option(value).getOrElse("")))) {} }
       routerLink("/editorial") { text(i18n"Back to editorial") {} }
     }

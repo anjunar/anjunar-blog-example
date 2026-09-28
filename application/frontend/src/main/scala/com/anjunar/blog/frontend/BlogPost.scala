@@ -29,19 +29,24 @@ final class BlogPost {
   @JsonIgnore(deserializable = true)
   val publishedAt: Property[Option[String]] = Property(None)
 
+  val coverImage: Property[Media] = Property(null)
+  @(Size @field)(max = 300)
+  val coverAlt: Property[String] = Property(null)
+
   val author: Property[Account] = Property(null)
   @(Size @field)(max = 20)
   val tags: ListProperty[BlogTag] = ListProperty()
 
   @JsonIgnore()
-  def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary)
+  def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary, coverAlt)
 
   @JsonIgnore()
   def snapshot: PostSnapshot = PostSnapshot(slug.get, title.get, content.get, summary.get,
-    Option(author.get).map(_.id.get), tags.toSeq.map(_.id.get).toSet)
+    Option(author.get).map(_.id.get), tags.toSeq.map(_.id.get).toSet,
+    coverAlt.get, Option(coverImage.get).map(_.id.get))
 
   @JsonIgnore()
-  def isDirty: Boolean = editableFields.exists(_.isDirty) || author.isDirty || tags.isDirty
+  def isDirty: Boolean = editableFields.exists(_.isDirty) || author.isDirty || tags.isDirty || coverImage.isDirty
 
   def writeBody(): js.Dynamic = {
     require(content.get != null, "Load a detail before editing")
@@ -56,6 +61,7 @@ final class BlogPost {
         js.Object.keys(reference.asInstanceOf[js.Object]).filter(_ != "id")
           .foreach(key => js.special.delete(reference, key))
     onlyId(body.author)
+    onlyId(body.coverImage)
     if (!js.isUndefined(body.tags)) body.tags.asInstanceOf[js.Array[js.Dynamic]].foreach(onlyId)
     body
   }
@@ -67,6 +73,9 @@ final class BlogPost {
       current.setDefault(fresh.get)
       if (unchangedSinceSubmit) current.set(fresh.get)
     }
+    if (Option(coverImage.get).map(_.id.get) == submitted.coverImageId) coverImage.set(saved.coverImage.get)
+    val sameCover = Option(coverImage.get).map(_.id.get) == Option(saved.coverImage.get).map(_.id.get)
+    coverImage.setDefault(if (sameCover) coverImage.get else saved.coverImage.get)
     if (Option(author.get).map(_.id.get) == submitted.authorId) author.set(saved.author.get)
     val sameAuthor = Option(author.get).map(_.id.get) == Option(saved.author.get).map(_.id.get)
     author.setDefault(if (sameAuthor) author.get else saved.author.get)
@@ -87,13 +96,16 @@ final class BlogPost {
 }
 
 final case class PostSnapshot(slug: String, title: String, content: String, summary: String,
-    authorId: Option[String] = None, tagIds: Set[String] = Set.empty) {
-  def values: Seq[String] = Seq(slug, title, content, summary)
+    authorId: Option[String] = None, tagIds: Set[String] = Set.empty,
+    coverAlt: String = null, coverImageId: Option[String] = None) {
+  def values: Seq[String] = Seq(slug, title, content, summary, coverAlt)
   def value(name: String): Option[Any] = name match {
     case "slug" => Some(slug)
     case "title" => Some(title)
     case "content" => Some(content)
     case "summary" => Some(summary)
+    case "coverAlt" => Some(coverAlt)
+    case "coverImage" => Some(coverImageId)
     case "author" => Some(authorId)
     case "tags" => Some(tagIds)
     case _ => None

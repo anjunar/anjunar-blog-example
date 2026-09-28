@@ -27,6 +27,7 @@ class PostLinks {
   def session(): util.List[Link] =
     if (endpoint("list")) util.List.of(
       new Link("editorial", "/service/editorial/posts", "GET", "BlogPost"),
+      new Link("uploadImage", "/service/editorial/media", "POST", "Media"),
       new Link("authors", "/service/editorial/authors", "GET", "Account"),
       new Link("tags", "/service/editorial/tags", "GET", "BlogTag"))
     else util.List.of()

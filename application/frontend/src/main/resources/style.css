@@ -217,3 +217,8 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .catalog-editor button { justify-self: start; }
 .catalog-editor .field-error { margin: 0; }
 .catalog-editor [role="alert"] { color: #8c3026; }
+
+.post-cover { display: block; width: 100%; height: auto; max-height: 640px; object-fit: contain; margin: 24px 0; }
+.cover-preview { display: block; max-width: 100%; max-height: 300px; object-fit: contain; margin: 12px 0; }
+.post-cover-field input[type="file"] { max-width: 100%; padding: 10px 0; }
+.post-cover-field input[type="file"]::file-selector-button { font: inherit; padding: 8px 12px; margin-right: 10px; border: 1px solid #829386; border-radius: 4px; background: #fff; }

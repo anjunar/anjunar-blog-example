@@ -12,10 +12,12 @@ import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Div.div
 import ui.core.layout.Heading.heading
+import ui.core.layout.Image
 import ui.core.layout.Label.label
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
+import ui.core.state.Property
 import ui.forms.{ComboBox, ErrorResponse}
 import ui.forms.ComboBox.comboBox
 import ui.forms.Form.form
@@ -28,7 +30,8 @@ import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
 final class PostEditorPage(initial: BlogPostData, service: EditorialService,
-    initialCatalog: Option[CatalogData] = None, catalogService: CatalogService = null)
+    initialCatalog: Option[CatalogData] = None, catalogService: CatalogService = null,
+    mediaService: MediaService = null)
     (using ExecutionContext) extends AbstractComponent {
   import SaveNotice.*
 
@@ -37,10 +40,12 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   private val actions = new PostEditorActions(initial, service.save)
   private val post = actions.post
   private val catalog = initialCatalog.map(new CatalogState(_, catalogService))
+  private val uploads = Option(mediaService).map(service => new MediaUploadActions(post, service.upload))
 
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    uploads.foreach(value => addDisposable(() => value.dispose()))
     catalog.foreach(value => addDisposable(() => value.dispose()))
     render(this, cursor) {
       classes = "post-editor"
@@ -55,13 +60,18 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
         on("submit") { event =>
           event.preventDefault()
-          if (!actions.busy.get && !actions.blocked.get) {
+          if (!actions.busy.get && !actions.blocked.get && !uploads.exists(_.busy.get)) {
             mountedForm.clearErrors()
             actions.generalError.set("")
             val bindings = mountedForm.validateBindings()
             val validation = mountedForm.validate()
             if (bindings.nonEmpty) actions.notice.set(BindingFailed)
             else if (validation.nonEmpty) actions.notice.set(Invalid)
+            else if (post.coverImage.get != null && Option(post.coverAlt.get).forall(_.isBlank)) {
+              mountedForm.setErrorResponses(Seq(ErrorResponse(
+                translations.text(i18n"Describe the cover image.").get, Seq("coverAlt"))))
+              actions.notice.set(Invalid)
+            }
             else actions.save(() => {
               if (wasNew && !actions.dirty.get) Router.replace(s"/editorial/posts/${post.id.get}/edit")
             })
@@ -117,6 +127,51 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           }
           paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Plain text for now. A draft may be empty; a published post needs content.") {} }
           paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+        }
+        uploads.foreach { upload =>
+          div {
+            classes = "post-field post-cover-field"
+            label { AttributeDsl.setAttribute("for", "post-cover-file"); text(i18n"Cover image") {} }
+            child(new ImageFileInput(upload.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked)), upload.upload)) {}
+            paragraph { id = "post-cover-help"; classes = "field-help"; text(i18n"JPEG or PNG, up to 5 MiB and 12 megapixels. Upload first, then save the post to keep this image.") {} }
+            when(upload.busy) { paragraph { role = "status"; text(i18n"Uploading image…") {} } }
+            when(upload.error.map(_.nonEmpty)) {
+              paragraph {
+                role = "alert"
+                text(upload.error.flatMap(status => translations.text(status match {
+                  case Some(413) => i18n"The image is too large. Choose a smaller file."
+                  case Some(415) => i18n"Choose a JPEG or PNG image."
+                  case Some(400) => i18n"The image could not be decoded. Check its format and dimensions."
+                  case Some(401) | Some(403) => i18n"Sign in with permission to upload images."
+                  case Some(429) => i18n"The server is processing other images. Try again shortly."
+                  case _ => i18n"The upload could not be confirmed. Your post has not changed."
+                }))) {}
+              }
+            }
+            when(post.coverImage.map(_ != null)) {
+              Image.image {
+                classes = "cover-preview"
+                Image.src = post.coverImage.map(value => if (value == null) "" else value.source)
+                Image.alt = post.coverAlt.map(value => Option(value).getOrElse(""))
+              }
+            }
+            when(post.coverImage.map(_ != null).flatMap(selected => upload.busy.map(busy => selected || busy))) {
+              button(i18n"Remove cover image") { buttonType("button"); onClick(_ => upload.clear()) }
+            }
+            paragraph {
+              id = "post-cover-errors"; classes = "field-error"
+              text(actions.errors.map(_.filter(_.path == Seq("coverImage")).map(_.message).mkString(", "))) {}
+            }
+            label { AttributeDsl.setAttribute("for", "post-cover-alt"); text(i18n"Image description") {} }
+            val description = input("coverAlt") { fieldInput ?=>
+              id = "post-cover-alt"
+              AttributeDsl.setAttribute("aria-describedby", "post-cover-alt-help post-cover-alt-errors")
+              fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+                AttributeDsl.setAttribute("aria-invalid", value.toString)))
+            }
+            paragraph { id = "post-cover-alt-help"; classes = "field-help"; text(i18n"Describe what the image adds to the post. Required when an image is selected.") {} }
+            paragraph { id = "post-cover-alt-errors"; classes = "field-error"; text(description.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          }
         }
         catalog.foreach { options =>
           div {
@@ -180,7 +235,9 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           classes = "editorial-controls"
           button(i18n"Save post") {
             buttonType("submit")
-            disabled = actions.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked))
+            disabled = actions.busy.flatMap(busy => actions.blocked.flatMap(blocked =>
+              uploads.map(_.busy.map(uploading => busy || blocked || uploading))
+                .getOrElse(Property(busy || blocked))))
           }
           when(actions.busy) { paragraph { role = "status"; text(i18n"Saving… You can keep writing.") {} } }
           when(actions.notice.map(value => value == Saved || value == NewerEdits)) {

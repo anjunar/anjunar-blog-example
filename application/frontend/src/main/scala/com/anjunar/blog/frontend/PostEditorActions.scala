@@ -33,7 +33,8 @@ final class PostEditorActions(initial: BlogPostData,
     if (notice.get == Saved || notice.get == NewerEdits) notice.set(Idle)
   }
   private val subscriptions = post.editableFields.map(_.observeWithoutInitial(_ => changed())) ++ Seq(
-    post.author.observeWithoutInitial(_ => changed()), post.tags.observeWithoutInitial(_ => changed()))
+    post.author.observeWithoutInitial(_ => changed()), post.tags.observeWithoutInitial(_ => changed()),
+    post.coverImage.observeWithoutInitial(_ => changed()))
 
   def save(onSaved: () => Unit): Unit = {
     if (disposed || busy.get || blocked.get) return

@@ -78,7 +78,9 @@ by rows and count. Lists select compact read-only projections; public visibility
 editorial status filters, stable sorting and literal punctuation are tested.
 Bound search controls keep filters in the URL across paging, reload and history.
 Chapter 17 adds authors, tags and authorized entity references through the mapper,
-REST graphs and bound forms. Chapter 18 adds uploads, image delivery and media cleanup.
+REST graphs and bound forms. Chapter 18 adds a post cover through bounded JPEG/PNG
+uploads, metadata references, authorized image delivery and cleanup of unused
+uploads. Its browser workflow covers saving, publication, retraction and unlinking.
 
 ## Further topics
 

@@ -1,11 +1,14 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
+import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
 import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Div.div
+import ui.core.layout.Condition.when
+import ui.core.layout.Image
 import ui.core.layout.Heading.heading
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
@@ -41,6 +44,19 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
       }
       if (Option(post.summary.get).exists(_.nonEmpty)) {
         paragraph { classes = "detail-summary"; text(post.summary.map(value => Option(value).getOrElse(""))) {} }
+      }
+      when(post.coverImage.map(_ != null)) {
+        Image.image { picture ?=>
+          classes = "post-cover"
+          Image.src = post.coverImage.map(value => if (value == null) "" else value.source)
+          Image.alt = post.coverAlt.map(value => Option(value).getOrElse(""))
+          picture.addDisposable(post.coverImage.observe { value =>
+            if (value != null) {
+              AttributeDsl.setAttribute("width", value.width.get.toString)
+              AttributeDsl.setAttribute("height", value.height.get.toString)
+            }
+          })
+        }
       }
       div {
         classes = "post-content"
