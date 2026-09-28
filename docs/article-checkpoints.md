@@ -824,8 +824,8 @@ batches, with no background scheduler.
 ## Chapter 19: Integrating a post editor
 
 - Slug: `abt-19-integrating-a-post-editor`
-- Implementation: [`699eeda`](https://github.com/anjunar/anjunar-blog-example/commit/699eeda08f711acfc81f37b3c4381e1b882357a9)
-- [Guide at this checkpoint](https://github.com/anjunar/anjunar-blog-example/blob/699eeda08f711acfc81f37b3c4381e1b882357a9/docs/integrating-a-post-editor.md)
+- Implementation: [`618af6f`](https://github.com/anjunar/anjunar-blog-example/commit/618af6fb722bdc2d9ccf07c9d612b1a40afa5fad)
+- [Guide at this checkpoint](https://github.com/anjunar/anjunar-blog-example/blob/618af6fb722bdc2d9ccf07c9d612b1a40afa5fad/docs/integrating-a-post-editor.md)
 
 The Markdown-valued editor binds directly to the existing post form. New posts
 support formatted text, code blocks and uploaded inline images. Historical posts
