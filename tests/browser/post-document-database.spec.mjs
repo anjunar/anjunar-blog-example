@@ -98,11 +98,14 @@ test("write formatted content, upload an inline image, save, publish and retract
     const publicPage = await visitor.newPage();
     await publicPage.goto("/en/posts/" + slug);
     const document = publicPage.locator(".post-content");
-    await expect(document.locator("h2")).toHaveText("A real document");
-    await expect(document.locator("strong")).toHaveText("A formatted introduction.");
-    await expect(document.locator("pre")).toContainText("val answer = 42");
-    await expect(document.locator("img")).toHaveAttribute("src", url);
-    await expect.poll(() => document.locator("img").evaluate(image => image.complete && image.naturalWidth === 480)).toBe(true);
+    await expect(document.locator(".post-document")).toHaveAttribute("data-scalajs-ui-editor-loading", "false");
+    // The editor retains a hidden fallback; assertions follow the visible reading surface.
+    await expect(document.getByRole("heading", { level: 2 })).toHaveText("A real document");
+    await expect(document.locator("strong:visible")).toHaveText("A formatted introduction.");
+    await expect(document.locator("pre:visible")).toContainText("val answer = 42");
+    const publicImage = document.getByRole("img", { name: "Blue and green panels inside the post", exact: true });
+    await expect(publicImage).toHaveAttribute("src", url);
+    await expect.poll(() => publicImage.evaluate(image => image.complete && image.naturalWidth === 480)).toBe(true);
     await expect(document.getByRole("toolbar")).toHaveCount(0);
     await expect(document.locator("[contenteditable=true]")).toHaveCount(0);
     await publicPage.screenshot({ path: info.outputPath("document-public.png"), fullPage: true });
