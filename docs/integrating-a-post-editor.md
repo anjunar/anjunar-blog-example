@@ -48,7 +48,7 @@ or MARKDOWN and travels through EntitySchema, the detail graph, frontend
 Property, partial-write serialization and save merging. Public lists remain
 compact projections and do not load documents or image collections.
 
-Editor.editor("content") is inside form(post), so it uses the same binding,
+editor("content") is inside form(post), so it uses the same binding,
 validation and field-error path as the previous text control. The UI tree stays
 in PostEditorPage.compose. PostMarkdown adapts the existing MediaService to
 the editor's MediaUploader and restricts image URLs to /service/media/{UUID}.

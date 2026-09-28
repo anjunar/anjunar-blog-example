@@ -18,7 +18,8 @@ import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
 import ui.core.state.Property
-import ui.editor.{Editor, MediaUploadStatus}
+import ui.editor.Editor.*
+import ui.editor.MediaUploadStatus
 import ui.editor.plugins.*
 import ui.forms.{ComboBox, ErrorResponse}
 import ui.forms.ComboBox.comboBox
@@ -149,15 +150,20 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
               disabled = embeddedUpload.map(_.pending > 0)
               onClick(_ => sourceMode.set(!sourceMode.get))
             }
-            val control = Editor.editor("content") { document ?=>
+            val control = editor("content") { document ?=>
               ariaLabelledBy = "post-content-label"
               AttributeDsl.setAttribute("aria-describedby", "post-content-help post-content-errors")
-              Editor.showModeActions = false
-              Editor.markdownMode = sourceMode
-              Editor.mediaUrlPolicy = PostMarkdown.mediaPolicy
-              Option(mediaService).foreach(service => Editor.mediaUploader = PostMarkdown.uploader(service))
-              Editor.onMediaStatus = status => embeddedUpload.set(status)
-              basePlugin(); headingPlugin(); listPlugin(); linkPlugin(); imagePlugin(); codePlugin()
+              showModeActions = false
+              markdownMode = sourceMode
+              mediaUrlPolicy = PostMarkdown.mediaPolicy
+              Option(mediaService).foreach(service => mediaUploader = PostMarkdown.uploader(service))
+              onMediaStatus = status => embeddedUpload.set(status)
+              basePlugin()
+              headingPlugin()
+              listPlugin()
+              linkPlugin()
+              imagePlugin()
+              codePlugin()
               document.addDisposable(document.invalid.observe(value =>
                 AttributeDsl.setAttribute("aria-invalid", value.toString)))
             }
