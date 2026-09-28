@@ -89,6 +89,7 @@ class PreparedChanges {
   private def prepare[E <: EntityProvider](json: JsonObject, entity: E, clazz: Class[E]): PreparedChange[E] = {
     val schema = PreparedChanges.schema(clazz)
     val fields = if (clazz == classOf[Account]) Set("id", "version", "displayName")
+      else if (clazz == classOf[BlogPost]) schema.properties.keySet.toSet - "inlineMedia"
       else schema.properties.keySet.toSet
     val unknown = json.value.keySet().asScala.toSet -- fields - "@type"
     if (unknown.nonEmpty) Problem.invalidField(unknown.toSeq.sorted.head, "Unknown entity field.")

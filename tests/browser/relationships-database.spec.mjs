@@ -97,7 +97,7 @@ test("an administrator creates a tag, publishes its post, and clears references 
     await page.goto("/en/editorial/new");
     await page.getByLabel("Title", { exact: true }).fill("A post with shared metadata");
     await page.getByLabel("Slug", { exact: true }).fill(slug);
-    await page.getByLabel("Content", { exact: true }).fill("Authors and tags stay consistent from the form to PostgreSQL.");
+    await page.getByRole("textbox", { name: "content", exact: true }).pressSequentially("Authors and tags stay consistent from the form to PostgreSQL.");
     const session = await (await page.request.get("/service/auth/session")).json();
     await expect(page.getByRole("combobox", { name: "Author", exact: true }))
       .toContainText(session.account.displayName || "Unnamed author");

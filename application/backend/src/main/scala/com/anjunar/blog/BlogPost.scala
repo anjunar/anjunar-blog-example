@@ -5,7 +5,7 @@ import com.anjunar.json.mapper.annotations.UseConverter
 import com.anjunar.json.mapper.provider.EntityProvider
 import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
 import com.anjunar.json.mapper.schema.property.{SetProperty, SingularProperty}
-import jakarta.json.bind.annotation.JsonbProperty
+import jakarta.json.bind.annotation.{JsonbProperty, JsonbTransient}
 import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, FetchType, ForeignKey, JoinColumn, JoinTable, ManyToMany, ManyToOne, NamedSubgraph, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
@@ -36,6 +36,7 @@ import java.util.UUID
     new NamedAttributeNode("slug"),
     new NamedAttributeNode("title"),
     new NamedAttributeNode("content"),
+    new NamedAttributeNode("contentFormat"),
     new NamedAttributeNode("summary"),
     new NamedAttributeNode("status"),
     new NamedAttributeNode("publishedAt"),
@@ -94,6 +95,27 @@ class BlogPost extends EntityProvider {
   @JsonbProperty
   var content: String = ""
 
+  // NULL identifies pre-editor rows and retains their plain-text interpretation.
+  @Pattern(regexp = "PLAIN_TEXT|MARKDOWN")
+  @Column(name = "content_format", length = 16)
+  @SchemaId("ad191001") @JsonbProperty
+  var contentFormat: String = "PLAIN_TEXT"
+
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(name = "blog_post_media", schema = "public",
+    joinColumns = Array(new JoinColumn(name = "post_id")),
+    inverseJoinColumns = Array(new JoinColumn(name = "media_id")),
+    foreignKey = new ForeignKey(name = "fk_blog_post_media_post"),
+    inverseForeignKey = new ForeignKey(name = "fk_blog_post_media_media"))
+  @NotNull @SchemaId("ad191002") @JsonbTransient
+  var inlineMedia: util.Set[Media] = new util.LinkedHashSet[Media]()
+
+  @Transient @AssertTrue(message = "The Markdown document is invalid.")
+  def isDocumentConsistent: Boolean = contentFormat != "MARKDOWN" || PostDocument.inspect(content).isRight
+
+  @Transient
+  def hasPublishableContent: Boolean = PostDocument.hasContent(content, contentFormat)
+
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 24)
@@ -145,7 +167,7 @@ class BlogPost extends EntityProvider {
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
-    require(content != null && !content.isBlank, "A published post needs content")
+    require(hasPublishableContent, "A published post needs content")
     status = BlogPostStatus.PUBLISHED
     publishedAt = at
   }
@@ -161,7 +183,7 @@ class BlogPost extends EntityProvider {
   def isPublicationConsistent: Boolean =
     status match {
       case BlogPostStatus.DRAFT => publishedAt == null
-      case BlogPostStatus.PUBLISHED => publishedAt != null && content != null && !content.isBlank
+      case BlogPostStatus.PUBLISHED => publishedAt != null && hasPublishableContent
       case null => false
     }
 }
@@ -173,6 +195,8 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
     val slug: SingularProperty[BlogPost, String] = reference(_.slug, classOf[PostEditRule])
     val title: SingularProperty[BlogPost, String] = reference(_.title, classOf[PostEditRule])
     val content: SingularProperty[BlogPost, String] = reference(_.content, classOf[PostEditRule])
+    val contentFormat: SingularProperty[BlogPost, String] = reference(_.contentFormat, classOf[PostEditRule])
+    val inlineMedia: SetProperty[BlogPost, util.Set[Media]] = set(_.inlineMedia)
     val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status, classOf[PostReadRule])
     val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt, classOf[PostReadRule])
     val summary: SingularProperty[BlogPost, String] = reference(_.summary, classOf[PostEditRule])

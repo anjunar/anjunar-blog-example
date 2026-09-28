@@ -20,7 +20,14 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: post images and media cleanup
+## Current state: a formatted post editor
+
+New posts use a Markdown-valued editor bound to the existing form. Administrators
+can format text, write code blocks and embed uploaded images. Legacy posts stay
+plain text until explicitly converted. Preview and public pages share the same
+read-only document component. Follow
+[Integrating a post editor](docs/integrating-a-post-editor.md) for chapter 19,
+its migration, editor workflow and document/media validation.
 
 Administrators can upload a JPEG/PNG cover, describe it, save its reference and
 publish it with a post. Image delivery checks current visibility; bounded cleanup
@@ -91,7 +98,7 @@ Visitors can now list published posts and read a complete post by slug through R
 registration; Hibernate manages their instances. No entity list is maintained in
 `Persistence`.
 
-`BlogPost.Schema` describes all twelve persistent fields with typed JPA attributes.
+`BlogPost.Schema` describes all fourteen persistent fields with typed JPA attributes.
 The mapper uses the same schema to apply field rules; default rules allow reading
 and ignore incoming writes. Chapter 13 adds request-scoped read/edit rules to
 BlogPost's editorial fields; status changes remain domain commands. `findPublishedBySlug` uses the schema directly in a
@@ -217,7 +224,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **148 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **158 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -250,11 +257,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **56 successful browser contract tests**. They build the frontend, start
+Expect **59 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 38 Scala.js model, form-state, search and problem-details tests with
+Run the 41 Scala.js model, form-state, search, problem-details and document tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -271,7 +278,8 @@ the form. `npm run test:browser:search` covers real filtering and pagination
 using the same dedicated test database/admin/psql setup. Run
 `npm run test:browser:relationships` for the chapter 17 console example and
 real tag/post form workflow. Run `npm run test:browser:media` for the cover upload/publication workflow.
-All ten browser projects contain 67 tests.
+Run `npm run test:browser:documents` for the formatted post and inline-image workflow.
+All eleven browser projects contain 71 tests.
 
 ### Start the application
 

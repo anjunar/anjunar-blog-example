@@ -152,7 +152,7 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(post.getString("content") == content)
     assert(post.getString("publishedAt") == publicationTime.toString)
     assert(post.value.get("version").value == "0")
-    assertSchema(wrapper, detailFields ++ Set("author", "tags", "coverImage", "coverAlt"))
+    assertSchema(wrapper, detailFields ++ Set("author", "tags", "coverImage", "coverAlt", "contentFormat"))
   }
 
   test("draft and unknown slugs both return 404 without disclosing post content") {

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test:browser": "sbt --server frontendAssets && playwright test --project=contracts",
+    "test:browser:documents": "sbt --server frontendAssets && playwright test --project=documents",
     "test:browser:media": "sbt --server frontendAssets && playwright test --project=media",
     "test:browser:relationships": "sbt --server frontendAssets && playwright test --project=relationships",
     "test:browser:search": "sbt --server frontendAssets && playwright test --project=search",
@@ -16,5 +17,8 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0"
+  },
+  "dependencies": {
+    "@fontsource/material-icons": "5.3.0"
   }
 }

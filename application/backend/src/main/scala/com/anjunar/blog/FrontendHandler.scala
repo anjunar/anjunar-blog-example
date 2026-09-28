@@ -10,7 +10,7 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
   private lazy val files = new ResourceHandler(new PathResourceManager(assets.toAbsolutePath.normalize(), 1024L))
     .setDirectoryListingEnabled(false)
     .setWelcomeFiles("index.html")
-  private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css")
+  private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css", "/editor.css", "/material-icons.woff2", "/material-icons-LICENSE.txt")
   private val accountPages = Set("/en/account", "/en/register", "/en/confirm", "/en/forgot-password", "/en/reset-password")
   private val editorialPost = "/en/editorial/posts/[0-9a-fA-F-]{36}(?:/edit)?".r
   private val postPage = "/en/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r

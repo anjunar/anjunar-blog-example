@@ -3,6 +3,7 @@ package com.anjunar.blog
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, FlushModeType, LockModeType}
+import jakarta.persistence.criteria.JoinType
 
 import java.lang
 import java.net.URLDecoder
@@ -42,7 +43,10 @@ class MediaLifecycle {
     val builder = manager.getCriteriaBuilder
     val query = builder.createQuery(classOf[lang.Long])
     val post = query.from(classOf[BlogPost])
-    val reference = builder.equal(post.get(BlogPost.schema.coverImage), media)
+    // Hibernate joins require the real JPA collection attribute exposed by the schema.
+    val reference = builder.or(Seq(
+      builder.equal(post.get(BlogPost.schema.coverImage), media),
+      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media))*)
     val conditions = Seq(reference) ++ Option.when(publishedOnly)(
       builder.equal(post.get(BlogPost.schema.status), BlogPostStatus.PUBLISHED))
     query.select(builder.count(post)).where(conditions*)
@@ -60,8 +64,10 @@ class MediaLifecycle {
     val media = query.from(classOf[Media])
     val linked = query.subquery(classOf[UUID])
     val post = linked.from(classOf[BlogPost])
-    linked.select(post.get(BlogPost.schema.id))
-      .where(Seq(builder.equal(post.get(BlogPost.schema.coverImage), media))*)
+    val reference = builder.or(Seq(
+      builder.equal(post.get(BlogPost.schema.coverImage), media),
+      builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media))*)
+    linked.select(post.get(BlogPost.schema.id)).where(Seq(reference)*)
     val conditions = Seq(builder.lessThan(media.get(Media.schema.createdAt), cutoff), builder.not(builder.exists(linked))) ++
       owner.toSeq.map(value => builder.equal(media.get(Media.schema.ownerId), value))
     query.select(media.get(Media.schema.id)).where(conditions*)

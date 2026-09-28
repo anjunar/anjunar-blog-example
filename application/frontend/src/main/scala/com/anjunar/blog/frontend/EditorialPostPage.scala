@@ -15,6 +15,7 @@ import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
 import ui.core.state.Property
+import ui.core.statement.DynamicComponentRenderer.dynamic
 import ui.router.RouterLink.routerLink
 
 import scala.concurrent.ExecutionContext
@@ -87,7 +88,7 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
           Image.alt = actions.current.map(value => Option(value.data.coverAlt.get).getOrElse(""))
         }
       }
-      paragraph { classes = "post-content"; text(actions.current.flatMap(_.data.content.map(value => Option(value).getOrElse("")))) {} }
+      dynamic(actions.current.map(value => new PostContent(value.data)))
       routerLink("/editorial") { text(i18n"Back to editorial") {} }
     }
   }

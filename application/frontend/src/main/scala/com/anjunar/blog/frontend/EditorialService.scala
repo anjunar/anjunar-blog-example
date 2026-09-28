@@ -31,6 +31,7 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
       val post = new BlogPost()
       post.content.set("")
       post.content.setDefault("")
+      post.contentFormat.set("MARKDOWN")
       post.author.set(state.account.orNull)
       post.author.setDefault(state.account.orNull)
       new BlogPostData(post, Seq(link))

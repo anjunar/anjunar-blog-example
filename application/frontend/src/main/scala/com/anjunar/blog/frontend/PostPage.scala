@@ -4,7 +4,7 @@ import ui.core.component.AbstractComponent
 import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
-import ui.core.dsl.DslLayer.render
+import ui.core.dsl.DslLayer.{child, render}
 import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Div.div
 import ui.core.layout.Condition.when
@@ -58,10 +58,6 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
           })
         }
       }
-      div {
-        classes = "post-content"
-        // Chapter 19 introduces structured content. Today content is plain text.
-        text(post.content.map(value => Option(value).getOrElse(""))) {}
-      }
+      child(new PostContent(post)) {}
     }
 }

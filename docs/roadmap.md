@@ -81,6 +81,9 @@ Chapter 17 adds authors, tags and authorized entity references through the mappe
 REST graphs and bound forms. Chapter 18 adds a post cover through bounded JPEG/PNG
 uploads, metadata references, authorized image delivery and cleanup of unused
 uploads. Its browser workflow covers saving, publication, retraction and unlinking.
+Chapter 19 adds a Markdown-valued editor, explicit legacy-text conversion, code
+blocks and embedded images. The server derives image relations from parsed
+content; preview and public detail share the read-only document component.
 
 ## Further topics
 
