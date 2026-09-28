@@ -5,7 +5,7 @@ import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
 import ui.core.dsl.EventDsl.onClick
-import ui.core.i18n.{I18n, I18nRuntime, i18n}
+import ui.core.i18n.{I18n, i18n}
 import ui.core.layout.Article
 import ui.core.layout.Button.{button, buttonType}
 import ui.core.layout.Condition.when
@@ -118,7 +118,7 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
           }
           nav {
             classes = "pagination"
-            ariaLabel = I18nRuntime.current.get.text(i18n"Post pages")
+            ariaLabel = i18n"Post pages"
             if (offset > 0) {
               routerLink(search.copy(offset = math.max(0, offset - pageSize)).url) {
                 text(i18n"Previous page") {}

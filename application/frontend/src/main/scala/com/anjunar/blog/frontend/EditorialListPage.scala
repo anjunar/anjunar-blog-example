@@ -5,7 +5,7 @@ import ui.core.component.AbstractComponent
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
-import ui.core.i18n.{I18n, I18nRuntime, i18n}
+import ui.core.i18n.{I18n, i18n}
 import ui.core.layout.Heading.heading
 import ui.core.layout.Li.li
 import ui.core.layout.Nav.nav
@@ -64,7 +64,7 @@ final class EditorialListPage(table: BlogPostTable, search: PostSearch) extends 
       }
       nav {
         classes = "pagination"
-        ariaLabel = I18nRuntime.current.get.text(i18n"Editorial pages")
+        ariaLabel = i18n"Editorial pages"
         for (relation <- Seq("previous", "next"); link <- table.links.find(_.rel == relation)) {
           val url = new dom.URL(link.path("GET"), dom.window.location.origin)
           routerLink(s"/editorial${url.search}") {

@@ -5,7 +5,7 @@ import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.render.Cursor
 import ui.core.state.{ListProperty, ReadOnlyProperty}
 import ui.forms.{ComboBox, Control}
@@ -33,7 +33,7 @@ final class TagSelection(choices: ReadOnlyProperty[js.Array[BlogTag]])
         ComboBox.converter = (tag: BlogTag) => tag.name.get
         ComboBox.identityBy = (tag: BlogTag) => tag.id.get
         ComboBox.selectionText = (values: Seq[BlogTag]) => values.map(_.name.get).mkString(", ")
-        ComboBox.placeholder = I18nRuntime.current(using this).get.text(i18n"Choose tags")
+        ComboBox.placeholder = i18n"Choose tags"
         choice.addDisposable(choices.observe { values =>
           ComboBox.items[BlogTag].setAll(values.map(tag =>
             valueProperty.find(_.id.get == tag.id.get).getOrElse(tag)))

@@ -5,7 +5,7 @@ import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.layout.Div.div
 import ui.core.layout.Condition.when
 import ui.core.layout.Image
@@ -13,6 +13,7 @@ import ui.core.layout.Heading.heading
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
+import ui.core.state.Property
 import ui.core.statement.Foreach.foreach
 import ui.router.RouterLink.routerLink
 
@@ -31,12 +32,11 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
       heading(1) { id = "post-title"; text(post.title) {} }
       paragraph {
         classes = "post-author"
-        val translations = I18nRuntime.current(using this).get
-        text(post.author.flatMap(account =>
-          if (account == null) translations.text(i18n"Editorial team")
-          else account.displayName.flatMap(name =>
-            if (Option(name).exists(value => !value.isBlank)) account.displayName
-            else translations.text(i18n"Editorial team")))) {}
+        val authorName = post.author.flatMap(account =>
+          if (account == null) Property("") else account.displayName)
+        val hasName = authorName.map(name => Option(name).exists(value => !value.isBlank))
+        when(hasName) { text(authorName) {} }
+        when(hasName.map(!_)) { text(i18n"Editorial team") {} }
       }
       div {
         classes = "post-tags"

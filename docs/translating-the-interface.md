@@ -7,7 +7,8 @@ and tags keep their existing values. Chapter 21 introduces editorial translation
 ## Run this checkpoint
 
 Use the chapter 19 database and configuration. This chapter needs no schema
-migration or dependency upgrade; scalajs-ui remains 1.0.12 from Maven Central.
+migration. It uses scalajs-ui 1.0.13 from Maven Central for direct macro support
+in attributes, selection labels and reactive messages.
 
 ```text
 npm ci
@@ -51,11 +52,15 @@ its German pattern is "{count} von {total} Beiträgen". These are named substitu
 not an ICU plural/select pattern. Unit tests check that translations preserve
 the source placeholder set.
 
-Inside compose, text and button accept messages directly. Property-valued
-attributes take runtime.text(message), without .get. This keeps placeholders and
-accessible labels bound to locale changes. Reading .get is appropriate only when
-an API deliberately needs an immediate string. Interpolating a mutable value also
-requires deriving a new message when that value changes.
+Inside compose, pass the macro directly to DSL APIs that accept TextValue:
+text(i18n"Save post"), button(i18n"Save post"), ariaLabel = i18n"Publication status",
+a form control's placeholder = i18n"Choose an author", or
+SelectOption("DRAFT", i18n"Draft"). The DSL resolves the component's i18n context
+and creates the reactive binding. An explicit runtime.text wrapper is unnecessary
+there. For changing messages, use state.map(value => i18n"..."); TextValue binds
+both the selected message and the locale. Interpolating a mutable value still
+requires deriving a new message when that value changes. String-only APIs outside
+the DSL, such as ErrorResponse or a ComboBox converter, use resolveNow explicitly.
 
 The catalog includes the public EditorMessages from scalajs-ui for toolbar labels,
 dialogs, upload state and fallbacks. The existing editor("content") DSL and plugin

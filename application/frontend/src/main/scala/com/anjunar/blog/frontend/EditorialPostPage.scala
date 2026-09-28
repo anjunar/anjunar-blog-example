@@ -5,7 +5,7 @@ import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
 import ui.core.dsl.EventDsl.onClick
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Div.div
@@ -14,7 +14,6 @@ import ui.core.layout.Heading.heading
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
-import ui.core.state.Property
 import ui.core.statement.DynamicComponentRenderer.dynamic
 import ui.router.RouterLink.routerLink
 
@@ -26,7 +25,6 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
   private val actions = new EditorialActions(initial, service)
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
     LanguageNavigation.protect(actions.busy)(actions.busy.get)(using this)
     render(this, cursor) {
@@ -36,17 +34,16 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
       paragraph {
         classes = "publication-status"
         role = "status"
-        ariaLabel = translations.text(i18n"Publication status")
-        text(actions.current.flatMap(value => translations.text(
-          if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft"))) {}
+        ariaLabel = i18n"Publication status"
+        text(actions.current.map(value =>
+          if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft")) {}
       }
       paragraph {
         classes = "post-author"
-        text(actions.current.flatMap(value =>
-          Option(value.data.author.get).flatMap(account => Option(account.displayName.get)).filter(_.nonEmpty) match {
-            case Some(name) => Property(name)
-            case None => translations.text(i18n"Editorial team")
-          })) {}
+        val authorName = actions.current.map(value =>
+          Option(value.data.author.get).flatMap(account => Option(account.displayName.get)).getOrElse(""))
+        when(authorName.map(_.nonEmpty)) { text(authorName) {} }
+        when(authorName.map(_.isEmpty)) { text(i18n"Editorial team") {} }
       }
       paragraph { classes = "post-tags"; text(actions.current.map(_.data.tags.toSeq.map(_.name.get).mkString(", "))) {} }
       paragraph { text(actions.current.flatMap(_.data.summary.map(value => Option(value).getOrElse("")))) {} }
@@ -68,12 +65,12 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
       when(actions.error.map(_ != 0)) {
         paragraph {
           role = "alert"
-          text(actions.error.flatMap(code => translations.text(code match {
+          text(actions.error.map(code => code match {
             case 401 => i18n"Your session ended. Sign in again."
             case 403 => i18n"This action is no longer allowed. Reload to check your access."
             case 409 => i18n"The post changed. Reload before trying again."
             case _ => i18n"The action could not be confirmed. Reload to check the post."
-          }))) {}
+          })) {}
         }
         div {
           classes = "editorial-controls"

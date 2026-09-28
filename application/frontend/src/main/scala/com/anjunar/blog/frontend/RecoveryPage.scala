@@ -6,7 +6,7 @@ import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
 import ui.core.dsl.EventDsl.{on, onClick}
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Heading.heading
@@ -28,7 +28,6 @@ final class RecoveryPage(endpoint: String, token: Option[String], accounts: Acco
   private val actions = new RecoveryActions(endpoint, token, accounts)
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
     LanguageNavigation.protect(actions.busy, actions.done, actions.fields.email, actions.fields.password) {
       token.nonEmpty || actions.busy.get || (!actions.done.get &&
@@ -50,13 +49,13 @@ final class RecoveryPage(endpoint: String, token: Option[String], accounts: Acco
           paragraph {
             role = "alert"
             classes = "form-error"
-            text(actions.error.flatMap(code => translations.text(code match {
+            text(actions.error.map(code => code match {
               case 400 if choosingPassword => i18n"The link is invalid or has expired. Request a new one."
               case 400 => i18n"Enter a valid email address."
               case 429 => i18n"Too many attempts. Please wait a minute before trying again."
               case 403 => i18n"Your session changed. Please try again."
               case _ => i18n"The request failed. Please try again."
-            }))) {}
+            })) {}
           }
         }
         when(actions.done.map(!_)) {

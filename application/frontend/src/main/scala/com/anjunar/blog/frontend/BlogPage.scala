@@ -74,7 +74,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
         div {
           classes = "site-navigation"
           nav {
-            ariaLabel = translations.text(i18n"Main navigation")
+            ariaLabel = i18n"Main navigation"
             routerLink("/") { link ?=>
               link.addDisposable(translations.locale.observe(locale => href = router.localizedPath("/", locale)))
               text(i18n"Latest posts") {}
@@ -90,11 +90,11 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
           }
           nav {
             classes = "language-navigation"
-            ariaLabel = translations.text(i18n"Language")
+            ariaLabel = i18n"Language"
             button("English") {
               buttonType("button")
               lang = "en"
-              ariaLabel = translations.text(i18n"Switch to English")
+              ariaLabel = i18n"Switch to English"
               ariaPressed = translations.locale.map(_ == BlogI18n.English)
               AttributeDsl.setAttribute("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
@@ -104,7 +104,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
             button("Deutsch") {
               buttonType("button")
               lang = "de"
-              ariaLabel = translations.text(i18n"Switch to German")
+              ariaLabel = i18n"Switch to German"
               ariaPressed = translations.locale.map(_ == BlogI18n.German)
               AttributeDsl.setAttribute("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
