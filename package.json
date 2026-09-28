@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test:browser": "sbt --server frontendAssets && playwright test --project=contracts",
+    "test:browser:media": "sbt --server frontendAssets && playwright test --project=media",
     "test:browser:relationships": "sbt --server frontendAssets && playwright test --project=relationships",
     "test:browser:search": "sbt --server frontendAssets && playwright test --project=search",
     "test:browser:forms": "sbt --server frontendAssets && playwright test --project=forms",

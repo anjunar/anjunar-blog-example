@@ -39,9 +39,16 @@ import java.util.UUID
     new NamedAttributeNode("summary"),
     new NamedAttributeNode("status"),
     new NamedAttributeNode("publishedAt"),
+    new NamedAttributeNode("coverAlt"),
+    new NamedAttributeNode(value = "coverImage", subgraph = "post-cover"),
     new NamedAttributeNode(value = "author", subgraph = "public-author"),
     new NamedAttributeNode(value = "tags", subgraph = "post-tags")
   ), subgraphs = Array(
+    new NamedSubgraph(name = "post-cover", attributeNodes = Array(
+      new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("name"),
+      new NamedAttributeNode("contentType"), new NamedAttributeNode("width"),
+      new NamedAttributeNode("height"), new NamedAttributeNode("byteSize")
+    )),
     new NamedSubgraph(name = "public-author", attributeNodes = Array(
       new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("displayName")
     )),
@@ -123,6 +130,18 @@ class BlogPost extends EntityProvider {
   @SchemaId("42b9d1ef") @JsonbProperty
   var tags: util.Set[BlogTag] = new util.LinkedHashSet[BlogTag]()
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "cover_image_id", foreignKey = new ForeignKey(name = "fk_blog_post_cover"))
+  @SchemaId("ad182001") @JsonbProperty
+  var coverImage: Media = null
+
+  @Size(max = 300) @Column(name = "cover_alt", length = 300)
+  @SchemaId("ad182002") @JsonbProperty
+  var coverAlt: String = null
+
+  @Transient @AssertTrue(message = "A cover image needs alternative text.")
+  def isCoverConsistent: Boolean = coverImage == null || Option(coverAlt).exists(value => !value.isBlank)
+
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
@@ -157,6 +176,8 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
     val status: SingularProperty[BlogPost, BlogPostStatus] = reference(_.status, classOf[PostReadRule])
     val publishedAt: SingularProperty[BlogPost, Instant] = reference(_.publishedAt, classOf[PostReadRule])
     val summary: SingularProperty[BlogPost, String] = reference(_.summary, classOf[PostEditRule])
+    val coverImage: SingularProperty[BlogPost, Media] = reference(_.coverImage, classOf[PostEditRule])
+    val coverAlt: SingularProperty[BlogPost, String] = reference(_.coverAlt, classOf[PostEditRule])
     val author: SingularProperty[BlogPost, Account] = reference(_.author, classOf[PostEditRule])
     val tags: SetProperty[BlogPost, util.Set[BlogTag]] = set(_.tags, classOf[PostEditRule])
   }

@@ -36,7 +36,8 @@ class TransactionBoundary
     try {
       transaction.flush(successful)
       // RESTEasy also serializes implicit HEAD responses; its writer still needs the EntityManager.
-      if (!response.hasEntity) transaction.finish(successful)
+      // An already materialized binary body needs no persistence context in its writer.
+      if (!response.hasEntity || response.getEntity.isInstanceOf[Array[Byte]]) transaction.finish(successful)
     } catch {
       case NonFatal(error) =>
         abort(error)

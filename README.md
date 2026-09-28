@@ -20,7 +20,13 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: authors, tags and safe references
+## Current state: post images and media cleanup
+
+Administrators can upload a JPEG/PNG cover, describe it, save its reference and
+publish it with a post. Image delivery checks current visibility; bounded cleanup
+collects abandoned uploads after 24 hours. Follow
+[Uploading and serving media](docs/uploading-and-serving-media.md) for chapter 18,
+its additive migration, upload limits and operator command.
 
 Posts now reference an optional author and shared tags. Administrators manage
 public names and tags, select them in the post form and safely remove links.
@@ -71,7 +77,8 @@ historical local-data checkpoint.
 
 Undertow, RESTEasy, and Weld serve resources discovered through CDI.
 Hibernate uses an Agroal connection pool with Narayana/JTA and PostgreSQL.
-A request owns its EntityManager and transaction through response serialization.
+A JSON request owns its EntityManager and transaction through response serialization.
+Fully materialized image responses finish the transaction before writing bytes.
 
 `BlogPost` now maps to PostgreSQL with a generated UUID, optimistic-lock version,
 unique slug, title, content, optional summary, publication status, and publication time.
@@ -84,7 +91,7 @@ Visitors can now list published posts and read a complete post by slug through R
 registration; Hibernate manages their instances. No entity list is maintained in
 `Persistence`.
 
-`BlogPost.Schema` describes all ten persistent fields with typed JPA attributes.
+`BlogPost.Schema` describes all twelve persistent fields with typed JPA attributes.
 The mapper uses the same schema to apply field rules; default rules allow reading
 and ignore incoming writes. Chapter 13 adds request-scoped read/edit rules to
 BlogPost's editorial fields; status changes remain domain commands. `findPublishedBySlug` uses the schema directly in a
@@ -210,7 +217,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **136 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **148 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -243,11 +250,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **52 successful browser contract tests**. They build the frontend, start
+Expect **56 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 33 Scala.js model, form-state, search and problem-details tests with
+Run the 38 Scala.js model, form-state, search and problem-details tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -263,7 +270,8 @@ same settings to create/edit a post and resolve a real version conflict through
 the form. `npm run test:browser:search` covers real filtering and pagination
 using the same dedicated test database/admin/psql setup. Run
 `npm run test:browser:relationships` for the chapter 17 console example and
-real tag/post form workflow. All nine browser projects contain 62 tests.
+real tag/post form workflow. Run `npm run test:browser:media` for the cover upload/publication workflow.
+All ten browser projects contain 67 tests.
 
 ### Start the application
 
