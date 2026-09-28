@@ -43,7 +43,7 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     if (server != null) server.stop()
   } finally {
     Using.resource(connection()) { c =>
-      for ((table, field, ids) <- Seq(("blog_post", "id", posts), ("blog_media", "owner_id", accounts), ("blog_account", "id", accounts)))
+      for ((table, field, ids) <- Seq(("blog_post_media", "post_id", posts), ("blog_post", "id", posts), ("blog_media", "owner_id", accounts), ("blog_account", "id", accounts)))
         Using.resource(c.prepareStatement(s"delete from public.$table where $field = ?")) { q =>
           ids.foreach { id => q.setObject(1, id); q.executeUpdate() }
         }
@@ -122,6 +122,75 @@ class MediaHttpSpec extends AnyFunSuite with BeforeAndAfterAll {
     result
   }
   private def postPath(post: JsonObject): String = s"editorial/posts/${post.getString("id")}"
+
+  private def document(browser: Browser, post: JsonObject, content: String, format: String = "MARKDOWN"): HttpResponse[Array[Byte]] = {
+    val current = obj(browser.json(postPath(post))).getJsonObject("data")
+    val encoded = content.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+    browser.json(postPath(post), "PATCH",
+      s"""{"version":${current.value.get("version").value},"contentFormat":"$format","content":"$encoded"}""")
+  }
+
+  test("embedded images follow publication, preserve references on partial edits and become collectible after removal") {
+    val owner = new Browser()
+    val media = owner.image()
+    val post = create(owner)
+    val mediaId = media.getString("id")
+    val source = s"media/$mediaId"
+    val saved = document(owner, post, s"![Blue pixels](/service/$source)")
+    assert(saved.statusCode() == 200, text(saved))
+    assert(obj(saved).getJsonObject("data").getString("contentFormat") == "MARKDOWN")
+    assert(!text(saved).contains("inlineMedia"))
+    val public = new Browser(None)
+    assert(public.raw(source).statusCode() == 404)
+    age(mediaId)
+    assert(text(owner.json("_test/media/cleanup?limit=100", "POST")) == "0")
+    assert(stored(mediaId))
+    assert(owner.json(postPath(post), "PATCH", """{"version":1,"title":"A renamed Markdown post"}""").statusCode() == 200)
+    assert(owner.json(postPath(post) + "/publish", "POST").statusCode() == 200)
+    assert(public.raw(source).statusCode() == 200)
+    val detail = public.json(s"blog/posts/${post.getString("slug")}")
+    assert(obj(detail).getJsonObject("data").getString("contentFormat") == "MARKDOWN")
+    assert(!text(detail).contains("inlineMedia"))
+    assert(owner.json(postPath(post) + "/retract", "POST").statusCode() == 200)
+    assert(public.raw(source).statusCode() == 404)
+    assert(document(owner, post, "The image was removed.").statusCode() == 200)
+    assert(text(owner.json("_test/media/cleanup?limit=100", "POST")) == "1")
+    assert(!stored(mediaId))
+  }
+
+  test("private references, missing references and client-supplied derived relations reject the whole change") {
+    val owner = new Browser()
+    val stranger = new Browser()
+    val media = owner.image()
+    val post = create(stranger)
+    for (id <- Seq(media.getString("id"), UUID.randomUUID().toString)) {
+      val response = document(stranger, post, s"![Private](/service/media/$id)")
+      assert(response.statusCode() == 400, text(response))
+    }
+    val injected = stranger.json(postPath(post), "PATCH",
+      """{"version":0,"title":"Must roll back","inlineMedia":[]}""")
+    assert(injected.statusCode() == 400, text(injected))
+    val unchanged = obj(stranger.json(postPath(post))).getJsonObject("data")
+    assert(unchanged.getString("content") == "A complete post")
+    assert(unchanged.value.get("version").value == "0")
+    for (invalid <- Seq("<script>bad</script>", "[click](javascript:alert)", "![](/service/media/" + media.getString("id") + ")")) {
+      val result = document(owner, create(owner), invalid)
+      assert(result.statusCode() == 400, text(result))
+    }
+  }
+
+  test("image syntax inside a code example does not protect an unused upload from cleanup") {
+    val owner = new Browser()
+    val media = owner.image()
+    val post = create(owner)
+    val mediaId = media.getString("id")
+    assert(document(owner, post, s"`![Example](/service/media/$mediaId)`").statusCode() == 200)
+    age(mediaId)
+    assert(text(owner.json("_test/media/cleanup?limit=100", "POST")) == "1")
+    assert(!stored(mediaId))
+    // The reference is still only code after its example upload has disappeared.
+    assert(document(owner, post, s"`![Example](/service/media/$mediaId)`").statusCode() == 200)
+  }
 
   test("upload stores bounded pixels and returns metadata without owner or binary JSON") {
     val owner = new Browser()

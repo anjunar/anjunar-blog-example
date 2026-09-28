@@ -18,6 +18,9 @@ import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
 import ui.core.state.Property
+import ui.editor.Editor.*
+import ui.editor.MediaUploadStatus
+import ui.editor.plugins.*
 import ui.forms.{ComboBox, ErrorResponse}
 import ui.forms.ComboBox.comboBox
 import ui.forms.Form.form
@@ -39,6 +42,8 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   private val wasNew = initial.data.id.get.isEmpty
   private val actions = new PostEditorActions(initial, service.save)
   private val post = actions.post
+  private val embeddedUpload = Property(MediaUploadStatus())
+  private val sourceMode = Property(false)
   private val catalog = initialCatalog.map(new CatalogState(_, catalogService))
   private val uploads = Option(mediaService).map(service => new MediaUploadActions(post, service.upload))
 
@@ -60,7 +65,7 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
         on("submit") { event =>
           event.preventDefault()
-          if (!actions.busy.get && !actions.blocked.get && !uploads.exists(_.busy.get)) {
+          if (!actions.busy.get && !actions.blocked.get && !uploads.exists(_.busy.get) && embeddedUpload.get.pending == 0) {
             mountedForm.clearErrors()
             actions.generalError.set("")
             val bindings = mountedForm.validateBindings()
@@ -116,17 +121,55 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
         }
         div {
           classes = "post-field"
-          label { AttributeDsl.setAttribute("for", "post-content"); text(i18n"Content") {} }
-          val control = textAreaInput("content") { fieldInput ?=>
-            id = "post-content"
-            classes = "post-content-input"
-            AttributeDsl.setAttribute("rows", "12")
-            AttributeDsl.setAttribute("aria-describedby", "post-content-help post-content-errors")
-            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-              AttributeDsl.setAttribute("aria-invalid", value.toString)))
+          when(post.contentFormat.map(_ != "MARKDOWN")) {
+            label { AttributeDsl.setAttribute("for", "post-content"); text(i18n"Content") {} }
+            val control = textAreaInput("content") { fieldInput ?=>
+              id = "post-content"
+              classes = "post-content-input"
+              AttributeDsl.setAttribute("rows", "12")
+              AttributeDsl.setAttribute("aria-describedby", "post-content-help post-content-errors")
+              fieldInput.addDisposable(fieldInput.invalid.observe(value =>
+                AttributeDsl.setAttribute("aria-invalid", value.toString)))
+            }
+            paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"This post uses plain text. Enable the editor to add formatting; existing punctuation stays literal.") {} }
+            button(i18n"Enable rich text") {
+              buttonType("button")
+              disabled = actions.busy
+              onClick { _ =>
+                post.content.set(PostMarkdown.fromPlainText(post.content.get))
+                post.contentFormat.set("MARKDOWN")
+              }
+            }
+            paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
           }
-          paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Plain text for now. A draft may be empty; a published post needs content.") {} }
-          paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          when(post.contentFormat.map(_ == "MARKDOWN")) {
+            paragraph { id = "post-content-label"; text(i18n"Content") {} }
+            button(sourceMode.flatMap(source => translations.text(
+              if (source) i18n"Visual editor" else i18n"Edit Markdown"))) {
+              buttonType("button")
+              disabled = embeddedUpload.map(_.pending > 0)
+              onClick(_ => sourceMode.set(!sourceMode.get))
+            }
+            val control = editor("content") { document ?=>
+              ariaLabelledBy = "post-content-label"
+              AttributeDsl.setAttribute("aria-describedby", "post-content-help post-content-errors")
+              showModeActions = false
+              markdownMode = sourceMode
+              mediaUrlPolicy = PostMarkdown.mediaPolicy
+              Option(mediaService).foreach(service => mediaUploader = PostMarkdown.uploader(service))
+              onMediaStatus = status => embeddedUpload.set(status)
+              basePlugin()
+              headingPlugin()
+              listPlugin()
+              linkPlugin()
+              imagePlugin()
+              codePlugin()
+              document.addDisposable(document.invalid.observe(value =>
+                AttributeDsl.setAttribute("aria-invalid", value.toString)))
+            }
+            paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Formatting is saved as Markdown. Upload JPEG or PNG images and add alternative text before saving.") {} }
+            paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+          }
         }
         uploads.foreach { upload =>
           div {
@@ -236,8 +279,9 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           button(i18n"Save post") {
             buttonType("submit")
             disabled = actions.busy.flatMap(busy => actions.blocked.flatMap(blocked =>
-              uploads.map(_.busy.map(uploading => busy || blocked || uploading))
-                .getOrElse(Property(busy || blocked))))
+              embeddedUpload.flatMap(status => uploads.map(_.busy.map(uploading =>
+                busy || blocked || uploading || status.pending > 0))
+                .getOrElse(Property(busy || blocked || status.pending > 0)))))
           }
           when(actions.busy) { paragraph { role = "status"; text(i18n"Saving… You can keep writing.") {} } }
           when(actions.notice.map(value => value == Saved || value == NewerEdits)) {

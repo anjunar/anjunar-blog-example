@@ -14,7 +14,7 @@ test("an administrator creates, edits and resolves a stale form against PostgreS
   await page.getByLabel("Title", { exact: true }).fill("A post written in the form");
   await page.getByLabel("Slug", { exact: true }).fill(slug);
   await page.getByLabel("Summary (optional)").fill("An editable summary");
-  await page.getByLabel("Content", { exact: true }).fill("Content bound directly to the post.");
+  await page.getByRole("textbox", { name: "content", exact: true }).pressSequentially("Content bound directly to the post.");
 
   let id;
   try {
@@ -27,7 +27,7 @@ test("an administrator creates, edits and resolves a stale form against PostgreS
     id = result.data.id;
     expect(result.data.version).toBe(0);
     await expect(page).toHaveURL(new RegExp("/en/editorial/posts/" + id + "/edit$"));
-    await expect(page.getByLabel("Content", { exact: true })).toHaveValue("Content bound directly to the post.");
+    await expect(page.getByRole("textbox", { name: "content", exact: true })).toHaveText("Content bound directly to the post.");
     await page.getByLabel("Title", { exact: true }).fill("Saved through a bound form");
     await page.getByLabel("Summary (optional)").fill("");
     const update = page.waitForResponse(response => response.request().method() === "PATCH");

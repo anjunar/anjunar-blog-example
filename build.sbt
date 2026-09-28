@@ -1,4 +1,4 @@
-import org.scalajs.linker.interface.ModuleKind
+import org.scalajs.linker.interface.{ESVersion, ModuleKind}
 import org.scalajs.sbtplugin.ScalaJSPlugin
 
 ThisBuild / organization := "com.anjunar"
@@ -34,6 +34,7 @@ lazy val backend = Project("application-backend", file("application/backend"))
       "com.anjunar" %% "json-mapper" % "1.1.6",
       // Already used by json-mapper; declare the streaming parser directly at our HTTP boundary.
       "tools.jackson.core" % "jackson-core" % "3.1.1",
+      "org.commonmark" % "commonmark" % "0.30.0",
       "com.anjunar.hibernateddl" %% "schema-integration" % "1.1.0",
       "org.hibernate.orm" % "hibernate-core" % "7.4.10.Final",
       "org.hibernate.validator" % "hibernate-validator" % "9.1.4.Final",
@@ -60,14 +61,16 @@ lazy val frontend = Project("application-frontend", file("application/frontend")
   .enablePlugins(ScalaJSPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "com.anjunar" %% "scalajs-ui-core" % "1.0.9",
-      "com.anjunar" %% "scalajs-ui-json" % "1.0.9",
-      "com.anjunar" %% "scalajs-ui-router" % "1.0.9",
-      "com.anjunar" %% "scalajs-ui-forms" % "1.0.9",
+      "com.anjunar" %% "scalajs-ui-core" % "1.0.12",
+      "com.anjunar" %% "scalajs-ui-json" % "1.0.12",
+      "com.anjunar" %% "scalajs-ui-router" % "1.0.12",
+      "com.anjunar" %% "scalajs-ui-forms" % "1.0.12",
+      "com.anjunar" %% "scalajs-ui-editor" % "1.0.12",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
     scalaJSUseMainModuleInitializer := true,
     scalaJSLinkerConfig := scalaJSLinkerConfig.value.withModuleKind(ModuleKind.ESModule)
+      .withESFeatures(_.withESVersion(ESVersion.ES2021))
   )
 
 lazy val frontendAssets = taskKey[File]("Build and copy the browser application")
@@ -78,6 +81,10 @@ frontendAssets := Def.uncached {
   val linked = (frontend / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
   val destination = (LocalRootProject / baseDirectory).value / "target" / "frontend"
   IO.createDirectory(destination)
+  val iconFont = (LocalRootProject / baseDirectory).value / "node_modules" / "@fontsource" / "material-icons" / "files" / "material-icons-latin-400-normal.woff2"
+  require(iconFont.isFile, "Run npm ci before building frontend assets.")
+  IO.copyFile(iconFont, destination / "material-icons.woff2")
+  IO.copyFile(iconFont.getParentFile.getParentFile / "LICENSE", destination / "material-icons-LICENSE.txt")
   IO.copyDirectory(linked, destination)
   IO.copyDirectory((frontend / Compile / resourceDirectory).value, destination)
   destination

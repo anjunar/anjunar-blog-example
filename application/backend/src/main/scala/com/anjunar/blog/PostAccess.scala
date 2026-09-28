@@ -20,7 +20,7 @@ class PostAccess {
 
   def canPublish(post: BlogPost): Boolean =
     canEdit(post) && post.status == BlogPostStatus.DRAFT &&
-      post.content != null && !post.content.isBlank
+      post.hasPublishableContent
 
   def canRetract(post: BlogPost): Boolean =
     canEdit(post) && post.status == BlogPostStatus.PUBLISHED

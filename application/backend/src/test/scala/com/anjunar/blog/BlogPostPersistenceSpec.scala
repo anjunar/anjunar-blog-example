@@ -271,7 +271,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       val loaded = manager.find(classOf[BlogPost], saved.id)
       val output = json(loaded)
       assert(output.value.keySet().asScala.toSet == Set(
-        "@type", "id", "version", "slug", "title", "content", "summary", "status", "publishedAt"))
+        "@type", "id", "version", "slug", "title", "content", "contentFormat", "summary", "status", "publishedAt"))
       assert(output.getString("@type") == "BlogPost")
       assert(output.getString("id") == saved.id.toString)
       assert(output.value.get("version").value == saved.version.toString)

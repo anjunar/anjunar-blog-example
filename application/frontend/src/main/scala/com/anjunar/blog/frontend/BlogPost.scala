@@ -22,6 +22,8 @@ final class BlogPost {
   // Null preserves the distinction between an omitted list field and an empty draft detail.
   @(Size @field)(max = 100000)
   val content: Property[String] = Property(null)
+  @(Pattern @field)("PLAIN_TEXT|MARKDOWN")
+  val contentFormat: Property[String] = Property("PLAIN_TEXT")
   @(Size @field)(max = 300)
   val summary: Property[String] = Property(null)
   @JsonIgnore(deserializable = true)
@@ -38,12 +40,12 @@ final class BlogPost {
   val tags: ListProperty[BlogTag] = ListProperty()
 
   @JsonIgnore()
-  def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary, coverAlt)
+  def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary, coverAlt, contentFormat)
 
   @JsonIgnore()
   def snapshot: PostSnapshot = PostSnapshot(slug.get, title.get, content.get, summary.get,
     Option(author.get).map(_.id.get), tags.toSeq.map(_.id.get).toSet,
-    coverAlt.get, Option(coverImage.get).map(_.id.get))
+    coverAlt.get, Option(coverImage.get).map(_.id.get), contentFormat.get)
 
   @JsonIgnore()
   def isDirty: Boolean = editableFields.exists(_.isDirty) || author.isDirty || tags.isDirty || coverImage.isDirty
@@ -97,12 +99,13 @@ final class BlogPost {
 
 final case class PostSnapshot(slug: String, title: String, content: String, summary: String,
     authorId: Option[String] = None, tagIds: Set[String] = Set.empty,
-    coverAlt: String = null, coverImageId: Option[String] = None) {
-  def values: Seq[String] = Seq(slug, title, content, summary, coverAlt)
+    coverAlt: String = null, coverImageId: Option[String] = None, contentFormat: String = "PLAIN_TEXT") {
+  def values: Seq[String] = Seq(slug, title, content, summary, coverAlt, contentFormat)
   def value(name: String): Option[Any] = name match {
     case "slug" => Some(slug)
     case "title" => Some(title)
     case "content" => Some(content)
+    case "contentFormat" => Some(contentFormat)
     case "summary" => Some(summary)
     case "coverAlt" => Some(coverAlt)
     case "coverImage" => Some(coverImageId)

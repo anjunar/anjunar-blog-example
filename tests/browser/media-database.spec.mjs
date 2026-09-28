@@ -41,7 +41,7 @@ test("upload, save, publish, retract and remove a cover through real HTTP and Po
     const slug = "media-browser-" + randomUUID();
     await page.getByLabel("Title", { exact: true }).fill("A post with a cover image");
     await page.getByLabel("Slug", { exact: true }).fill(slug);
-    await page.getByLabel("Content", { exact: true }).fill("The image belongs to this post through an entity reference.");
+    await page.getByRole("textbox", { name: "content", exact: true }).pressSequentially("The image belongs to this post through an entity reference.");
     const uploaded = page.waitForResponse(value => value.request().method() === "POST" &&
       new URL(value.url()).pathname === "/service/editorial/media");
     await page.getByLabel("Cover image", { exact: true }).setInputFiles(file);

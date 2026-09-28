@@ -26,6 +26,7 @@ class EditorialPostsResource {
   @Inject var access: PostAccess = uninitialized
   @Inject var links: PostLinks = uninitialized
   @Inject var queries: HibernateSearch = uninitialized
+  @Inject var media: PostMedia = uninitialized
   @Context var uriInfo: UriInfo = uninitialized
 
   @GET
@@ -49,6 +50,7 @@ class EditorialPostsResource {
     if (!access.canEdit(change.getEntity())) throw new ForbiddenException()
     val post = change.applyChanges()
     requireFreeSlug(post)
+    media.synchronize(post)
     manager.persist(post)
     manager.flush()
     val body = new GenericEntity[Data[BlogPost]](result(post)) {}
@@ -62,6 +64,7 @@ class EditorialPostsResource {
     if (!access.canEdit(change.getEntity())) throw new ForbiddenException()
     val post = change.applyChanges()
     requireFreeSlug(post)
+    media.synchronize(post)
     manager.flush()
     result(post)
   }
