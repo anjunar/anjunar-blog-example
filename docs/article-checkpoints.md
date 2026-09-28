@@ -792,3 +792,31 @@ Desktop and mobile layouts were checked.
 No cascading tag deletion, media upload, author/tag filtering or historical byline
 snapshot is added. Lists retain chapter 16's compact projection. Chapter 18 handles
 uploads, media ownership, image delivery and cleanup.
+
+## Chapter 18: Uploading and serving media
+
+- Slug: `abt-18-uploading-and-serving-media`
+- Implementation: [`c31d860`](https://github.com/anjunar/anjunar-blog-example/commit/c31d860175df373be9c4a82af806596a4ac7ba2c)
+- [Guide at this checkpoint](https://github.com/anjunar/anjunar-blog-example/blob/c31d860175df373be9c4a82af806596a4ac7ba2c/docs/uploading-and-serving-media.md)
+
+A cover image now travels from a native file input through a bounded JPEG/PNG
+decoder into PostgreSQL, then back through authorized binary delivery. The post
+stores an ID-only reference and description. Uploads stay private until a
+published post references them; retraction closes subsequent anonymous reads.
+Unused uploads become eligible for bounded cleanup after 24 hours from creation.
+
+Use the chapter 17 database and administrator. Preview and apply SchemaMain's
+additive migration before starting the server, then rebuild frontendAssets.
+The tested migration applied four statements; a repeat applied none. Preview
+retains the existing publication CHECK's INCOMPLETE verification behavior.
+
+Verification passed: **148 backend tests, 38 Scala.js tests and 67 browser checks**
+(56 controlled contracts and 11 real workflows). The browser covers uploading,
+saving, reload, publication, retraction and unlinking. HTTP tests verify ownership,
+invalid/oversized files, rollback, binary writes after transaction completion and
+cleanup racing with an attachment. Mobile and desktop image layouts were checked.
+
+Image delivery uses no-store. This checkpoint handles still JPEG/PNG covers;
+resizing, EXIF orientation correction and inline editor images are outside this
+chapter. Cleanup has an explicit operator command and small upload-triggered
+batches, with no background scheduler.
