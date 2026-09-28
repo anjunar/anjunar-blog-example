@@ -18,7 +18,8 @@ introduce internationalization.
 
 This is a working plan. We refine the scope of individual articles as we
 write them together. Chapter 11 was split into authentication and a separate
-chapter 12 for registration/recovery; later topics move forward by one number.
+chapter 12 for registration/recovery. Chapter 17 is also split: relationships come
+first, followed by media in chapter 18. Later topics move forward accordingly.
 
 | No. | Topic | Content |
 | --- | --- | --- |
@@ -38,16 +39,17 @@ chapter 12 for registration/recovery; later topics move forward by one number.
 | 14 | Applying changes safely | PreparedChange, authorization before mutation, required versions, partial updates, validation, error responses, and the boundary for future references. |
 | 15 | Building a form from end to end | Model binding, field errors, save state, version conflicts, and delayed responses. |
 | 16 | Searching, filtering, and pagination | Criteria through EntitySchema, search models, sorting, pagination, and list projections. |
-| 17 | Managing relationships and media | Authors, tags, uploads, ownership, delivery, and orphaned media cleanup. |
-| 18 | Integrating a post editor | Structured content, the document format, code blocks, and embedded images. |
-| 19 | Translating the interface and content | The i18n macro for UI messages; separate models for editorial translations and fallbacks. |
-| 20 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
-| 21 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
-| 22 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
-| 23 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
-| 24 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
-| 25 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
-| 26 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
+| 17 | Managing entity relationships | Authors, tags, entity graphs, safe reference loading, relationship permissions, validation, and mirrored form models. |
+| 18 | Uploading and serving media | Uploads, ownership, image delivery, post images, and orphaned media cleanup. |
+| 19 | Integrating a post editor | Structured content, the document format, code blocks, and embedded images. |
+| 20 | Translating the interface and content | The i18n macro for UI messages; separate models for editorial translations and fallbacks. |
+| 21 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
+| 22 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
+| 23 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
+| 24 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
+| 25 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
+| 26 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
+| 27 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
 
 ## First milestone
 
@@ -75,7 +77,8 @@ Chapter 16 searches title, slug and summary with typed Criteria predicates share
 by rows and count. Lists select compact read-only projections; public visibility,
 editorial status filters, stable sorting and literal punctuation are tested.
 Bound search controls keep filters in the URL across paging, reload and history.
-Chapter 17 adds relationships and media.
+Chapter 17 adds authors, tags and authorized entity references through the mapper,
+REST graphs and bound forms. Chapter 18 adds uploads, image delivery and media cleanup.
 
 ## Further topics
 
@@ -89,6 +92,6 @@ Chapter 17 adds relationships and media.
 - Each article delivers a concrete, verifiable result.
 - Examples come from this runnable project.
 - A commit or tag connects each published article to its project revision.
-- Examples include imports, full relevant implementations, exact file locations and expected results. Show the complete changed path and executable checks for difficult behavior instead of isolated one-line fragments.
+- Select examples that explain the chapter's central ideas. Give excerpts enough context and the necessary imports; link the complete implementation at the checkpoint. Full files belong in the article only when they help the explanation. Code volume is not a quality target.
 - We explain architectural decisions when they become relevant.
-- Tests accompany each feature; article 23 brings the testing strategy together.
+- Tests accompany each feature; article 24 brings the testing strategy together.

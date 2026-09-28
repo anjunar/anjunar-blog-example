@@ -14,6 +14,7 @@ import ui.core.layout.Span.span
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
 import ui.router.Router
+import ui.viewport.Viewport.viewport
 import ui.router.RouterLink.routerLink
 
 import scala.concurrent.ExecutionContext
@@ -65,7 +66,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
       main {
         id = "main-content"
         tabIndex = -1
-        child(router) {}
+        viewport { child(router) {} }
       }
       footer {
         classes = "site-footer"

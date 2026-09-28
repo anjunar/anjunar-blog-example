@@ -1,13 +1,15 @@
 package com.anjunar.blog
 
-import com.anjunar.json.mapper.{EntityLoader, JsonMapper, PreparedChange}
+import com.anjunar.json.mapper.{JsonMapper, PreparedChange}
 import com.anjunar.json.mapper.intermediate.model.{JsonNull, JsonNumber, JsonObject, JsonString}
+import com.anjunar.json.mapper.provider.EntityProvider
+import com.anjunar.json.mapper.schema.EntitySchema
 import com.anjunar.scala.universe.TypeResolver
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.persistence.{EntityManager, LockModeType}
 import jakarta.validation.Validator
-import jakarta.ws.rs.NotFoundException
+import jakarta.ws.rs.{ForbiddenException, NotFoundException}
 
 import java.lang.reflect.{ParameterizedType, Type}
 import java.util.UUID
@@ -15,66 +17,103 @@ import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
 object PreparedChanges {
+  private val types: Set[Class[?]] = Set(classOf[BlogPost], classOf[BlogTag], classOf[Account])
+
+  def entityClass(genericType: Type): Option[Class[? <: EntityProvider]] = genericType match {
+    case value: ParameterizedType if value.getActualTypeArguments.length == 1 =>
+      value.getActualTypeArguments.head match {
+        case clazz: Class[?] if types.contains(clazz) => Some(clazz.asSubclass(classOf[EntityProvider]))
+        case _ => None
+      }
+    case _ => None
+  }
+
   def supports(clazz: Class[?], genericType: Type): Boolean =
-    clazz == classOf[PreparedChange[?]] && (genericType match {
-      case value: ParameterizedType => value.getActualTypeArguments.toSeq == Seq(classOf[BlogPost])
-      case _ => false
-    })
+    clazz == classOf[PreparedChange[?]] && entityClass(genericType).nonEmpty
+
+  def schema(clazz: Class[?]): EntitySchema[?] =
+    if (clazz == classOf[BlogPost]) BlogPost.schema
+    else if (clazz == classOf[BlogTag]) BlogTag.schema
+    else if (clazz == classOf[Account]) Account.schema
+    else throw new IllegalArgumentException("Unsupported entity type")
+
+  def graph(clazz: Class[?]): String =
+    if (clazz == classOf[BlogPost]) "BlogPost.detail"
+    else if (clazz == classOf[BlogTag]) "BlogTag.detail"
+    else if (clazz == classOf[Account]) "Account.author"
+    else throw new IllegalArgumentException("Unsupported entity type")
 }
 
 @RequestScoped
 class PreparedChanges {
   @Inject var manager: EntityManager = uninitialized
   @Inject var access: PostAccess = uninitialized
+  @Inject var caller: CallerAccess = uninitialized
+  @Inject var identity: SessionIdentity = uninitialized
+  @Inject var references: ReferenceAccess = uninitialized
   @Inject var validator: Validator = uninitialized
 
-  def create(json: JsonObject): PreparedChange[BlogPost] = {
-    val post = new BlogPost()
+  def create(json: JsonObject): PreparedChange[BlogPost] = create(json, classOf[BlogPost])
+  def update(id: String, json: JsonObject): PreparedChange[BlogPost] = update(id, json, classOf[BlogPost])
+
+  def create[E <: EntityProvider](json: JsonObject, clazz: Class[E]): PreparedChange[E] = {
+    val entity: EntityProvider =
+      if (clazz == classOf[BlogPost]) {
+        val post = new BlogPost()
+        if (!json.value.containsKey("author")) post.author = identity.requireAccount()
+        post
+      } else if (clazz == classOf[BlogTag]) new BlogTag()
+      else throw new ApiProblem(400, "Accounts are created through registration or administrator bootstrap.")
     Option(json.value.get("version")).foreach {
       case value: JsonNumber if value.value == "-1" => ()
-      case _ => Problem.invalidField("version", "A new post has no saved version yet.")
+      case _ => Problem.invalidField("version", "A new entity has no saved version yet.")
     }
-    prepare(json, post)
+    prepare(json, clazz.cast(entity), clazz)
   }
 
-  def update(id: String, json: JsonObject): PreparedChange[BlogPost] = {
+  def update[E <: EntityProvider](id: String, json: JsonObject, clazz: Class[E]): PreparedChange[E] = {
+    if (!caller.administrator) throw new ForbiddenException()
     val uuid = try UUID.fromString(id) catch { case _: IllegalArgumentException => throw new NotFoundException() }
     // Lock while loading, before comparing versions, so concurrent requests see the latest row.
-    val post = manager.find(classOf[BlogPost], uuid, LockModeType.PESSIMISTIC_WRITE)
-    if (post == null || !access.canRead(post)) throw new NotFoundException()
-    EntityVersions.requireCurrent(post, json)
-    prepare(json, post)
+    val entity = manager.find(clazz, uuid, LockModeType.PESSIMISTIC_WRITE)
+    if (entity == null) throw new NotFoundException()
+    entity match {
+      case post: BlogPost if !access.canRead(post) => throw new NotFoundException()
+      case account: Account if account.locked || account.role != "ADMIN" => throw new NotFoundException()
+      case _ => ()
+    }
+    EntityVersions.requireCurrent(entity, json)
+    prepare(json, entity, clazz)
   }
 
-  private def prepare(json: JsonObject, post: BlogPost): PreparedChange[BlogPost] = {
-    val unknown = json.value.keySet().asScala.toSet -- BlogPost.schema.properties.keySet - "@type"
-    if (unknown.nonEmpty) Problem.invalidField(unknown.toSeq.sorted.head, "Unknown post field.")
+  private def prepare[E <: EntityProvider](json: JsonObject, entity: E, clazz: Class[E]): PreparedChange[E] = {
+    val schema = PreparedChanges.schema(clazz)
+    val fields = if (clazz == classOf[Account]) Set("id", "version", "displayName")
+      else schema.properties.keySet.toSet
+    val unknown = json.value.keySet().asScala.toSet -- fields - "@type"
+    if (unknown.nonEmpty) Problem.invalidField(unknown.toSeq.sorted.head, "Unknown entity field.")
     Option(json.value.get("@type")).foreach {
-      case value: JsonString if value.value == "BlogPost" => ()
-      case _ => Problem.invalidField("@type", "Expected BlogPost.")
+      case value: JsonString if value.value == clazz.getSimpleName => ()
+      case _ => Problem.invalidField("@type", s"Expected ${clazz.getSimpleName}.")
     }
     Option(json.value.get("id")).foreach {
-      case _: JsonNull if post.id == null => ()
-      case value: JsonString if post.id == null && value.value.isEmpty => ()
-      case value: JsonString if post.id != null && value.value == post.id.toString => ()
-      case _ => Problem.invalidField("id", "The request cannot change the post identity.")
+      case _: JsonNull if entity.id == null => ()
+      case value: JsonString if entity.id == null && value.value.isEmpty => ()
+      case value: JsonString if entity.id != null && value.value == entity.id.toString => ()
+      case _ => Problem.invalidField("id", "The request cannot change the entity identity.")
     }
-    // The mapper dispatches by JSON node shape. Reject object/number input for String attributes
-    // at the HTTP boundary instead of relying on coercion or reflective assignment failures.
-    val entityType = manager.getMetamodel.entity(classOf[BlogPost])
+    // The mapper dispatches by node shape; scalar type checking belongs at the HTTP boundary.
+    val entityType = manager.getMetamodel.entity(clazz)
     json.value.asScala.foreach { (name, value) =>
-      if (BlogPost.schema.properties.contains(name) && entityType.getAttribute(name).getJavaType == classOf[String])
+      if (fields.contains(name) && entityType.getAttribute(name).getJavaType == classOf[String])
         value match {
           case _: JsonString | _: JsonNull => ()
           case _ => Problem.invalidField(name, "Expected a string or null.")
         }
     }
-    val noReferences = new EntityLoader {
-      override def load(id: UUID, clazz: Class[?]): Any =
-        throw new ApiProblem(400, "This post contract does not accept entity references.")
-    }
-    JsonMapper.prepare(json, post, TypeResolver.resolve(classOf[BlogPost]),
-      manager.getEntityGraph("BlogPost.detail"), noReferences,
-      [T] => (clazz: Class[T]) => RuntimeContext.bean(clazz), validator)
+    if (clazz == classOf[BlogPost]) references.checkPostInput(json)
+    JsonMapper.prepare(json, entity, TypeResolver.resolve(clazz),
+      manager.getEntityGraph(PreparedChanges.graph(clazz)), references,
+      [T] => (rule: Class[T]) => RuntimeContext.bean(rule), validator)
   }
 }

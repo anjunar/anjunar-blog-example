@@ -1,6 +1,7 @@
 package com.anjunar.blog
 
 import com.anjunar.json.mapper.PreparedChange
+import com.anjunar.json.mapper.provider.EntityProvider
 import jakarta.annotation.Priority
 import jakarta.inject.Inject
 import jakarta.servlet.http.HttpServletRequest
@@ -16,15 +17,15 @@ import scala.compiletime.uninitialized
 @Provider
 @Priority(3800)
 @Consumes(Array(MediaType.APPLICATION_JSON))
-class PreparedChangeReader extends MessageBodyReader[PreparedChange[BlogPost]] {
+class PreparedChangeReader extends MessageBodyReader[PreparedChange[?]] {
   @Inject var changes: PreparedChanges = uninitialized
   override def isReadable(clazz: Class[?], genericType: Type, annotations: Array[Annotation],
       mediaType: MediaType): Boolean = PreparedChanges.supports(clazz, genericType)
 
-  override def readFrom(clazz: Class[PreparedChange[BlogPost]], genericType: Type,
+  override def readFrom(clazz: Class[PreparedChange[?]], genericType: Type,
       annotations: Array[Annotation], mediaType: MediaType, headers: MultivaluedMap[String, String],
-      stream: InputStream): PreparedChange[BlogPost] =
-    changes.create(RequestJson.read(stream))
+      stream: InputStream): PreparedChange[?] =
+    changes.create(RequestJson.read(stream), PreparedChanges.entityClass(genericType).get)
 }
 
 @Provider
@@ -37,8 +38,8 @@ class PreparedChangeParamConverter extends ParamConverterProvider {
     if (!PreparedChanges.supports(clazz, genericType)) null
     else new ParamConverter[T] {
       override def fromString(id: String): T =
-        changes.update(id, RequestJson.read(request.getInputStream)).asInstanceOf[T]
+        changes.update(id, RequestJson.read(request.getInputStream), PreparedChanges.entityClass(genericType).get).asInstanceOf[T]
       override def toString(value: T): String =
-        value.asInstanceOf[PreparedChange[BlogPost]].getEntity().id.toString
+        value.asInstanceOf[PreparedChange[EntityProvider]].getEntity().id.toString
     }
 }

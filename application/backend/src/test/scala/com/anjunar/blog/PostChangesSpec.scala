@@ -44,14 +44,14 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     clients.foreach(_.close())
     if (server != null) server.stop()
   } finally {
-    Using.resource(connection()) { connection =>
-      Using.resource(connection.prepareStatement("delete from public.blog_account where id = ?")) { query =>
-        owned.foreach { id => query.setObject(1, id); query.executeUpdate() }
-      }
-    }
     Using.resource(connection()) { c =>
       Using.resource(c.prepareStatement("delete from public.blog_post where id = ?")) { q =>
         posts.foreach { id => q.setObject(1, id); q.executeUpdate() }
+      }
+    }
+    Using.resource(connection()) { connection =>
+      Using.resource(connection.prepareStatement("delete from public.blog_account where id = ?")) { query =>
+        owned.foreach { id => query.setObject(1, id); query.executeUpdate() }
       }
     }
     super.afterAll()

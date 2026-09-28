@@ -13,6 +13,7 @@ import ui.core.layout.Heading.heading
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
+import ui.core.state.Property
 import ui.router.RouterLink.routerLink
 
 import scala.concurrent.ExecutionContext
@@ -36,6 +37,15 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         text(actions.current.flatMap(value => translations.text(
           if (value.data.status.get == "PUBLISHED") i18n"Published" else i18n"Draft"))) {}
       }
+      paragraph {
+        classes = "post-author"
+        text(actions.current.flatMap(value =>
+          Option(value.data.author.get).flatMap(account => Option(account.displayName.get)).filter(_.nonEmpty) match {
+            case Some(name) => Property(name)
+            case None => translations.text(i18n"Editorial team")
+          })) {}
+      }
+      paragraph { classes = "post-tags"; text(actions.current.map(_.data.tags.toSeq.map(_.name.get).mkString(", "))) {} }
       paragraph { text(actions.current.flatMap(_.data.summary.map(value => Option(value).getOrElse("")))) {} }
       div {
         classes = "editorial-controls"

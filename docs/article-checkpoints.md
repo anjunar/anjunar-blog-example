@@ -738,3 +738,57 @@ projections, missing-provider failures and generic page bounds.
 Substring search can scan rows; offset pagination is not a snapshot under
 concurrent changes. These limits and the projection's authorization boundary
 are explained in the guide and article.
+
+
+## 17 — Managing Entity Relationships
+
+- Article slug: `abt-17-managing-entity-relationships`
+- Source revision: [a16b0c5](https://github.com/anjunar/anjunar-blog-example/tree/a16b0c53d65b6ef5e9351e42f00637948dd884c8)
+- Starting revision: chapter 16, `214eeb6d5a2c6062013d95abf7f990a1cb032cce`.
+
+Posts reference an optional author and reusable tags. Administrators manage public
+names and tags through their own versioned endpoints/forms, then select references
+in the post editor. JSON Mapper 1.1.6 resolves authorized IDs from Maven Central.
+Account graphs publish only the intended public fields; nested writes stay rejected.
+
+### Check out and run
+
+```text
+git switch --detach a16b0c53d65b6ef5e9351e42f00637948dd884c8
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain preview"
+sbt --server "application-backend/runMain com.anjunar.blog.SchemaMain migrate"
+sbt --server frontendAssets "application-backend/run"
+```
+
+Use the existing chapter 16 database and administrator. The additive migration
+adds public names, author references, tags and the join table. It preserves the
+old rows and stable mapping IDs. The verified upgrade applied seven statements;
+a repeat applied none. Follow [the guide](entity-relationships.md) for preview's
+existing CHECK verification behavior and the complete walkthrough.
+
+### Verify
+
+```text
+sbt --server "application-backend/testFull" "application-frontend/testFull" frontendAssets
+npx playwright test
+```
+
+Use the isolated test database, public-post fixtures, bootstrapped administrator,
+chapter 12 SMTP settings and psql on PATH or BLOG_PSQL. Keep port 18080 free.
+Backend and browser suites run sequentially. The full browser run honors the
+account login limit and may wait its Retry-After interval.
+
+The checkpoint passes 136 backend tests, 33 Scala.js tests and 62 browser tests
+(52 controlled contracts and ten real workflows). The new relationships project
+runs docs/examples/entity-relationships.js unchanged and exercises tag creation,
+post selection/publication, reload, public metadata and unlinking through the UI.
+It removes only its own join rows, posts and tags.
+
+Coverage also includes unknown and ineligible references, duplicate IDs, nested
+edits, the collection limit, full rollback, metadata versions, CSRF, private-field
+exclusion, paging and delayed replies that must preserve newer selections.
+Desktop and mobile layouts were checked.
+
+No cascading tag deletion, media upload, author/tag filtering or historical byline
+snapshot is added. Lists retain chapter 16's compact projection. Chapter 18 handles
+uploads, media ownership, image delivery and cleanup.

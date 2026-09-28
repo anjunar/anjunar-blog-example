@@ -25,12 +25,14 @@ final class EditorialService(accounts: AccountService)(using ExecutionContext) {
     HttpJson.get[BlogPostData](s"/service/editorial/posts/${encodeURIComponent(id)}", signal).map(validate)
 
   def newPost(signal: Option[dom.AbortSignal]): Future[BlogPostData] =
-    list(PostSearch(sort = "title", limit = 1, editorial = true), signal).map { table =>
+    list(PostSearch(sort = "title", limit = 1, editorial = true), signal).zip(accounts.session(signal)).map { (table, state) =>
       val link = table.links.find(_.rel == "create").getOrElse(throw new HttpFailure(403))
       link.path("POST")
       val post = new BlogPost()
       post.content.set("")
       post.content.setDefault("")
+      post.author.set(state.account.orNull)
+      post.author.setDefault(state.account.orNull)
       new BlogPostData(post, Seq(link))
     }
 

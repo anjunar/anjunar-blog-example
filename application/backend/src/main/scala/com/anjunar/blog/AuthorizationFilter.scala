@@ -21,7 +21,8 @@ class AuthorizationFilter extends ContainerRequestFilter {
     EndpointPolicy.of(resource.getResourceMethod, resource.getResourceClass).requireAccess(access)
     val writes = request.getMethod != "GET" && request.getMethod != "HEAD" && request.getMethod != "OPTIONS"
     val protectedResource = Set[Class[?]](classOf[AuthenticationResource],
-      classOf[AccountRecoveryResource], classOf[EditorialPostsResource]).contains(resource.getResourceClass)
+      classOf[AccountRecoveryResource], classOf[EditorialPostsResource],
+      classOf[EditorialAuthorsResource], classOf[EditorialTagsResource]).contains(resource.getResourceClass)
     if (writes && protectedResource) identity.checkCsrf()
   }
 }

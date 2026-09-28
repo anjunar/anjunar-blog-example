@@ -5,7 +5,7 @@ import com.anjunar.json.mapper.provider.EntityProvider
 import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
 import com.anjunar.json.mapper.schema.property.SingularProperty
 import jakarta.json.bind.annotation.{JsonbProperty, JsonbTransient}
-import jakarta.persistence.{Access, AccessType, Column, Entity, EntityManager, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, Table, UniqueConstraint, Version}
+import jakarta.persistence.{Access, AccessType, Column, Entity, EntityManager, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, UniqueConstraint, Version}
 import jakarta.validation.constraints.{Email, NotBlank, Pattern, Size}
 
 import java.util.{Locale, UUID}
@@ -15,9 +15,15 @@ import java.util.{Locale, UUID}
 @Access(AccessType.FIELD)
 @Table(name = "blog_account", schema = "public",
   uniqueConstraints = Array(new UniqueConstraint(name = "uq_blog_account_email", columnNames = Array("email"))))
-@NamedEntityGraph(name = "Account.self", attributeNodes = Array(
-  new NamedAttributeNode("id"), new NamedAttributeNode("version"),
-  new NamedAttributeNode("email"), new NamedAttributeNode("role")
+@NamedEntityGraphs(Array(
+  new NamedEntityGraph(name = "Account.self", attributeNodes = Array(
+    new NamedAttributeNode("id"), new NamedAttributeNode("version"),
+    new NamedAttributeNode("email"), new NamedAttributeNode("role"),
+    new NamedAttributeNode("displayName")
+  )),
+  new NamedEntityGraph(name = "Account.author", attributeNodes = Array(
+    new NamedAttributeNode("id"), new NamedAttributeNode("version"), new NamedAttributeNode("displayName")
+  ))
 ))
 class Account extends EntityProvider {
   @Id
@@ -48,6 +54,11 @@ class Account extends EntityProvider {
   @JsonbProperty
   var role: String = "READER"
 
+  @Size(min = 2, max = 80)
+  @Column(name = "display_name", length = 80)
+  @SchemaId("c81a429f") @JsonbProperty
+  var displayName: String = null
+
   @NotBlank
   @Column(name = "password_hash", nullable = false, length = 200)
   @SchemaId("0f26bca3")
@@ -74,6 +85,8 @@ object Account extends SchemaProvider[Account.Schema] {
     val version: SingularProperty[Account, Long] = reference(_.version)
     val email: SingularProperty[Account, String] = reference(_.email)
     val role: SingularProperty[Account, String] = reference(_.role)
+    val displayName: SingularProperty[Account, String] = reference(_.displayName, classOf[AuthorEditRule])
+    val locked: SingularProperty[Account, Boolean] = reference(_.locked)
   }
 
   def byEmail(email: String)(using manager: EntityManager): Option[Account] = {

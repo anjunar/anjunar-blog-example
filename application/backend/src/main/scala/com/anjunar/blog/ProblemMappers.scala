@@ -31,6 +31,9 @@ object ProblemResponses {
       case violation: SqlConstraintException if Set("uq_blog_post_slug", "blog_post_slug_key").contains(violation.getConstraintName) =>
         Problem.response(409, "This slug is already used by another post.", path, Problem.conflict,
           Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug.")))
+      case violation: SqlConstraintException if Set("uq_blog_tag_slug", "blog_tag_slug_key").contains(violation.getConstraintName) =>
+        Problem.response(409, "This slug is already used by another tag.", path, Problem.conflict,
+          Seq(new ErrorRequest(util.List.of[Any]("slug"), "Choose an unused slug.")))
       case violation: SqlConstraintException if violation.getKind == SqlConstraintException.ConstraintKind.UNIQUE =>
         Problem.response(409, "This conflicts with data that already exists.", path, Problem.conflict)
       case _: OptimisticLockException | _: StaleStateException =>

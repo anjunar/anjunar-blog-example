@@ -5,7 +5,7 @@ import ui.core.component.AbstractComponent
 import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
-import ui.core.dsl.DslLayer.render
+import ui.core.dsl.DslLayer.{child, render}
 import ui.core.dsl.EventDsl.{on, onClick}
 import ui.core.i18n.{I18nRuntime, i18n}
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
@@ -16,7 +16,8 @@ import ui.core.layout.Label.label
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
 import ui.core.render.Cursor
-import ui.forms.ErrorResponse
+import ui.forms.{ComboBox, ErrorResponse}
+import ui.forms.ComboBox.comboBox
 import ui.forms.Form.form
 import ui.forms.Input.input
 import ui.forms.TextAreaInput.textAreaInput
@@ -26,7 +27,8 @@ import ui.router.RouterLink.routerLink
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 
-final class PostEditorPage(initial: BlogPostData, service: EditorialService)
+final class PostEditorPage(initial: BlogPostData, service: EditorialService,
+    initialCatalog: Option[CatalogData] = None, catalogService: CatalogService = null)
     (using ExecutionContext) extends AbstractComponent {
   import SaveNotice.*
 
@@ -34,10 +36,12 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService)
   private val wasNew = initial.data.id.get.isEmpty
   private val actions = new PostEditorActions(initial, service.save)
   private val post = actions.post
+  private val catalog = initialCatalog.map(new CatalogState(_, catalogService))
 
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    catalog.foreach(value => addDisposable(() => value.dispose()))
     render(this, cursor) {
       classes = "post-editor"
       paragraph { classes = "eyebrow"; text(i18n"Editorial") {} }
@@ -113,6 +117,47 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService)
           }
           paragraph { id = "post-content-help"; classes = "field-help"; text(i18n"Plain text for now. A draft may be empty; a published post needs content.") {} }
           paragraph { id = "post-content-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+        }
+        catalog.foreach { options =>
+          div {
+            classes = "post-field"
+            label { id = "post-author-label"; text(i18n"Author") {} }
+            val control = comboBox[Account]("author") { choice ?=>
+              id = "post-author"
+              ariaLabelledBy = "post-author-label"
+              AttributeDsl.setAttribute("aria-describedby", "post-author-help post-author-errors")
+              ComboBox.converter = (account: Account) =>
+                Option(account.displayName.get).filter(_.nonEmpty)
+                  .getOrElse(translations.text(i18n"Unnamed author").get)
+              ComboBox.identityBy = (account: Account) => account.id.get
+              ComboBox.placeholder = translations.text(i18n"Choose an author").get
+              choice.addDisposable(options.authors.observe { rows =>
+                ComboBox.items[Account].setAll(rows.map { row =>
+                  Option(post.author.get).filter(_.id.get == row.data.id.get).getOrElse(row.data)
+                })
+              })
+              choice.addDisposable(choice.invalid.observe(value =>
+                AttributeDsl.setAttribute("aria-invalid", value.toString)))
+            }
+            paragraph { id = "post-author-help"; classes = "field-help"; text(i18n"Only the public name appears with the post.") {} }
+            paragraph { id = "post-author-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            button(i18n"Clear author") { buttonType("button"); onClick(_ => post.author.set(null)) }
+            when(options.nextAuthors.map(_.nonEmpty)) {
+              button(i18n"Load more authors") { buttonType("button"); disabled = options.busy; onClick(_ => options.moreAuthors()) }
+            }
+          }
+          div {
+            classes = "post-field"
+            label { id = "post-tags-label"; text(i18n"Tags") {} }
+            val control = child(new TagSelection(options.tags.map(_.map(_.data)))) {}
+            paragraph { id = "post-tags-help"; classes = "field-help"; text(i18n"Choose up to 20 shared tags. Removing a selection keeps the tag available to other posts.") {} }
+            paragraph { id = "post-tags-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
+            button(i18n"Clear tags") { buttonType("button"); onClick(_ => post.tags.clear()) }
+            when(options.nextTags.map(_.nonEmpty)) {
+              button(i18n"Load more tags") { buttonType("button"); disabled = options.busy; onClick(_ => options.moreTags()) }
+            }
+          }
+          when(options.failed) { paragraph { role = "alert"; text(i18n"More choices could not be loaded. Try the load button again.") {} } }
         }
         when(actions.notice.map(_.isError)) {
           div {
