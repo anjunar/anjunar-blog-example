@@ -820,3 +820,40 @@ Image delivery uses no-store. This checkpoint handles still JPEG/PNG covers;
 resizing, EXIF orientation correction and inline editor images are outside this
 chapter. Cleanup has an explicit operator command and small upload-triggered
 batches, with no background scheduler.
+
+## Chapter 19: Integrating a post editor
+
+- Slug: `abt-19-integrating-a-post-editor`
+- Implementation: [`699eeda`](https://github.com/anjunar/anjunar-blog-example/commit/699eeda08f711acfc81f37b3c4381e1b882357a9)
+- [Guide at this checkpoint](https://github.com/anjunar/anjunar-blog-example/blob/699eeda08f711acfc81f37b3c4381e1b882357a9/docs/integrating-a-post-editor.md)
+
+The Markdown-valued editor binds directly to the existing post form. New posts
+support formatted text, code blocks and uploaded inline images. Historical posts
+remain literal plain text until explicitly converted. Editorial preview and
+public detail share the same read-only document component.
+
+Start with the chapter 18 database and administrator. Run npm ci, preview and
+apply SchemaMain's additive migration, then build frontendAssets. The migration
+adds nullable content_format and blog_post_media with two foreign keys: four
+statements, with none on a repeat. Historical text remains unchanged. Preview
+retains the existing publication CHECK's INCOMPLETE verification behavior.
+
+The build resolves scalajs-ui 1.0.12 and CommonMark 0.30.0 from Maven Central.
+It targets ES2021 and serves its toolbar font and license locally. No sibling
+checkout or locally published framework artifact is required.
+
+Verification passed: **158 backend tests, 41 Scala.js tests and 71 browser checks**
+(59 controlled contracts and 12 real workflows). The full browser run passed 70;
+the document workflow passed on a targeted rerun after its assertions were
+restricted to the visible reading surface rather than the hidden fallback.
+Desktop/mobile editing, the image dialog and the public document were inspected.
+
+The document workflow formats text, enters a code block, uploads an image, edits
+its alternative text, saves, reloads, publishes and retracts. Other checks cover
+legacy conversion, slow saves, document validation, private/missing references,
+rollback and cleanup. Inline references are derived from parsed image nodes;
+image-looking code is not an attachment. Both cover and inline references
+protect media, and published references determine anonymous delivery.
+
+The supported format is the Markdown produced by this configured editor.
+Raw HTML, arbitrary extensions and syntax highlighting are outside this chapter.
