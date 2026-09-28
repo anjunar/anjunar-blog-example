@@ -28,6 +28,7 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect(actions.busy)(actions.busy.get)(using this)
     render(this, cursor) {
       classes = "editorial-detail"
       paragraph { classes = "eyebrow"; text(i18n"Editorial preview") {} }

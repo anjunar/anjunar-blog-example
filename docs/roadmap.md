@@ -19,7 +19,9 @@ introduce internationalization.
 This is a working plan. We refine the scope of individual articles as we
 write them together. Chapter 11 was split into authentication and a separate
 chapter 12 for registration/recovery. Chapter 17 is also split: relationships come
-first, followed by media in chapter 18. Later topics move forward accordingly.
+first, followed by media in chapter 18. Chapter 20 is split as well: UI messages,
+locale routing and language switching come first; editorial translations follow
+in chapter 21. Later topics move forward accordingly.
 
 | No. | Topic | Content |
 | --- | --- | --- |
@@ -42,14 +44,15 @@ first, followed by media in chapter 18. Later topics move forward accordingly.
 | 17 | Managing entity relationships | Authors, tags, entity graphs, safe reference loading, relationship permissions, validation, and mirrored form models. |
 | 18 | Uploading and serving media | Uploads, ownership, image delivery, post images, and orphaned media cleanup. |
 | 19 | Integrating a post editor | Structured content, the document format, code blocks, and embedded images. |
-| 20 | Translating the interface and content | The i18n macro for UI messages; separate models for editorial translations and fallbacks. |
-| 21 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
-| 22 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
-| 23 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
-| 24 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
-| 25 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
-| 26 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
-| 27 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
+| 20 | Translating the interface | The i18n macro, English/German catalog, URL locales, language switching and protecting unfinished forms. |
+| 21 | Translating blog content | Editorial translations, their entity/schema/frontend contract, localized content selection and fallbacks. |
+| 22 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
+| 23 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
+| 24 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
+| 25 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
+| 26 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
+| 27 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
+| 28 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
 
 ## First milestone
 
@@ -84,6 +87,10 @@ uploads. Its browser workflow covers saving, publication, retraction and unlinki
 Chapter 19 adds a Markdown-valued editor, explicit legacy-text conversion, code
 blocks and embedded images. The server derives image relations from parsed
 content; preview and public detail share the read-only document component.
+Chapter 20 initializes the interface locale from /en or /de and provides a shared
+macro-based catalog for application and editor messages. Language switches retain
+routes and filters, while page-owned guards protect unfinished input. Post content
+remains unchanged until chapter 21.
 
 ## Further topics
 
@@ -99,4 +106,4 @@ content; preview and public detail share the read-only document component.
 - A commit or tag connects each published article to its project revision.
 - Select examples that explain the chapter's central ideas. Give excerpts enough context and the necessary imports; link the complete implementation at the checkpoint. Full files belong in the article only when they help the explanation. Code volume is not a quality target.
 - We explain architectural decisions when they become relevant.
-- Tests accompany each feature; article 24 brings the testing strategy together.
+- Tests accompany each feature; article 25 brings the testing strategy together.

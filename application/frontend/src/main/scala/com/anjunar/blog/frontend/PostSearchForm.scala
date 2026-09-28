@@ -48,6 +48,9 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
 
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
+    LanguageNavigation.protect(fields.query, fields.status, fields.sort, fields.limit) {
+      fields.query.isDirty || fields.status.isDirty || fields.sort.isDirty || fields.limit.isDirty
+    }(using this)
     render(this, cursor) {
       classes = "post-search"
       form(fields) { mountedForm ?=>

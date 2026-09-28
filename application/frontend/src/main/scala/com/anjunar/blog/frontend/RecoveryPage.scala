@@ -30,6 +30,10 @@ final class RecoveryPage(endpoint: String, token: Option[String], accounts: Acco
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect(actions.busy, actions.done, actions.fields.email, actions.fields.password) {
+      token.nonEmpty || actions.busy.get || (!actions.done.get &&
+        (actions.fields.email.get.nonEmpty || actions.fields.password.get.nonEmpty))
+    }(using this)
     render(this, cursor) {
       classes = "account-page"
       heading(1) {

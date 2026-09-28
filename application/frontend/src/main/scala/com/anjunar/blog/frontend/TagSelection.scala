@@ -33,7 +33,7 @@ final class TagSelection(choices: ReadOnlyProperty[js.Array[BlogTag]])
         ComboBox.converter = (tag: BlogTag) => tag.name.get
         ComboBox.identityBy = (tag: BlogTag) => tag.id.get
         ComboBox.selectionText = (values: Seq[BlogTag]) => values.map(_.name.get).mkString(", ")
-        ComboBox.placeholder = I18nRuntime.current(using this).get.text(i18n"Choose tags").get
+        ComboBox.placeholder = I18nRuntime.current(using this).get.text(i18n"Choose tags")
         choice.addDisposable(choices.observe { values =>
           ComboBox.items[BlogTag].setAll(values.map(tag =>
             valueProperty.find(_.id.get == tag.id.get).getOrElse(tag)))

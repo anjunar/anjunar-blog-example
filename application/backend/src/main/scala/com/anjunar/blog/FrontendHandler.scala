@@ -11,15 +11,21 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     .setDirectoryListingEnabled(false)
     .setWelcomeFiles("index.html")
   private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css", "/editor.css", "/material-icons.woff2", "/material-icons-LICENSE.txt")
-  private val accountPages = Set("/en/account", "/en/register", "/en/confirm", "/en/forgot-password", "/en/reset-password")
-  private val editorialPost = "/en/editorial/posts/[0-9a-fA-F-]{36}(?:/edit)?".r
-  private val postPage = "/en/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
+  private val accountPages = Set("/account", "/register", "/confirm", "/forgot-password", "/reset-password")
+  private val editorialPost = "/editorial/posts/[0-9a-fA-F-]{36}(?:/edit)?".r
+  private val postPage = "/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
     val path = exchange.getRequestPath
-    val editorial = path == "/en/editorial" || path == "/en/editorial/new" ||
-      path == "/en/editorial/relationships" || editorialPost.matches(path)
-    val page = editorial || path == "/en" || path == "/en/" || accountPages.contains(path) || postPage.matches(path)
+    val localized = path == "/en" || path.startsWith("/en/") || path == "/de" || path.startsWith("/de/")
+    val route = if (localized) path.drop(3) match {
+      case "" => "/"
+      case value => value
+    } else path
+    val editorial = localized && (route == "/editorial" || route == "/editorial/new" ||
+      route == "/editorial/relationships" || editorialPost.matches(route))
+    val errorPage = Set("/sign-in-required", "/forbidden", "/bad-request", "/not-found", "/unavailable").contains(route)
+    val page = localized && (editorial || route == "/" || accountPages.contains(route) || postPage.matches(route) || errorPage)
     if (path == "/service" || path.startsWith("/service/")) api.handleRequest(exchange)
     else if (!publicPaths.contains(path) && !page) {
       exchange.setStatusCode(StatusCodes.NOT_FOUND)
@@ -40,7 +46,7 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     } else {
       // Known browser routes load the shell; REST still decides whether a post exists.
       if (page) exchange.setRelativePath("/index.html")
-      exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, if (accountPages.contains(path) || editorial) "no-store" else "no-cache")
+      exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, if (accountPages.contains(route) || editorial) "no-store" else "no-cache")
       exchange.getResponseHeaders.put(Headers.REFERRER_POLICY, "no-referrer")
       files.handleRequest(exchange)
     }

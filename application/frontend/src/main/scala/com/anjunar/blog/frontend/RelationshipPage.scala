@@ -69,6 +69,9 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
     addDisposable(() => actions.dispose())
     render(this, cursor) {
       classes = "catalog-editor"
+      LanguageNavigation.protect(actions.busy, account.displayName, account.version) {
+        actions.busy.get || account.displayName.isDirty
+      }
       form(account) { mounted ?=>
         ariaLabel = translations.text(i18n"Author details")
         editable = actions.busy.map(!_)
@@ -128,6 +131,9 @@ final class TagEditor(initial: BlogTagData, service: CatalogService, saved: Blog
     addDisposable(() => actions.dispose())
     render(this, cursor) {
       classes = "catalog-editor"
+      LanguageNavigation.protect(actions.busy, tag.name, tag.slug, tag.version) {
+        actions.busy.get || tag.name.isDirty || tag.slug.isDirty
+      }
       heading(3) { text(if (creating) translations.text(i18n"New tag") else tag.name) {} }
       form(tag) { mounted ?=>
         ariaLabel = if (creating) translations.text(i18n"New tag") else tag.name

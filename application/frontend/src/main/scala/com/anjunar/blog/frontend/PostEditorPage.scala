@@ -42,6 +42,7 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   private val wasNew = initial.data.id.get.isEmpty
   private val actions = new PostEditorActions(initial, service.save)
   private val post = actions.post
+  private val openingSnapshot = post.snapshot
   private val embeddedUpload = Property(MediaUploadStatus())
   private val sourceMode = Property(false)
   private val catalog = initialCatalog.map(new CatalogState(_, catalogService))
@@ -50,6 +51,11 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect((post.editableFields ++ Seq(post.id, post.author, post.tags,
+      post.coverImage, actions.busy, actions.dirty, embeddedUpload) ++ uploads.toSeq.map(_.busy))*) {
+      actions.busy.get || embeddedUpload.get.pending > 0 || uploads.exists(_.busy.get) ||
+        (if (post.id.get.isEmpty) post.snapshot != openingSnapshot else post.isDirty)
+    }(using this)
     uploads.foreach(value => addDisposable(() => value.dispose()))
     catalog.foreach(value => addDisposable(() => value.dispose()))
     render(this, cursor) {
@@ -228,7 +234,7 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
                 Option(account.displayName.get).filter(_.nonEmpty)
                   .getOrElse(translations.text(i18n"Unnamed author").get)
               ComboBox.identityBy = (account: Account) => account.id.get
-              ComboBox.placeholder = translations.text(i18n"Choose an author").get
+              ComboBox.placeholder = translations.text(i18n"Choose an author")
               choice.addDisposable(options.authors.observe { rows =>
                 ComboBox.items[Account].setAll(rows.map { row =>
                   Option(post.author.get).filter(_.id.get == row.data.id.get).getOrElse(row.data)

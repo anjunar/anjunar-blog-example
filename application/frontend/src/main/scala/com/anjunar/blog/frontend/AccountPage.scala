@@ -28,6 +28,10 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
   override def compose(cursor: Cursor): Unit = {
     val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect(actions.busy, actions.session, actions.credentials.email, actions.credentials.password) {
+      actions.busy.get || (actions.session.get.account.isEmpty &&
+        (actions.credentials.email.get.nonEmpty || actions.credentials.password.get.nonEmpty))
+    }(using this)
     render(this, cursor) {
       classes = "account-page"
       heading(1) { text(i18n"Your account") {} }
