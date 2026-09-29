@@ -891,3 +891,41 @@ Detailed backend problems, built-in validation diagnostics and transactional
 emails retain their existing English strings. The outer html.lang updates at
 browser boot; the initial static shell is still English. Language-button guards
 are not a general guard against reload or all navigation. SSR follows in chapter 22.
+
+
+## Chapter 21: translating blog content
+
+Implementation checkpoint: [887ac955d3566580229a545d368bc03f4c2559b8](https://github.com/anjunar/anjunar-blog-example/tree/887ac955d3566580229a545d368bc03f4c2559b8).
+
+```text
+git switch --detach 887ac955d3566580229a545d368bc03f4c2559b8
+```
+
+The English source stays on BlogPost. A German BlogPostTranslation has its own
+version, Markdown document and publication state. Missing or unpublished German
+text falls back to the complete English article; the editor loads the actual
+draft instead. Shared slug, author, tags and cover remain on the parent.
+
+The [chapter guide](https://github.com/anjunar/anjunar-blog-example/blob/887ac955d3566580229a545d368bc03f4c2559b8/docs/translating-blog-content.md)
+covers the additive migration, endpoint contract, editor workflow and limits.
+Before starting, stop the server and run SchemaMain preview/migrate on the
+compile classpath. The upgrade adds two tables and three foreign keys, leaving
+existing English data in place. The verified chapter 20 upgrade applies five
+statements; repeating migrate reports AlreadyApplied with zero statements.
+
+LocalizedPostFields keeps HibernateSearch filtering, title ordering, projection
+and count consistent with the selected language. Inline images require both
+publication states for public access; saved draft references protect cleanup.
+The bound translation form preserves newer typing and handles version conflicts,
+with direct i18n macros and a continuous compose tree.
+
+Verified: **171 backend tests, 53 Scala.js tests and 80 distinct browser checks**.
+The full browser run passed 78 checks; the 21 affected/related checks all passed
+on rerun after two old request mocks were adapted to the locale parameter.
+Desktop and mobile translation layouts were inspected. The real workflow saves,
+publishes, searches, conflicts, reloads and retracts a German translation while
+preserving the English source.
+
+Both English and German article drafts use this same checkpoint. The series
+ends at chapter 24: server rendering (22), hydration (23) and public-page
+metadata/discovery (24) are the remaining chapters.
