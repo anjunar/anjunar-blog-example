@@ -37,7 +37,7 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
       if (requestedLocale != post.contentLocale.get) {
         paragraph { classes = "translation-fallback"; text(i18n"This article is available in English. A German translation has not been published yet.") {} }
       }
-      heading(1) { id = "post-title"; AttributeDsl.setAttribute("lang", post.contentLocale); text(titleValue) {} }
+      heading(1) { id = "post-title"; lang = post.contentLocale.get; text(titleValue) {} }
       paragraph {
         classes = "post-author"
         val authorName = post.author.flatMap(account =>
@@ -51,7 +51,7 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
         foreach(post.tags) { tag => paragraph { classes = "post-tag"; text(tag.name) {} } }
       }
       if (Option(summaryValue.get).exists(_.nonEmpty)) {
-        paragraph { classes = "detail-summary"; AttributeDsl.setAttribute("lang", post.contentLocale); text(summaryValue.map(value => Option(value).getOrElse(""))) {} }
+        paragraph { classes = "detail-summary"; lang = post.contentLocale.get; text(summaryValue.map(value => Option(value).getOrElse(""))) {} }
       }
       when(post.coverImage.map(_ != null)) {
         Image.image { picture ?=>
@@ -66,6 +66,6 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
           })
         }
       }
-      child(new PostContent(contentValue, formatValue)) { AttributeDsl.setAttribute("lang", post.contentLocale) }
+      child(new PostContent(contentValue, formatValue)) { lang = post.contentLocale.get }
     }
 }

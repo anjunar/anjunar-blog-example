@@ -41,43 +41,40 @@ class EditorialTranslationsResource {
     val translation = change.applyChanges()
     media.synchronize(translation)
     manager.persist(translation)
-    manager.flush()
     result(translation)
   }
 
   @PATCH @Path("/{id}") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def update(@PathParam("postId") postId: String,
+  def update(@PathParam("postId") postId: UUID,
       @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
-    owns(postId, change.getEntity())
-    val translation = change.applyChanges()
+    val translation = change.getEntity()
+    if (translation.post.id != postId) throw new NotFoundException()
+    change.applyChanges()
     media.synchronize(translation)
-    manager.flush()
     result(translation)
   }
 
   @POST @Path("/{id}/publish") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def publish(@PathParam("postId") postId: String,
+  def publish(@PathParam("postId") postId: UUID,
       @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
     val translation = change.getEntity()
-    owns(postId, translation)
+    if (translation.post.id != postId) throw new NotFoundException()
     if (translation.published || !PostDocument.hasContent(translation.content, "MARKDOWN"))
       throw new ApiProblem(409, "Only a saved draft with content can be published.", Problem.conflict)
     translation.published = true
-    manager.flush()
     result(translation)
   }
 
   @POST @Path("/{id}/retract") @Consumes(Array(MediaType.APPLICATION_JSON))
   @EntityGraph("BlogPostTranslation.detail")
-  def retract(@PathParam("postId") postId: String,
+  def retract(@PathParam("postId") postId: UUID,
       @PathParam("id") change: PreparedChange[BlogPostTranslation]): Data[BlogPostTranslation] = {
     val translation = change.getEntity()
-    owns(postId, translation)
+    if (translation.post.id != postId) throw new NotFoundException()
     if (!translation.published) throw new ApiProblem(409, "This translation is already a draft.", Problem.conflict)
     translation.published = false
-    manager.flush()
     result(translation)
   }
 
@@ -86,9 +83,6 @@ class EditorialTranslationsResource {
     Option(manager.find(classOf[BlogPost], id, if (lock) LockModeType.PESSIMISTIC_WRITE else LockModeType.NONE))
       .getOrElse(throw new NotFoundException())
   }
-
-  private def owns(postId: String, translation: BlogPostTranslation): Unit =
-    if (translation.post.id.toString != postId) throw new NotFoundException()
 
   private def find(post: BlogPost): Option[BlogPostTranslation] = {
     val builder = manager.getCriteriaBuilder

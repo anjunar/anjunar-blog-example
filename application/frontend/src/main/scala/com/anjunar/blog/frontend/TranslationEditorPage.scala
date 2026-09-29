@@ -60,7 +60,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
           classes = "translation-source"
           heading(2) { text(i18n"English source") {} }
           div {
-            AttributeDsl.setAttribute("lang", "en")
+            lang = "en"
             heading(3) { text(post.title) {} }
             paragraph { text(post.summary.map(value => Option(value).getOrElse(""))) {} }
             child(new PostContent(post)) {}
@@ -87,7 +87,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
             val control = input("title") { fieldInput ?=>
               fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
               id = "translation-title"
-              AttributeDsl.setAttribute("lang", "de")
+              lang = translation.locale.get
               AttributeDsl.setAttribute("aria-describedby", "translation-title-errors")
             }
             paragraph { id = "translation-title-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
@@ -98,7 +98,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
             val control = textAreaInput("summary") { fieldInput ?=>
               fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
               id = "translation-summary"
-              AttributeDsl.setAttribute("lang", "de")
+              lang = translation.locale.get
               AttributeDsl.setAttribute("rows", "3")
               AttributeDsl.setAttribute("aria-describedby", "translation-summary-errors")
             }
@@ -115,7 +115,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
             val control = editor("content") { fieldInput ?=>
               fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
               ariaLabelledBy = "translation-content-label"
-              AttributeDsl.setAttribute("lang", "de")
+              lang = translation.locale.get
               AttributeDsl.setAttribute("aria-describedby", "translation-content-errors")
               showModeActions = false
               markdownMode = sourceMode

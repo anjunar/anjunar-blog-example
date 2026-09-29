@@ -39,6 +39,9 @@ test("German draft, independent publication, localized search, conflict and fall
     await page.getByRole("link", { name: "German translation", exact: true }).click();
     await expect(page).toHaveURL("/en/editorial/posts/" + id + "/translations/de");
     await expect(page.getByLabel("Title", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Title", { exact: true })).toHaveAttribute("lang", "de");
+    await expect(page.getByLabel("Summary (optional)", { exact: true })).toHaveAttribute("lang", "de");
+    await expect(page.locator(".translation-source > div")).toHaveAttribute("lang", "en");
     await expect(page.locator(".translation-source")).toContainText("An unchanged English paragraph.");
     await page.getByLabel("Title", { exact: true }).fill("Eine gemeinsame Anwendung");
     await expect(page.getByRole("button", { name: "Switch to German" })).toBeDisabled();
@@ -67,6 +70,7 @@ test("German draft, independent publication, localized search, conflict and fall
     await page.getByRole("button", { name: "Switch to German" }).click();
     await expect(page).toHaveURL("/de/editorial/posts/" + id + "/translations/de");
     await expect(page.getByLabel("Titel", { exact: true })).toHaveValue("Eine gemeinsame Anwendung");
+    await expect(page.getByLabel("Titel", { exact: true })).toHaveAttribute("lang", "de");
     await page.screenshot({ path: info.outputPath("translation-editor-desktop.png"), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

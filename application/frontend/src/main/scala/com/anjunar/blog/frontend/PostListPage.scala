@@ -1,7 +1,6 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
@@ -98,7 +97,7 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
                   }
                   div {
                     classes = "post-copy"
-                    AttributeDsl.setAttribute("lang", post.contentLocale)
+                    lang = post.contentLocale.get
                     heading(3) {
                       id = s"post-${post.id.get}"
                       routerLink(s"/posts/${encodeURIComponent(post.slug.get)}") {

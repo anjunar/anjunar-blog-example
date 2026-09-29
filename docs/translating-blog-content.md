@@ -80,16 +80,36 @@ token. Use the returned links; IDs below are placeholders.
 
 Publication command bodies contain only version. They never save pending content.
 The parent, locale, publication flag and derived image references are not editable
-JSON fields. The endpoint verifies the parent before applying a PreparedChange;
-the mapper validates supplied values and Hibernate validates the complete entity.
-Row locking plus required versions rejects stale writes. Creation locks the parent
-before checking uniqueness, so two requests yield one saved row and one 409.
+JSON fields. The PreparedChangeParamConverter reads the translation ID and JSON
+body, then PreparedChanges loads/locks the entity and checks the required version.
+The endpoint compares the entity's parent UUID with postId before applying the
+change. This checks URL consistency, not user ownership; ADMIN/CSRF come from the
+security filter. The mapper validates supplied values; PostMedia.synchronize
+derives authorized image references from the translated Markdown.
+
+Translation endpoints do not flush or commit. TransactionBoundary flushes a
+successful write before MapperMessageBodyWriter serializes the Data envelope.
+The envelope holds the same managed entity, so JSON contains the new @Version.
+Whole-entity Hibernate validation and SQL errors also surface at that boundary.
+The writer buffers JSON and commits before sending a success body; serialization
+or commit failures follow the existing rollback/error path.
+
+Creation locks the parent before checking uniqueness, so two requests yield one
+saved row and one 409. Row locking plus required versions rejects stale updates
+and publication commands.
 
 The form snapshots its partial JSON body before the asynchronous session lookup.
 Saved values merge only where the user has not typed something newer; identity,
 version, baselines and links always advance. A conflict preserves input and stops
 retries until explicit discard/reload. Language navigation is disabled for dirty
 forms, saves and pending image uploads. Backend diagnostic messages remain English.
+
+Inside the continuous compose tree, use lang = translation.locale.get on German
+input/editor nodes and lang = "en" on the English source. The translation locale
+is fixed while mounted; changing the UI locale remounts the page. Public content
+uses lang = post.contentLocale.get so English fallback remains marked as English
+inside a German interface. These are named AttributeDsl setters; lang does not
+translate text or change the i18n runtime.
 
 ## Verify
 
@@ -110,10 +130,17 @@ workflows. It creates and cleans its own post and translation. To run it alone:
 npm run test:browser:translations
 ```
 
-Verified locally: 171 backend tests, 53 Scala.js tests and 80 distinct browser
-checks. The full browser run passed 78 checks; after updating two old request
-mocks for the new locale parameter, all 21 affected/related checks passed on rerun.
-Desktop and mobile translation layouts were inspected.
+The chapter implementation has 80 distinct browser checks verified across full
+and focused runs, with desktop and mobile layouts inspected. For the endpoint
+and lang-DSL corrections, the complete 171 backend and 53 Scala.js tests passed
+again, alongside eight translation/i18n browser contracts and the real translation
+database workflow. The parent-URL check also accepts an equivalent uppercase UUID
+and verifies that the returned version matches a subsequent read.
+
+All three Scala article excerpts compiled against this revision: the resource
+with its update method/response builder, the full localization class, and the
+form excerpt inside its declared component state and compose/render context.
+English and German use identical code blocks.
 
 The backend checks whole-language fallback, draft isolation, null summaries,
 localized search/count/order/paging, source preservation, independent versions,

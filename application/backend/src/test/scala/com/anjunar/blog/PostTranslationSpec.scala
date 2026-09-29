@@ -194,7 +194,13 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val other = post()
     assert(browser.write(s"${path(other)}/${saved.getString("id")}", "PATCH",
       """{"version":0,"title":"Wrong parent"}""").statusCode() == 404)
-    assert(data(browser.send(s"${path(id)}/de")).getString("title") == "Deutscher Titel")
+    val unchanged = data(browser.send(s"${path(id)}/de"))
+    assert(unchanged.getString("title") == "Deutscher Titel" && version(unchanged) == "0")
+    val sameParent = s"editorial/posts/${id.toString.toUpperCase}/translations/${saved.getString("id")}"
+    val updated = data(browser.write(sameParent, "PATCH", """{"version":0,"title":"Correct parent"}"""))
+    assert(version(updated) == "1")
+    val reloaded = data(browser.send(s"${path(id)}/de"))
+    assert(reloaded.getString("title") == "Correct parent" && version(reloaded) == version(updated))
   }
   test("editorial translations require ADMIN and CSRF") {
     val browser = admin()
