@@ -7,7 +7,7 @@ import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
 import ui.core.dsl.EventDsl.{on, onClick}
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Div.div
@@ -65,12 +65,14 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
   private val actions = new MetadataSave[AuthorData](body => service.saveAuthor(update, body), saved)
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
     render(this, cursor) {
       classes = "catalog-editor"
+      LanguageNavigation.protect(actions.busy, account.displayName, account.version) {
+        actions.busy.get || account.displayName.isDirty
+      }
       form(account) { mounted ?=>
-        ariaLabel = translations.text(i18n"Author details")
+        ariaLabel = i18n"Author details"
         editable = actions.busy.map(!_)
         mounted.addDisposable(actions.fields.observe(values =>
           mounted.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
@@ -88,11 +90,11 @@ final class AuthorEditor(initial: AuthorData, service: CatalogService, saved: Au
         when(actions.error.map(_.nonEmpty)) {
           paragraph {
             role = "alert"
-            text(actions.error.flatMap(value => translations.text(value match {
+            text(actions.error.map(value => value match {
               case Some(400) => i18n"Review the public name."
               case Some(409) => i18n"This author changed. Reload before saving again."
               case _ => i18n"The save could not be confirmed. Reload to check the author."
-            }))) {}
+            })) {}
           }
         }
         button(i18n"Save author") { buttonType("submit"); disabled = actions.busy.flatMap(busy => actions.blocked.map(blocked => busy || blocked)) }
@@ -124,13 +126,17 @@ final class TagEditor(initial: BlogTagData, service: CatalogService, saved: Blog
   })
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
     render(this, cursor) {
       classes = "catalog-editor"
-      heading(3) { text(if (creating) translations.text(i18n"New tag") else tag.name) {} }
+      LanguageNavigation.protect(actions.busy, tag.name, tag.slug, tag.version) {
+        actions.busy.get || tag.name.isDirty || tag.slug.isDirty
+      }
+      heading(3) {
+        if (creating) text(i18n"New tag") {} else text(tag.name) {}
+      }
       form(tag) { mounted ?=>
-        ariaLabel = if (creating) translations.text(i18n"New tag") else tag.name
+        if (creating) ariaLabel = i18n"New tag" else ariaLabel = tag.name
         editable = actions.busy.map(!_)
         mounted.addDisposable(actions.fields.observe(values =>
           mounted.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
@@ -155,11 +161,11 @@ final class TagEditor(initial: BlogTagData, service: CatalogService, saved: Blog
         when(actions.error.map(_.nonEmpty)) {
           paragraph {
             role = "alert"
-            text(actions.error.flatMap(value => translations.text(value match {
+            text(actions.error.map(value => value match {
               case Some(400) => i18n"Review the tag fields."
               case Some(409) => i18n"The tag conflicts with saved data. Review the fields or reload."
               case _ => i18n"The save could not be confirmed. Reload to check the tag."
-            }))) {}
+            })) {}
           }
         }
         button(if (creating) i18n"Create tag" else i18n"Save tag") {

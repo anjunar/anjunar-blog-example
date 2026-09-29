@@ -61,11 +61,11 @@ lazy val frontend = Project("application-frontend", file("application/frontend")
   .enablePlugins(ScalaJSPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "com.anjunar" %% "scalajs-ui-core" % "1.0.12",
-      "com.anjunar" %% "scalajs-ui-json" % "1.0.12",
-      "com.anjunar" %% "scalajs-ui-router" % "1.0.12",
-      "com.anjunar" %% "scalajs-ui-forms" % "1.0.12",
-      "com.anjunar" %% "scalajs-ui-editor" % "1.0.12",
+      "com.anjunar" %% "scalajs-ui-core" % "1.0.13",
+      "com.anjunar" %% "scalajs-ui-json" % "1.0.13",
+      "com.anjunar" %% "scalajs-ui-router" % "1.0.13",
+      "com.anjunar" %% "scalajs-ui-forms" % "1.0.13",
+      "com.anjunar" %% "scalajs-ui-editor" % "1.0.13",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
     scalaJSUseMainModuleInitializer := true,

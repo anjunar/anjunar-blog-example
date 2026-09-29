@@ -857,3 +857,37 @@ protect media, and published references determine anonymous delivery.
 
 The supported format is the Markdown produced by this configured editor.
 Raw HTML, arbitrary extensions and syntax highlighting are outside this chapter.
+
+## Chapter 20: Translating the interface
+
+- Slug: `abt-20-translating-the-interface`
+- Implementation: [`645acea`](https://github.com/anjunar/anjunar-blog-example/commit/645aceabb859696ae05bed7d09b4e079e5a75519)
+- [Guide at this checkpoint](https://github.com/anjunar/anjunar-blog-example/blob/645aceabb859696ae05bed7d09b4e079e5a75519/docs/translating-the-interface.md)
+- Starting revision: chapter 19 merged at `a1aa8ddd3689eb1709d35ab8b064f3228f7f5e08`.
+
+The URL initializes the English or German interface. Application messages and the
+editor's public labels use one macro-based catalog with named placeholders.
+The DSL accepts macro messages directly for text, buttons, attributes and select
+options; reactive message properties follow both their values and the locale.
+Language navigation keeps the route, query and current fragment. Forms own guards
+that disable the switch while input is unfinished or operations are pending.
+Account confirmation/reset tokens are consumed from the fragment and never
+restored by the language action.
+
+Use the chapter 19 database and configuration; no database migration is needed.
+The build resolves scalajs-ui 1.0.13 from Maven Central. Build frontendAssets and
+open /en or /de. Post content, names, tags and slugs remain unchanged; chapter 21
+introduces editorial translations.
+
+Verification passed: **159 backend tests, 46 Scala.js tests and 77 browser checks**
+(65 controlled contracts and 12 real workflows). The full backend and browser
+suites passed sequentially against the dedicated PostgreSQL database. New coverage
+checks direct German entry, localized links, query/fragment retention, history,
+reload, unfinished forms, saved post values, editor dialogs, recovery tokens,
+error routes and private-page cache headers. Desktop and mobile layouts were
+inspected.
+
+Detailed backend problems, built-in validation diagnostics and transactional
+emails retain their existing English strings. The outer html.lang updates at
+browser boot; the initial static shell is still English. Language-button guards
+are not a general guard against reload or all navigation. SSR follows in chapter 22.

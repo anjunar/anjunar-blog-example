@@ -42,21 +42,26 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
   private val wasNew = initial.data.id.get.isEmpty
   private val actions = new PostEditorActions(initial, service.save)
   private val post = actions.post
+  private val openingSnapshot = post.snapshot
   private val embeddedUpload = Property(MediaUploadStatus())
   private val sourceMode = Property(false)
   private val catalog = initialCatalog.map(new CatalogState(_, catalogService))
   private val uploads = Option(mediaService).map(service => new MediaUploadActions(post, service.upload))
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect((post.editableFields ++ Seq(post.id, post.author, post.tags,
+      post.coverImage, actions.busy, actions.dirty, embeddedUpload) ++ uploads.toSeq.map(_.busy))*) {
+      actions.busy.get || embeddedUpload.get.pending > 0 || uploads.exists(_.busy.get) ||
+        (if (post.id.get.isEmpty) post.snapshot != openingSnapshot else post.isDirty)
+    }(using this)
     uploads.foreach(value => addDisposable(() => value.dispose()))
     catalog.foreach(value => addDisposable(() => value.dispose()))
     render(this, cursor) {
       classes = "post-editor"
       paragraph { classes = "eyebrow"; text(i18n"Editorial") {} }
-      heading(1) { text(post.id.flatMap(value => translations.text(
-        if (value.isEmpty) i18n"New post" else i18n"Edit post"))) {} }
+      heading(1) { text(post.id.map(value =>
+        if (value.isEmpty) i18n"New post" else i18n"Edit post")) {} }
       paragraph { text(i18n"Save your text here. Publication is managed from the preview.") {} }
       form(post) { mountedForm ?=>
         classes = "post-form"
@@ -74,7 +79,7 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             else if (validation.nonEmpty) actions.notice.set(Invalid)
             else if (post.coverImage.get != null && Option(post.coverAlt.get).forall(_.isBlank)) {
               mountedForm.setErrorResponses(Seq(ErrorResponse(
-                translations.text(i18n"Describe the cover image.").get, Seq("coverAlt"))))
+                I18nRuntime.require.resolveNow(i18n"Describe the cover image."), Seq("coverAlt"))))
               actions.notice.set(Invalid)
             }
             else actions.save(() => {
@@ -144,8 +149,8 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           }
           when(post.contentFormat.map(_ == "MARKDOWN")) {
             paragraph { id = "post-content-label"; text(i18n"Content") {} }
-            button(sourceMode.flatMap(source => translations.text(
-              if (source) i18n"Visual editor" else i18n"Edit Markdown"))) {
+            button(sourceMode.map(source =>
+              if (source) i18n"Visual editor" else i18n"Edit Markdown")) {
               buttonType("button")
               disabled = embeddedUpload.map(_.pending > 0)
               onClick(_ => sourceMode.set(!sourceMode.get))
@@ -181,14 +186,14 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             when(upload.error.map(_.nonEmpty)) {
               paragraph {
                 role = "alert"
-                text(upload.error.flatMap(status => translations.text(status match {
+                text(upload.error.map(status => status match {
                   case Some(413) => i18n"The image is too large. Choose a smaller file."
                   case Some(415) => i18n"Choose a JPEG or PNG image."
                   case Some(400) => i18n"The image could not be decoded. Check its format and dimensions."
                   case Some(401) | Some(403) => i18n"Sign in with permission to upload images."
                   case Some(429) => i18n"The server is processing other images. Try again shortly."
                   case _ => i18n"The upload could not be confirmed. Your post has not changed."
-                }))) {}
+                })) {}
               }
             }
             when(post.coverImage.map(_ != null)) {
@@ -226,9 +231,9 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
               AttributeDsl.setAttribute("aria-describedby", "post-author-help post-author-errors")
               ComboBox.converter = (account: Account) =>
                 Option(account.displayName.get).filter(_.nonEmpty)
-                  .getOrElse(translations.text(i18n"Unnamed author").get)
+                  .getOrElse(I18nRuntime.require.resolveNow(i18n"Unnamed author"))
               ComboBox.identityBy = (account: Account) => account.id.get
-              ComboBox.placeholder = translations.text(i18n"Choose an author").get
+              ComboBox.placeholder = i18n"Choose an author"
               choice.addDisposable(options.authors.observe { rows =>
                 ComboBox.items[Account].setAll(rows.map { row =>
                   Option(post.author.get).filter(_.id.get == row.data.id.get).getOrElse(row.data)
@@ -262,14 +267,14 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
             role = "alert"
             classes = "form-error"
             paragraph {
-              text(actions.notice.flatMap(value => translations.text(value match {
+              text(actions.notice.map(value => value match {
                 case Invalid => i18n"Review the fields and save again."
                 case Conflict => i18n"This post changed elsewhere. Your edits are still here. Copy what you need before discarding and reloading."
                 case SignedOut => i18n"Your session ended. Your edits are still here. Sign in again before reloading."
                 case Forbidden => i18n"You can no longer save this post. Your edits are still here."
                 case BindingFailed => i18n"The form could not bind its fields. Saving is unavailable."
                 case _ => i18n"The save could not be confirmed. Check the editorial list before trying again."
-              }))) {}
+              })) {}
             }
             when(actions.generalError.map(_.nonEmpty)) { paragraph { text(actions.generalError) {} } }
           }
@@ -287,8 +292,8 @@ final class PostEditorPage(initial: BlogPostData, service: EditorialService,
           when(actions.notice.map(value => value == Saved || value == NewerEdits)) {
             paragraph {
               role = "status"
-              text(actions.notice.flatMap(value => translations.text(
-                if (value == Saved) i18n"Saved." else i18n"Saved. Your newer edits still need saving."))) {}
+              text(actions.notice.map(value =>
+                if (value == Saved) i18n"Saved." else i18n"Saved. Your newer edits still need saving.")) {}
             }
           }
         }

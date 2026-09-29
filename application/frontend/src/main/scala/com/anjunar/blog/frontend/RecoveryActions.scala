@@ -61,7 +61,7 @@ object AccountLink {
   // A fragment-only navigation may reuse the document. Handle it before the router.
   def listen(): () => Unit = {
     val reopen: js.Function1[dom.Event, Unit] = event =>
-      if (Set("/en/confirm", "/en/reset-password").contains(dom.window.location.pathname) &&
+      if (Set("/en/confirm", "/en/reset-password", "/de/confirm", "/de/reset-password").contains(dom.window.location.pathname) &&
           dom.window.location.hash.startsWith("#token=")) {
         event.stopImmediatePropagation()
         dom.window.location.reload()

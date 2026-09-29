@@ -6,7 +6,7 @@ import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
 import ui.core.dsl.EventDsl.{on, onClick}
-import ui.core.i18n.{I18nRuntime, i18n}
+import ui.core.i18n.i18n
 import ui.core.layout.Button.{button, buttonType, disabled, disabled_=}
 import ui.core.layout.Condition.when
 import ui.core.layout.Heading.heading
@@ -26,8 +26,11 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
   private val actions = new AccountActions(initial.getOrElse(new SessionState()), service)
 
   override def compose(cursor: Cursor): Unit = {
-    val translations = I18nRuntime.current(using this).get
     addDisposable(() => actions.dispose())
+    LanguageNavigation.protect(actions.busy, actions.session, actions.credentials.email, actions.credentials.password) {
+      actions.busy.get || (actions.session.get.account.isEmpty &&
+        (actions.credentials.email.get.nonEmpty || actions.credentials.password.get.nonEmpty))
+    }(using this)
     render(this, cursor) {
       classes = "account-page"
       heading(1) { text(i18n"Your account") {} }
@@ -39,12 +42,12 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
           paragraph {
             classes = "form-error"
             role = "alert"
-            text(actions.error.flatMap(code => translations.text(code match {
+            text(actions.error.map(code => code match {
               case 401 => i18n"Invalid email or password."
               case 429 => i18n"Too many attempts. Please wait a minute before trying again."
               case 403 | 409 => i18n"Your session changed. Reload this page before trying again."
               case _ => i18n"The request failed. Please try again."
-            }))) {}
+            })) {}
           }
         }
         when(actions.session.map(_.account.isEmpty)) {
@@ -86,8 +89,8 @@ final class AccountPage(initial: Option[SessionState], service: AccountService, 
             text(actions.session.map(_.account.map(_.email.get).getOrElse(""))) {}
           }
           paragraph {
-            text(actions.session.flatMap(state => translations.text(
-              if (state.account.exists(_.role.get == "ADMIN")) i18n"Administrator" else i18n"Reader"))) {}
+            text(actions.session.map(state =>
+              if (state.account.exists(_.role.get == "ADMIN")) i18n"Administrator" else i18n"Reader")) {}
           }
           when(actions.session.map(_.links.exists(_.rel == "editorial"))) {
             paragraph { routerLink("/editorial") { text(i18n"Open editorial") {} } }

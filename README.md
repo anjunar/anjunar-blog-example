@@ -20,7 +20,14 @@ The articles, documentation, and examples are written in English.
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
 
-## Current state: a formatted post editor
+## Current state: an English and German interface
+
+The URL now selects the UI language: /en or /de. A shared i18n catalog translates
+navigation, forms and editor controls. Language switches preserve the current
+route and search filters; unfinished forms disable the switch to protect input.
+Posts retain their existing language. Follow
+[Translating the interface](docs/translating-the-interface.md) for chapter 20,
+its catalog, navigation behavior and verification. No database migration is needed.
 
 New posts use a Markdown-valued editor bound to the existing form. Administrators
 can format text, write code blocks and embed uploaded images. Legacy posts stay
@@ -147,7 +154,8 @@ sbt --server frontendAssets "application-backend/run"
 First prepare the database and schema using the steps below. Then open
 http://127.0.0.1:8080/. An empty database shows an empty list; load the optional
 SQL examples from [the API guide](docs/public-rest.md) to read the first post.
-Article links open /en/posts/:slug; the English router uses /en for the list.
+Article links open /en/posts/:slug or /de/posts/:slug. The language buttons switch
+between /en and /de while retaining the current route, query and fragment.
 For sign-in over this local HTTP origin, set BLOG_COOKIE_SECURE=false before
 starting sbt. See [the account setup](docs/user-accounts.md#open-the-account-page-locally)
 for PowerShell/Bash commands and administrator bootstrap.
@@ -224,7 +232,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **158 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **159 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -257,11 +265,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **59 successful browser contract tests**. They build the frontend, start
+Expect **65 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 41 Scala.js model, form-state, search, problem-details and document tests with
+Run the 46 Scala.js model, form-state, search, problem-details, document and i18n tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -279,7 +287,8 @@ using the same dedicated test database/admin/psql setup. Run
 `npm run test:browser:relationships` for the chapter 17 console example and
 real tag/post form workflow. Run `npm run test:browser:media` for the cover upload/publication workflow.
 Run `npm run test:browser:documents` for the formatted post and inline-image workflow.
-All eleven browser projects contain 71 tests.
+Run `npm run test:browser:i18n` for the six locale/navigation checks without PostgreSQL.
+All eleven browser projects contain 77 tests.
 
 ### Start the application
 
