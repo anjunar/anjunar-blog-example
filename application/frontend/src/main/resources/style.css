@@ -193,6 +193,19 @@ button:disabled { opacity: 0.6; cursor: wait; }
   .post-field input, .post-field textarea { font-size: 16px; }
 }
 
+.translation-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px; align-items: start; margin-top: 32px; }
+.translation-columns > * { min-width: 0; }
+.translation-source { padding: 24px; border: 1px solid var(--line); background: #fff; border-radius: 6px; max-height: 80vh; overflow: auto; }
+.translation-source h2 { margin-top: 0; }
+.translation-source .post-content { padding: 0; }
+.translation-columns .post-form { max-width: none; }
+.translation-editor { max-width: 1280px; }
+.translation-fallback { padding: 14px 18px; border-left: 3px solid var(--accent); background: #edf3ee; }
+@media (max-width: 900px) {
+  .translation-columns { grid-template-columns: minmax(0, 1fr); }
+  .translation-source { max-height: 300px; }
+}
+
 /* Entity reference controls use the form framework's ComboBox and viewport overlay. */
 .post-author { color: var(--muted); margin: 12px 0; }
 .post-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }

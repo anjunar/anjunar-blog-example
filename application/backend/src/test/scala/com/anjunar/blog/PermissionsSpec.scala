@@ -156,12 +156,12 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(relations(browser.session()).contains("editorial"))
     val initial = json(browser.send(path(id)))
     assert(initial.getJsonObject("data").getString("content") == "A private body")
-    assert(relations(initial) == Set("self", "update", "publish"))
+    assert(relations(initial) == Set("self", "update", "publish", "translation"))
     assert(browser.send(s"blog/posts/permission-$id").statusCode() == 404)
     val published = json(action(browser, id, "publish"))
     assert(published.getJsonObject("data").getString("status") == "PUBLISHED")
     assert(published.getJsonObject("data").value.get("version").value == "1")
-    assert(relations(published) == Set("self", "update", "retract", "public"))
+    assert(relations(published) == Set("self", "update", "retract", "public", "translation"))
     assert(action(browser, id, "publish").statusCode() == 409)
     val publicResponse = browser.send(s"blog/posts/permission-$id")
     assert(publicResponse.headers().firstValue("Cache-Control").orElse("") == "no-store")
@@ -172,7 +172,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(retracted.getJsonObject("data").getString("status") == "DRAFT")
     assert(retracted.getJsonObject("data").value.get("version").value == "2")
     assert(!retracted.getJsonObject("data").value.containsKey("publishedAt"))
-    assert(relations(retracted) == Set("self", "update", "publish"))
+    assert(relations(retracted) == Set("self", "update", "publish", "translation"))
     assert(action(browser, id, "retract").statusCode() == 409)
     assert(anonymous.send(s"blog/posts/permission-$id").statusCode() == 404)
   }
@@ -180,7 +180,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
   test("empty drafts offer no publication command and direct calls fail") {
     val id = draft("")
     val browser = admin()
-    assert(relations(json(browser.send(path(id)))) == Set("self", "update"))
+    assert(relations(json(browser.send(path(id)))) == Set("self", "update", "translation"))
     assert(action(browser, id, "publish").statusCode() == 409)
     assert(browser.send("editorial/posts/not-a-uuid").statusCode() == 404)
     assert(browser.send(path(UUID.randomUUID())).statusCode() == 404)
@@ -194,6 +194,9 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
     val row = first.value.get("rows").asInstanceOf[JsonArray].value.get(0).asInstanceOf[JsonObject]
     assert(!row.getJsonObject("data").value.containsKey("content"))
     assert(relations(row).contains("self"))
+    assert(row.getJsonObject("data").getString("contentLocale") == "en")
+    val metadata = row.getJsonObject("schema").value.get("entries").asInstanceOf[JsonArray]
+    assert(metadata.value.asScala.exists(_.asInstanceOf[JsonObject].getString("name") == "contentLocale"))
     assert(relations(json(browser.send("editorial/posts?offset=1&limit=1"))).contains("previous"))
     Seq("offset=-1", "limit=0", "limit=101", "offset=bad").foreach { query =>
       assert(browser.send(s"editorial/posts?$query").statusCode() == 400)
@@ -223,7 +226,7 @@ class PermissionsSpec extends AnyFunSuite with BeforeAndAfterAll {
       val unchanged = json(browser.send(path(id)))
       assert(unchanged.getJsonObject("data").getString("status") == "DRAFT")
       assert(unchanged.getJsonObject("data").value.get("version").value == "0")
-      assert(relations(unchanged) == Set("self", "update", "publish"))
+      assert(relations(unchanged) == Set("self", "update", "publish", "translation"))
     }
   }
 

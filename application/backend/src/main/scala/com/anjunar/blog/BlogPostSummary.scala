@@ -19,7 +19,8 @@ final class BlogPostSummary(
     @(JsonbProperty @field) val title: String,
     @(JsonbProperty @field) val summary: String,
     @(JsonbProperty @field) val status: BlogPostStatus,
-    @(JsonbProperty @field) @(UseConverter @field)(classOf[InstantConverter]) val publishedAt: Instant
+    @(JsonbProperty @field) @(UseConverter @field)(classOf[InstantConverter]) val publishedAt: Instant,
+    @(JsonbProperty @field) val contentLocale: String = "en"
 ) extends DTO
 
 object BlogPostSummary {
@@ -27,10 +28,18 @@ object BlogPostSummary {
       query: JpaCriteriaQuery[BlogPostSummary], post: JpaRoot[BlogPost],
       selection: util.List[Expression[?]], builder: HibernateCriteriaBuilder
   ): JpaCriteriaQuery[BlogPostSummary] = {
+    selectLocalized(query, post, selection, builder, "en")
+  }
+
+  def selectLocalized(
+      query: JpaCriteriaQuery[BlogPostSummary], post: JpaRoot[BlogPost],
+      selection: util.List[Expression[?]], builder: HibernateCriteriaBuilder, locale: String
+  ): JpaCriteriaQuery[BlogPostSummary] = {
     val schema = BlogPost.schema
+    val fields = LocalizedPostFields(post, builder, locale)
     query.select(builder.construct(classOf[BlogPostSummary],
       post.get(schema.id), post.get(schema.version), post.get(schema.slug),
-      post.get(schema.title), post.get(schema.summary), post.get(schema.status),
-      post.get(schema.publishedAt)))
+      fields.title, fields.summary, post.get(schema.status),
+      post.get(schema.publishedAt), fields.locale))
   }
 }

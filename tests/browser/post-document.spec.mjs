@@ -96,7 +96,7 @@ test("Markdown binding keeps newer typing across a delayed save and reports docu
 test("public Markdown renders code literally and refuses external images", async ({ page }) => {
   const requests = [];
   await page.route("https://untrusted.example/**", route => { requests.push(route.request().url()); return route.abort(); });
-  await page.route("**/service/blog/posts/document", route => reply(route, { data: {
+  await page.route("**/service/blog/posts/document?locale=en", route => reply(route, { data: {
     ...initial("## A heading\n\n**Bold text**\n\n```html\n<script>alert(1)</script>\n```\n\n![Private](https://untrusted.example/private.png)", "MARKDOWN"),
     status: "PUBLISHED", publishedAt: "2026-09-28T00:00:00Z"
   }}));

@@ -50,6 +50,19 @@ class MediaLifecycle {
     val conditions = Seq(reference) ++ Option.when(publishedOnly)(
       builder.equal(post.get(BlogPost.schema.status), BlogPostStatus.PUBLISHED))
     query.select(builder.count(post)).where(conditions*)
+    manager.createQuery(query).setFlushMode(FlushModeType.COMMIT).getSingleResult.longValue() > 0 ||
+      translationReferenced(media, publishedOnly)
+  }
+
+  private def translationReferenced(media: Media, publishedOnly: Boolean): Boolean = {
+    val builder = manager.getCriteriaBuilder
+    val query = builder.createQuery(classOf[lang.Long])
+    val translation = query.from(classOf[BlogPostTranslation])
+    val reference = builder.equal(translation.join(BlogPostTranslation.schema.inlineMedia.collectionAttribute), media)
+    val conditions = Seq(reference) ++ (if (!publishedOnly) Seq.empty else Seq(
+      builder.equal(translation.get(BlogPostTranslation.schema.published), true),
+      builder.equal(translation.get(BlogPostTranslation.schema.post).get(BlogPost.schema.status), BlogPostStatus.PUBLISHED)))
+    query.select(builder.count(translation)).where(conditions*)
     manager.createQuery(query).setFlushMode(FlushModeType.COMMIT).getSingleResult.longValue() > 0
   }
 
@@ -68,7 +81,12 @@ class MediaLifecycle {
       builder.equal(post.get(BlogPost.schema.coverImage), media),
       builder.equal(post.join(BlogPost.schema.inlineMedia.collectionAttribute, JoinType.LEFT), media))*)
     linked.select(post.get(BlogPost.schema.id)).where(Seq(reference)*)
-    val conditions = Seq(builder.lessThan(media.get(Media.schema.createdAt), cutoff), builder.not(builder.exists(linked))) ++
+    val translated = query.subquery(classOf[UUID])
+    val translation = translated.from(classOf[BlogPostTranslation])
+    translated.select(translation.get(BlogPostTranslation.schema.id)).where(Seq(
+      builder.equal(translation.join(BlogPostTranslation.schema.inlineMedia.collectionAttribute), media))*)
+    val conditions = Seq(builder.lessThan(media.get(Media.schema.createdAt), cutoff),
+      builder.not(builder.exists(linked)), builder.not(builder.exists(translated))) ++
       owner.toSeq.map(value => builder.equal(media.get(Media.schema.ownerId), value))
     query.select(media.get(Media.schema.id)).where(conditions*)
       .orderBy(builder.asc(media.get(Media.schema.id)))

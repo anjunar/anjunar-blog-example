@@ -39,6 +39,13 @@ final class BlogPost {
   @(Size @field)(max = 20)
   val tags: ListProperty[BlogTag] = ListProperty()
 
+  @JsonIgnore(deserializable = true)
+  val translation: Property[BlogPostTranslation] = Property(null)
+  @JsonIgnore(deserializable = true)
+  val contentLocale: Property[String] = Property("en")
+  @JsonIgnore(deserializable = true)
+  val availableLocales: ListProperty[String] = ListProperty()
+
   @JsonIgnore()
   def editableFields: Seq[Property[String]] = Seq(slug, title, content, summary, coverAlt, contentFormat)
 

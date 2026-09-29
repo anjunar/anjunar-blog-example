@@ -22,7 +22,7 @@ class AuthorizationFilter extends ContainerRequestFilter {
     val writes = request.getMethod != "GET" && request.getMethod != "HEAD" && request.getMethod != "OPTIONS"
     val protectedResource = Set[Class[?]](classOf[AuthenticationResource],
       classOf[AccountRecoveryResource], classOf[EditorialPostsResource],
-      classOf[EditorialAuthorsResource], classOf[EditorialTagsResource], classOf[MediaUploadResource]).contains(resource.getResourceClass)
+      classOf[EditorialAuthorsResource], classOf[EditorialTagsResource], classOf[MediaUploadResource], classOf[EditorialTranslationsResource]).contains(resource.getResourceClass)
     if (writes && protectedResource) identity.checkCsrf()
   }
 }

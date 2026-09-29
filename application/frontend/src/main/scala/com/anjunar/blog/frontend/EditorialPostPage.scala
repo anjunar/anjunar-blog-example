@@ -52,6 +52,9 @@ final class EditorialPostPage(initial: BlogPostData, service: EditorialService, 
         when(actions.current.map(_.links.exists(_.rel == "update"))) {
           routerLink(s"/editorial/posts/${initial.data.id.get}/edit") { text(i18n"Edit post") {} }
         }
+        when(actions.current.map(_.links.exists(_.rel == "translation"))) {
+          routerLink(s"/editorial/posts/${initial.data.id.get}/translations/de") { text(i18n"German translation") {} }
+        }
         when(actions.current.map(_.links.exists(_.rel == "publish"))) {
           button(i18n"Publish") { buttonType("button"); disabled = actions.busy; onClick(_ => actions.run("publish")) }
         }

@@ -5,7 +5,8 @@ Tutorial series into a complete web application built with Scala, Scala.js, and
 PostgreSQL. Anjunar Stack is the technical reference. The tutorial builds one
 application without multitenancy.
 
-The articles, documentation, and examples are written in English.
+New articles are written in English and German together. Documentation and code
+examples remain in English.
 
 ## What we are building
 
@@ -15,17 +16,26 @@ The articles, documentation, and examples are written in English.
 - Posts can contain formatted text, code examples, and images.
 - The interface and posts support English and German, with English as the primary language.
 - The server delivers HTML; the browser takes over interactivity through hydration.
-- The application runs on its own domain over HTTPS.
+- Public pages provide metadata, canonical and alternate-language URLs, a sitemap, and a feed.
 
 Follow the [roadmap](docs/roadmap.md) and the immutable
 [article checkpoints](docs/article-checkpoints.md).
+The series ends with chapter 24's completed public pages. Packaging, deployment
+and production operations are outside its scope; tests accompany each feature.
 
-## Current state: an English and German interface
+## Current state: independently published content translations
+
+Chapter 21 adds a German translation editor beside the English source, separate
+versions and publication, localized search and whole-article English fallback.
+The existing source data stays unchanged. Run the additive migration before
+starting this revision; see [Translating blog content](docs/translating-blog-content.md).
+
+## English and German interface
 
 The URL now selects the UI language: /en or /de. A shared i18n catalog translates
 navigation, forms and editor controls. Language switches preserve the current
 route and search filters; unfinished forms disable the switch to protect input.
-Posts retain their existing language. Follow
+The UI catalog remains independent of editorial translations. Follow
 [Translating the interface](docs/translating-the-interface.md) for chapter 20,
 its catalog, navigation behavior and verification. No database migration is needed.
 
@@ -232,7 +242,7 @@ With a separate test database running and migrated to the current schema:
 sbt --server "application-backend/testFull"
 ```
 
-Expect **159 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
+Expect **171 successful backend tests**. The recovery suite also needs the local SMTP capture environment from
 [the recovery guide](docs/registration-and-recovery.md#verify); it starts its own capture server.
 The account tests verify password
 hashing, CSRF, session rotation, logout, revocation, private responses, and limits.
@@ -265,11 +275,11 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Expect **65 successful browser contract tests**. They build the frontend, start
+Expect **67 successful browser contract tests**. They build the frontend, start
 the real HTTP server on port 18080, and stop it after testing. Keep that port free.
 These tests intercept data requests; PostgreSQL is not required.
 
-Run the 46 Scala.js model, form-state, search, problem-details, document and i18n tests with
+Run the 53 Scala.js model, form-state, search, problem-details, document, i18n and translation tests with
 `sbt --server "application-frontend/testFull"`. With a dedicated migrated test
 database containing database/examples/public-posts.sql, run
 `npm run test:browser:database` for two additional PostgreSQL-to-browser tests.
@@ -288,7 +298,9 @@ using the same dedicated test database/admin/psql setup. Run
 real tag/post form workflow. Run `npm run test:browser:media` for the cover upload/publication workflow.
 Run `npm run test:browser:documents` for the formatted post and inline-image workflow.
 Run `npm run test:browser:i18n` for the six locale/navigation checks without PostgreSQL.
-All eleven browser projects contain 77 tests.
+Run `npm run test:browser:translations` for German drafts, publication, search,
+conflicts and English fallback against the dedicated database.
+All twelve browser projects contain 80 tests.
 
 ### Start the application
 

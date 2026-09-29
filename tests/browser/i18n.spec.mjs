@@ -134,7 +134,7 @@ test("a German recovery token is consumed from the fragment and cannot be lost t
 });
 
 test("German error pages keep the locale and unsupported locale URLs stay outside the shell", async ({ page, request }) => {
-  await page.route("**/service/blog/posts/missing", route => reply(route, {}, 404));
+  await page.route("**/service/blog/posts/missing?locale=*", route => reply(route, {}, 404));
   await page.goto("/de/posts/missing");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Beitrag nicht gefunden");
   await expect(page.getByRole("link", { name: "Zu den neuesten Beiträgen" })).toHaveAttribute("href", "/de");

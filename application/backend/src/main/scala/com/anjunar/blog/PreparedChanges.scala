@@ -17,7 +17,7 @@ import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
 object PreparedChanges {
-  private val types: Set[Class[?]] = Set(classOf[BlogPost], classOf[BlogTag], classOf[Account])
+  private val types: Set[Class[?]] = Set(classOf[BlogPost], classOf[BlogTag], classOf[Account], classOf[BlogPostTranslation])
 
   def entityClass(genericType: Type): Option[Class[? <: EntityProvider]] = genericType match {
     case value: ParameterizedType if value.getActualTypeArguments.length == 1 =>
@@ -35,12 +35,14 @@ object PreparedChanges {
     if (clazz == classOf[BlogPost]) BlogPost.schema
     else if (clazz == classOf[BlogTag]) BlogTag.schema
     else if (clazz == classOf[Account]) Account.schema
+    else if (clazz == classOf[BlogPostTranslation]) BlogPostTranslation.schema
     else throw new IllegalArgumentException("Unsupported entity type")
 
   def graph(clazz: Class[?]): String =
     if (clazz == classOf[BlogPost]) "BlogPost.detail"
     else if (clazz == classOf[BlogTag]) "BlogTag.detail"
     else if (clazz == classOf[Account]) "Account.author"
+    else if (clazz == classOf[BlogPostTranslation]) "BlogPostTranslation.detail"
     else throw new IllegalArgumentException("Unsupported entity type")
 }
 
@@ -63,6 +65,7 @@ class PreparedChanges {
         if (!json.value.containsKey("author")) post.author = identity.requireAccount()
         post
       } else if (clazz == classOf[BlogTag]) new BlogTag()
+      else if (clazz == classOf[BlogPostTranslation]) new BlogPostTranslation()
       else throw new ApiProblem(400, "Accounts are created through registration or administrator bootstrap.")
     Option(json.value.get("version")).foreach {
       case value: JsonNumber if value.value == "-1" => ()
@@ -89,7 +92,8 @@ class PreparedChanges {
   private def prepare[E <: EntityProvider](json: JsonObject, entity: E, clazz: Class[E]): PreparedChange[E] = {
     val schema = PreparedChanges.schema(clazz)
     val fields = if (clazz == classOf[Account]) Set("id", "version", "displayName")
-      else if (clazz == classOf[BlogPost]) schema.properties.keySet.toSet - "inlineMedia"
+      else if (clazz == classOf[BlogPost]) schema.properties.keySet.toSet -- Set("inlineMedia", "translations", "translation", "contentLocale", "availableLocales")
+      else if (clazz == classOf[BlogPostTranslation]) Set("id", "version", "title", "summary", "content")
       else schema.properties.keySet.toSet
     val unknown = json.value.keySet().asScala.toSet -- fields - "@type"
     if (unknown.nonEmpty) Problem.invalidField(unknown.toSeq.sorted.head, "Unknown entity field.")

@@ -13,16 +13,26 @@ class PostMedia {
 
   // These relations are derived from the document, never supplied as another JSON collection.
   def synchronize(post: BlogPost): Unit = {
-    val ids = if (post.contentFormat == "MARKDOWN")
-      PostDocument.inspect(post.content).fold(message => Problem.invalidField("content", message), _.images)
+    val resolved = resolve(post.content, post.contentFormat)
+    post.inlineMedia.clear()
+    resolved.foreach(post.inlineMedia.add)
+  }
+
+  def synchronize(translation: BlogPostTranslation): Unit = {
+    val resolved = resolve(translation.content, "MARKDOWN")
+    translation.inlineMedia.clear()
+    resolved.foreach(translation.inlineMedia.add)
+  }
+
+  private def resolve(content: String, format: String): Seq[Media] = {
+    val ids = if (format == "MARKDOWN")
+      PostDocument.inspect(content).fold(message => Problem.invalidField("content", message), _.images)
     else Set.empty
-    val resolved = ids.toSeq.sortBy(_.toString).map { id =>
+    ids.toSeq.sortBy(_.toString).map { id =>
       val media = manager.find(classOf[Media], id, LockModeType.PESSIMISTIC_WRITE)
       if (media == null || !lifecycle.canUse(media))
         Problem.invalidField("content", "An embedded image is unavailable or belongs to another account.")
       media
     }
-    post.inlineMedia.clear()
-    resolved.foreach(post.inlineMedia.add)
   }
 }

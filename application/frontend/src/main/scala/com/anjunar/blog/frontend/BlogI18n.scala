@@ -11,6 +11,18 @@ object BlogI18n {
     I18n.entry(message.key).translations(German -> translation)
 
   val catalog: MessageCatalog = MessageCatalog(
+    de(i18n"Check the highlighted fields.", "Prüfe die markierten Felder."),
+    de(i18n"German translation", "Deutsche Übersetzung"),
+    de(i18n"The English source stays unchanged. Save a draft, then publish the translation separately.", "Die englische Fassung bleibt unverändert. Speichere einen Entwurf und veröffentliche die Übersetzung anschließend separat."),
+    de(i18n"The post itself is a draft. Neither language is public yet.", "Der Beitrag selbst ist ein Entwurf. Noch ist keine Sprachfassung öffentlich."),
+    de(i18n"English source", "Englische Fassung"),
+    de(i18n"Save translation", "Übersetzung speichern"),
+    de(i18n"Publish translation", "Übersetzung veröffentlichen"),
+    de(i18n"Retract translation", "Übersetzung zurückziehen"),
+    de(i18n"Translation saved.", "Übersetzung gespeichert."),
+    de(i18n"The translation changed. Reload before saving again.", "Die Übersetzung wurde geändert. Lade sie vor dem erneuten Speichern neu."),
+    de(i18n"Back to post", "Zurück zum Beitrag"),
+    de(i18n"This article is available in English. A German translation has not been published yet.", "Dieser Beitrag ist auf Englisch verfügbar. Eine deutsche Übersetzung wurde noch nicht veröffentlicht."),
     de(i18n"Access denied", "Zugriff verweigert"),
     de(i18n"Account", "Konto"),
     de(i18n"Administrator", "Administrator"),
