@@ -97,15 +97,17 @@ its English source. Locale-aware detail, search, sort and count select a complet
 published language or fall back to English. Draft media remains private and
 protected from cleanup; the editor preserves newer input and handles conflicts.
 
-Chapter 22 now renders the shared public route tree with GraalJS. The response
+Chapter 22 introduced rendering of the shared public route tree with GraalJS. The response
 contains localized content and the route status before JavaScript runs. Separate
-server/browser entry points preserve the same components; boot still remounts,
-with hydration reserved for chapter 23.
+server/browser entry points preserve the same components; that checkpoint remounted
+in the browser, with hydration introduced in chapter 23.
 
 Chapter 23 now hydrates the public server tree and replays its initial public
 response once. DOM identity, no duplicate initial fetch, early search input,
 error routes, fresh navigation and controlled recovery are verified. Chapter 24
-is the final remaining installment.
+completes the series with public metadata, canonical/language links, sitemap,
+language-specific Atom feeds, redirects and real 404 responses. All 24 chapters
+are now implemented and tied to reviewable source checkpoints.
 
 ## Writing principles
 
@@ -115,4 +117,4 @@ is the final remaining installment.
 - A commit or tag connects each published article to its project revision.
 - Select examples that explain the chapter's central ideas. Give excerpts enough context and the necessary imports; link the complete implementation at the checkpoint. Full files belong in the article only when they help the explanation. Code volume is not a quality target.
 - We explain architectural decisions when they become relevant.
-- Tests accompany each feature, including the remaining chapters 21–24.
+- Tests accompany each feature through the final chapter 24.

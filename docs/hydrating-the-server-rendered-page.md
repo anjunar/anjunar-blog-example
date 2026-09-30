@@ -4,9 +4,10 @@ Public pages now retain their server DOM when the browser starts. The first
 public route reuses the exact JSON response used during SSR. It makes no second
 browser request for that response; later navigation uses the normal public API.
 
-This chapter builds on chapter 22. No schema migration, new dependency or
-framework release is required. Only chapter 24 (public metadata and discovery)
-remains in the series.
+This guide describes the chapter 23 checkpoint and builds on chapter 22. That
+checkpoint needs no migration or new dependency. Chapter 24 now completes the
+series; see [Completing the public pages](completing-the-public-pages.md) for the
+current migration, metadata and discovery behavior.
 
 ## Run and observe
 

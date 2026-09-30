@@ -55,7 +55,8 @@ class ServerIntegrationSpec extends AnyFunSuite {
         )
 
       assert(get("/service/health/live").statusCode() == 200)
-      assert(get("/").statusCode() == 503)
+      assert(get("/").statusCode() == 308)
+      assert(get("/en").statusCode() == 503)
       assert(get("/service/missing").statusCode() == 404)
     } finally {
       client.close()

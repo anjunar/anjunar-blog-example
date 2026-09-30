@@ -18,7 +18,7 @@ import scala.jdk.CollectionConverters.*
 final case class RenderedPage(html: String, status: Int)
 
 /** One bounded worker owns all guest execution. Every request gets a new JS context. */
-final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Duration.ofSeconds(15))
+final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Duration.ofSeconds(15), publicOrigin: Option[String] = None)
     extends AutoCloseable {
   require(apiOrigin.getHost == "127.0.0.1" && apiOrigin.getScheme == "http")
   require(!timeout.isNegative && !timeout.isZero)
@@ -114,7 +114,7 @@ final class SsrRenderer(bundle: Path, apiOrigin: URI, timeout: Duration = Durati
       val rejected = new ProxyExecutable {
         override def execute(args: Value*): AnyRef = { failure = args.head.toString; null }
       }
-      exports.getMember("render").execute(url).invokeMember("then", resolved, rejected)
+      exports.getMember("render").execute(url, publicOrigin.getOrElse(apiOrigin.toString)).invokeMember("then", resolved, rejected)
       while (result == null && failure == null && !request.cancelled.get()) {
         timers.toSeq.filter(_._2._1 <= System.nanoTime()).foreach { case (id, (_, callback)) =>
           if (timers.remove(id).isDefined) callback.execute()

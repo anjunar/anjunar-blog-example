@@ -22,7 +22,7 @@ class FrontendLocaleSpec extends AnyFunSuite {
           HttpResponse.BodyHandlers.ofString())
 
       Seq("en", "de").foreach { language =>
-        Seq("", "/", "/posts/example", "/not-found").foreach { path =>
+        Seq("", "/posts/example", "/not-found").foreach { path =>
           val result = request(s"/$language$path")
           assert(result.statusCode() == 200)
           assert(result.headers().firstValue("Cache-Control").orElse("") == "no-cache")

@@ -35,14 +35,16 @@ object ApplicationMain {
   def start(port: Int, assets: Path = Path.of("target", "frontend"), security: SecurityConfig = SecurityConfig.load(),
       ssrEnabled: Boolean = sys.env.get("BLOG_SSR_ENABLED").forall(_ != "false")): UndertowCdiEmbeddedServer = {
     require(port >= 1 && port <= 65535, "BLOG_PORT must be between 1 and 65535")
+    val publicOrigin = PublicSite.origin(sys.env, port)
     val server = new SessionServer()
-    server.renderer = if (ssrEnabled) new SsrRenderer(assets.resolve("ssr/main.js"), URI.create(s"http://127.0.0.1:$port")) else null
+    server.renderer = if (ssrEnabled) new SsrRenderer(assets.resolve("ssr/main.js"), URI.create(s"http://127.0.0.1:$port"), publicOrigin = Some(publicOrigin)) else null
     server.getDeployment.setApplication(new ServerApplication())
     val cookies = new ServletSessionConfig()
       .setName(SecurityConfig.cookieName).setPath("/").setHttpOnly(true)
       .setSecure(security.secureCookies)
       .setSessionTrackingModes(Set.of(SessionTrackingMode.COOKIE))
     val deployment = new DeploymentInfo()
+      .addServletContextAttribute(PublicSite.OriginAttribute, publicOrigin)
       .setServletSessionConfig(cookies)
       .setDefaultSessionTimeout(SecurityConfig.idleSeconds)
       .setSessionManagerFactory(deployment => {
@@ -51,7 +53,7 @@ object ApplicationMain {
         sessions
       })
       .addInitialHandlerChainWrapper(api =>
-        new SameSiteCookieHandler(new FrontendHandler(api, assets, Option(server.renderer)), "Lax", SecurityConfig.cookieName))
+        new SameSiteCookieHandler(new FrontendHandler(api, assets, Option(server.renderer), publicOrigin), "Lax", SecurityConfig.cookieName))
     server.securityDomain = SoteriaIntegration.configure(deployment)
     val configuration = SeBootstrap.Configuration.builder()
       .property(UndertowConfigurationOptions.DEPLOYMENT_INFO, deployment)

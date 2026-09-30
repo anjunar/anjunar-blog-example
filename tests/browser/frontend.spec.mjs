@@ -35,7 +35,7 @@ test.afterEach(() => expect(runtimeErrors).toEqual([]));
 test("REST rows render with optional summaries and accessible mobile controls", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/");
-  await expect(page).toHaveTitle("Anjunar Journal");
+  await expect(page).toHaveTitle("Latest posts — Anjunar Journal");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { level: 3 })).toHaveText(posts.map(post => post.title));
   await expect(page.locator(".list-note")).toHaveText("Showing 2 of 2 posts");
@@ -215,10 +215,10 @@ test("known page routes serve HTML while API and unknown assets keep their statu
 
 test("the index document alias preserves the query and opens the list", async ({ page, request }) => {
   const redirect = await request.get("/index.html?offset=20", { maxRedirects: 0 });
-  expect(redirect.status()).toBe(307);
-  expect(redirect.headers().location).toBe("/?offset=20");
+  expect(redirect.status()).toBe(308);
+  expect(redirect.headers().location).toBe("/en?offset=20");
   await mockApi(page);
   await page.goto("/index.html?offset=20");
-  await expect(page).toHaveURL(/\/\?offset=20$/);
+  await expect(page).toHaveURL(/\/en\?offset=20$/);
   await expect(page.getByRole("heading", { level: 3 })).toHaveCount(2);
 });

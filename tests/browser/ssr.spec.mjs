@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
-const ids = Array.from({ length: 4 }, () => randomUUID());
+const ids = Array.from({ length: 6 }, () => randomUUID());
 const prefix = "ssr-" + ids[0];
 const translated = prefix + "-translated";
 const fallback = prefix + "-fallback";
@@ -31,10 +31,14 @@ test.beforeAll(() => {
     "insert into public.blog_post_translation (id,version,post_id,locale,title,content,published) values (" +
     [quoted(ids[3]), "0", quoted(ids[0]), "'de'", "'Ein Artikel vom Server'",
       quoted("## Gemeinsames Dokument\n\nSchon ohne JavaScript lesbar."), "true"].join(",") + "); commit;");
+  sql("insert into public.blog_post_translation (id,version,post_id,locale,title,content,published) values " +
+    [[ids[4], ids[1], false], [ids[5], ids[2], true]].map(([id, post, published]) =>
+      "(" + [quoted(id), "0", quoted(post), "'de'", "'Private German text'",
+        "'Not public.'", published ? "true" : "false"].join(",") + ")").join(","));
 });
 
 test.afterAll(() => {
-  sql("begin; delete from public.blog_post_translation where id = " + quoted(ids[3]) +
+  sql("begin; delete from public.blog_post_translation where id in (" + ids.slice(3).map(quoted).join(",") + ")" +
     "; delete from public.blog_post where id in (" + ids.slice(0, 3).map(quoted).join(",") + "); commit;");
 });
 
@@ -119,8 +123,166 @@ async function holdBrowserStart(page, path) {
   };
 }
 
+
+test("public metadata describes the selected content and only published translations", async ({ page }) => {
+  const origin = process.env.BLOG_PUBLIC_ORIGIN ?? "http://127.0.0.1:18080";
+  await page.goto("/en/posts/" + translated);
+  await expect(page).toHaveTitle(title + " — Anjunar Journal");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/en/posts/" + translated);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", "Source summary");
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", title);
+  await expect(page.locator('link[hreflang="de"]')).toHaveAttribute("href", origin + "/de/posts/" + translated);
+  await page.goto("/de/posts/" + translated);
+  await expect(page).toHaveTitle("Ein Artikel vom Server — Anjunar Journal");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/de/posts/" + translated);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", "Ein Artikel vom Server");
+  await expect(page.locator('link[hreflang="en"]')).toHaveAttribute("href", origin + "/en/posts/" + translated);
+  await expect(page.locator('link[hreflang="x-default"]')).toHaveAttribute("href", origin + "/en/posts/" + translated);
+  await expect(page.locator('link[type="application/atom+xml"]')).toHaveAttribute("href", origin + "/de/feed.xml");
+  await page.goto("/de/posts/" + fallback);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/en/posts/" + fallback);
+  await expect(page.locator('link[hreflang="de"]')).toHaveCount(0);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", "Source summary");
+});
+
+test("search, pagination and errors have distinct canonical and indexing policies", async ({ page, request }) => {
+  const origin = process.env.BLOG_PUBLIC_ORIGIN ?? "http://127.0.0.1:18080";
+  await page.goto("/en?offset=0&limit=20&tracking=ignored");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/en");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
+  await page.goto("/de?q=" + prefix + "&sort=title");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, follow");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/de?q=" + prefix + "&sort=title");
+  expect((await page.goto("/de/this-route-does-not-exist")).status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Beitrag nicht gefunden");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, follow");
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  const head = await request.head("/de/this-route-does-not-exist");
+  expect(head.status()).toBe(404);
+  expect(head.headers()["x-robots-tag"]).toBe("noindex");
+  expect(await head.text()).toBe("");
+  expect((await request.get("/en/account")).headers()["x-robots-tag"]).toBe("noindex");
+});
+
+test("public aliases redirect once and preserve their query without accepting another origin", async ({ request }) => {
+  const paths = [
+    ["/?offset=20", "/en?offset=20"],
+    ["/index.html?q=Scala%20%26%20CDI", "/en?q=Scala%20%26%20CDI"],
+    ["/de/?sort=title", "/de?sort=title"],
+    ["/posts/" + translated, "/en/posts/" + translated],
+    ["/de/posts/" + translated + "/", "/de/posts/" + translated],
+    ["/feed.xml", "/en/feed.xml"],
+  ];
+  for (const [path, location] of paths) {
+    const result = await request.get(path, { maxRedirects: 0 });
+    expect(result.status(), path).toBe(308);
+    expect(result.headers().location).toBe(location);
+    const head = await request.head(path, { maxRedirects: 0 });
+    expect(head.status()).toBe(308);
+    expect(await head.text()).toBe("");
+  }
+  expect((await request.get("/fr/posts/" + translated)).status()).toBe(404);
+  expect((await request.get("/en/missing.js")).status()).toBe(404);
+});
+
+async function xmlDocument(page, source) {
+  return page.evaluate(xml => {
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    if (doc.querySelector("parsererror")) throw new Error(doc.querySelector("parsererror").textContent);
+    return {
+      namespace: doc.documentElement.namespaceURI,
+      locations: [...doc.querySelectorAll("url > loc")].map(node => node.textContent),
+      entries: [...doc.querySelectorAll("entry")].map(node => ({
+        id: node.querySelector("id").textContent,
+        title: node.querySelector("title").textContent,
+        href: node.querySelector('link[rel="alternate"]').getAttribute("href"),
+        updated: node.querySelector("updated").textContent,
+        summary: node.querySelector("summary").textContent,
+      })),
+    };
+  }, source);
+}
+
+test("sitemap and language feeds expose only canonical published pages and valid XML", async ({ page, request }) => {
+  const origin = process.env.BLOG_PUBLIC_ORIGIN ?? "http://127.0.0.1:18080";
+  const sitemap = await request.get("/sitemap.xml", {
+    headers: { "X-Forwarded-Host": "untrusted.example", "X-Forwarded-Proto": "http" },
+  });
+  expect(sitemap.status()).toBe(200);
+  expect(sitemap.headers()["content-type"]).toContain("application/xml");
+  const map = await xmlDocument(page, await sitemap.text());
+  expect(map.namespace).toBe("http://www.sitemaps.org/schemas/sitemap/0.9");
+  expect(map.locations).toContain(origin + "/en/posts/" + translated);
+  expect(map.locations).toContain(origin + "/de/posts/" + translated);
+  expect(map.locations).toContain(origin + "/en/posts/" + fallback);
+  expect(map.locations).not.toContain(origin + "/de/posts/" + fallback);
+  expect(map.locations.some(value => value.includes(draft) || value.includes("untrusted.example"))).toBe(false);
+  for (const language of ["en", "de"]) {
+    const response = await request.get("/" + language + "/feed.xml");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("application/atom+xml");
+    const feed = await xmlDocument(page, await response.text());
+    expect(feed.namespace).toBe("http://www.w3.org/2005/Atom");
+    expect(feed.entries.length).toBeLessThanOrEqual(20);
+    const item = feed.entries.find(entry => entry.href === origin + "/" + language + "/posts/" + translated);
+    expect(item.title).toBe(language === "en" ? title : "Ein Artikel vom Server");
+    expect(item.id).toBe("urn:uuid:" + ids[language === "en" ? 0 : 3]);
+    expect(item.summary).toBe(language === "en" ? "Source summary" : "Ein Artikel vom Server");
+    expect(feed.entries.some(entry => entry.href.includes(draft))).toBe(false);
+    expect(feed.entries.some(entry => entry.title === "Private German text")).toBe(false);
+    if (language === "de") expect(feed.entries.some(entry => entry.href.includes(fallback))).toBe(false);
+  }
+  for (const path of ["/sitemap.xml", "/en/feed.xml", "/de/feed.xml", "/robots.txt"]) {
+    const head = await request.head(path);
+    expect(head.status(), path).toBe(200);
+    expect(await head.text()).toBe("");
+    expect((await request.post(path)).status()).toBe(405);
+  }
+  expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap: " + origin + "/sitemap.xml");
+});
+
+test("retracting a translation removes it from discovery and fallback metadata immediately", async ({ page, request }) => {
+  sql("update public.blog_post_translation set published = false where id = " + quoted(ids[3]));
+  try {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    expect(sitemap).toContain("/en/posts/" + translated);
+    expect(sitemap).not.toContain("/de/posts/" + translated);
+    expect(await (await request.get("/de/feed.xml")).text()).not.toContain("urn:uuid:" + ids[3]);
+    await page.goto("/de/posts/" + translated);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    await expect(page.locator('link[hreflang="de"]')).toHaveCount(0);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/en\/posts\//);
+  } finally {
+    sql("update public.blog_post_translation set published = true where id = " + quoted(ids[3]));
+  }
+});
+
 test.describe("hydration", () => {
   test.use({ javaScriptEnabled: true });
+
+
+  test("head entries follow client navigation without duplicates or stale article metadata", async ({ page }) => {
+    const origin = process.env.BLOG_PUBLIC_ORIGIN ?? "http://127.0.0.1:18080";
+    const warnings = [];
+    page.on("console", value => { if (value.type() === "warning") warnings.push(value.text()); });
+    await page.goto("/en/posts/" + translated);
+    await page.evaluate(async () => (await import("/main.js")).boot());
+    await expect(page.locator("title")).toHaveCount(1);
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
+    await page.getByRole("button", { name: "Switch to German" }).click();
+    await expect(page).toHaveTitle("Ein Artikel vom Server — Anjunar Journal");
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/de/posts/" + translated);
+    await page.getByRole("link", { name: "Zu den neuesten Beiträgen", exact: true }).click();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", origin + "/de");
+    await expect(page.locator('meta[property="og:type"]')).toHaveAttribute("content", "website");
+    await expect(page.locator('meta[property="article:published_time"]')).toHaveCount(0);
+    await page.getByRole("link", { name: "Konto", exact: true }).click();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, follow");
+    await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    await expect(page.locator('meta[property="og:title"]')).toHaveCount(0);
+    await expect(page.locator("title")).toHaveCount(1);
+    expect(warnings).toEqual([]);
+  });
 
   test("claims the existing list and preserves input typed before startup", async ({ page }) => {
     const requests = [];

@@ -10,7 +10,7 @@ examples remain in English.
 
 ## What we are building
 
-- Visitors can read and search posts and filter them by tags.
+- Visitors can read and search posts; articles display their authors and tags.
 - Users can register and sign in.
 - Administrators can write, edit, and publish posts.
 - Posts can contain formatted text, code examples, and images.
@@ -23,18 +23,24 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 The series ends with chapter 24's completed public pages. Packaging, deployment
 and production operations are outside its scope; tests accompany each feature.
 
-## Current state: the browser hydrates the server page
+## Current state: all 24 tutorial chapters are implemented
 
-Chapter 23 preserves the server-rendered public page and reuses its initial API
-response. The first browser render needs no duplicate public-data request;
-navigation fetches fresh values. See
-[Hydrating the server-rendered page](docs/hydrating-the-server-rendered-page.md)
-for state transfer, synchronous route loading, lifecycle and recovery checks.
-No new migration or dependency is needed.
+Chapter 24 completes the public pages with per-page metadata, canonical and
+published-language links, /sitemap.xml, /en/feed.xml, /de/feed.xml and /robots.txt.
+Server HTML and browser navigation share the same head registry. Public aliases
+redirect to one preferred URL; missing pages return real 404 responses.
 
-Chapter 22's [server-rendering guide](docs/rendering-pages-on-the-server.md)
-explains GraalJS, the two bundles and the public request boundary. Only chapter
-24's metadata and discovery work remains in the series.
+Read [Completing the public pages](docs/completing-the-public-pages.md) before
+starting this revision: migrate the two nullable change-time columns and configure
+BLOG_PUBLIC_ORIGIN for hosted use. No dependency upgrade is needed.
+
+Chapter 23 preserves the server DOM and replays the initial public response once;
+navigation fetches fresh data. The [hydration guide](docs/hydrating-the-server-rendered-page.md)
+explains that lifecycle, and the [server-rendering guide](docs/rendering-pages-on-the-server.md)
+explains GraalJS and the two bundles.
+
+The final checkpoint passes 189 backend tests, 62 Scala.js tests and 99 distinct
+browser checks (80 existing workflows and 19 SSR/hydration/public-page checks).
 
 ## Independently published content translations
 
