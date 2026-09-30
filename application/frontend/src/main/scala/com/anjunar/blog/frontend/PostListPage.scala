@@ -32,7 +32,8 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
   private val pageSize = search.limit
   private val posts = ListProperty(js.Array(table.rows.map(_.data)*))
 
-  override def compose(cursor: Cursor): Unit =
+  override def compose(cursor: Cursor): Unit = {
+    PageHead.bindList(search, search.offset > 0 && table.rows.isEmpty)(using this)
     render(this, cursor) {
       section {
         classes = "introduction"
@@ -134,4 +135,5 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
         }
       }
     }
+  }
 }

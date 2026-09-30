@@ -25,7 +25,8 @@ import ui.viewport.Viewport.viewport
 
 import scala.concurrent.ExecutionContext
 
-final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Option[String] = None)(using ExecutionContext)
+final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Option[String] = None,
+    publicOrigin: String = "")(using ExecutionContext)
     extends AbstractComponent {
   val tagName = "div"
   private val pages = new BlogRoutes(service, actions)
@@ -36,6 +37,7 @@ final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Opt
 
   override def compose(cursor: Cursor): Unit = {
     import ui.core.dsl.AttributeDsl.{setAttribute as attr}
+    PageHead.provide(if (cursor.isBrowser) PageHead.browserOrigin else publicOrigin, cursor)(using this)
     val initialUrl = requestUrl.orElse(cursor.browserUrl).getOrElse("/")
     val translations = I18nRuntime.managed(BlogI18n.config, initialUrl)
     I18nRuntime.provide(translations)(using this)

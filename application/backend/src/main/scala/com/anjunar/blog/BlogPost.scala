@@ -10,6 +10,7 @@ import jakarta.persistence.{Access, AccessType, CascadeType, CheckConstraint, Co
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
 import java.time.Instant
+import jakarta.persistence.{PrePersist, PreUpdate}
 import java.util
 import java.util.UUID
 
@@ -177,6 +178,12 @@ class BlogPost extends EntityProvider {
   @Transient @JsonbProperty @JsonbGraphProperty(transitive = true)
   var availableLocales: util.List[String] = new util.ArrayList[String]()
 
+  @Column(name = "updated_at") @SchemaId("ab240001") @JsonbTransient
+  var updatedAt: Instant = null
+
+  @PrePersist @PreUpdate
+  def recordChange(): Unit = updatedAt = Instant.now()
+
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
@@ -205,6 +212,7 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
   class Schema extends EntitySchema[BlogPost](RuntimeContext.entityManager()) {
     val id: SingularProperty[BlogPost, UUID] = reference(_.id)
     val version: SingularProperty[BlogPost, Long] = reference(_.version)
+    val updatedAt: SingularProperty[BlogPost, Instant] = reference(_.updatedAt)
     val slug: SingularProperty[BlogPost, String] = reference(_.slug, classOf[PostEditRule])
     val title: SingularProperty[BlogPost, String] = reference(_.title, classOf[PostEditRule])
     val content: SingularProperty[BlogPost, String] = reference(_.content, classOf[PostEditRule])

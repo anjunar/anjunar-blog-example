@@ -26,6 +26,7 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
 
   override def compose(cursor: Cursor): Unit = {
     import ui.core.dsl.AttributeDsl.{setAttribute as attr}
+    PageHead.current(using this).foreach(head => head.bind(PageHead.article(head.origin, post)*)(using this))
     render(this, cursor) {
       classes = "post-detail"
       ariaLabelledBy = "post-title"

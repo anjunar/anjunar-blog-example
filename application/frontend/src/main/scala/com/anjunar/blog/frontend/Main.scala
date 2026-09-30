@@ -14,8 +14,8 @@ import scala.scalajs.js.JSConverters.*
 
 object Main {
   @JSExportTopLevel("render")
-  def render(url: String): js.Promise[js.Object] = {
-    val document = new BlogDocument(url)
+  def render(url: String, publicOrigin: String): js.Promise[js.Object] = {
+    val document = new BlogDocument(url, publicOrigin)
     Runtime.renderToStringAsync(cursor => Runtime.mount(document, cursor), timeoutMs = 10000).map { html =>
       js.Dynamic.literal(html = ("<!doctype html>" + html), status = document.responseStatus)
     }.toJSPromise

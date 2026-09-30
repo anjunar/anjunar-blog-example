@@ -13,7 +13,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.sql.{DriverManager, SQLException}
-import java.time.Instant
+import java.time.{Instant, ZoneOffset}
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -136,6 +136,40 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(retracted.status == BlogPostStatus.DRAFT)
     assert(retracted.publishedAt == null)
     assert(retracted.version == originalVersion + 2)
+  }
+
+  test("post and translation change times survive persistence and rollback") {
+    val saved = savedDraft()
+    assert(load(saved.id).updatedAt != null)
+    val translationId = inTransaction() { manager =>
+      val translation = new BlogPostTranslation()
+      translation.post = manager.find(classOf[BlogPost], saved.id)
+      translation.title = "Deutscher Titel"
+      manager.persist(translation)
+      translation.id
+    }
+    val earlier = Instant.parse("2026-01-01T00:00:00Z")
+    val config = DatabaseConfig.load()
+    Using.resource(DriverManager.getConnection(config.url, config.user, config.password)) { connection =>
+      Seq(("blog_post", saved.id), ("blog_post_translation", translationId)).foreach { (table, id) =>
+        Using.resource(connection.prepareStatement(s"update public.$table set updated_at = ? where id = ?")) { query =>
+          query.setObject(1, earlier.atOffset(ZoneOffset.UTC))
+          query.setObject(2, id)
+          query.executeUpdate()
+        }
+      }
+    }
+    inTransaction() { manager =>
+      manager.find(classOf[BlogPost], saved.id).title = "Updated source"
+      manager.find(classOf[BlogPostTranslation], translationId).title = "Neue Überschrift"
+    }
+    val sourceTime = load(saved.id).updatedAt
+    val translatedTime = inTransaction(readOnly = true)(_.find(classOf[BlogPostTranslation], translationId).updatedAt)
+    assert(sourceTime.isAfter(earlier) && translatedTime.isAfter(earlier))
+    intercept[ConstraintViolationException] {
+      inTransaction()(_.find(classOf[BlogPost], saved.id).title = "")
+    }
+    assert(load(saved.id).updatedAt == sourceTime)
   }
 
   test("a summary can be saved and cleared without changing the post identity") {

@@ -11,10 +11,10 @@ import ui.core.render.Cursor
 
 import scala.concurrent.ExecutionContext
 
-final class BlogDocument(url: String)(using ExecutionContext) extends Html {
+final class BlogDocument(url: String, publicOrigin: String)(using ExecutionContext) extends Html {
   private val documentHead = new DocumentHead
   private val initial = InitialPageData.capture(url)
-  private val page = new BlogPage(new BlogService(initial), new BlogActions(() => ()), Some(url))
+  private val page = new BlogPage(new BlogService(initial), new BlogActions(() => ()), Some(url), publicOrigin)
 
   def responseStatus: Int = page.responseStatus
 
@@ -24,6 +24,7 @@ final class BlogDocument(url: String)(using ExecutionContext) extends Html {
       HeadEntry.charset(),
       HeadEntry.meta("viewport", "width=device-width, initial-scale=1"),
       HeadEntry.title("Anjunar Journal"),
+      HeadEntry.meta("application-origin", publicOrigin),
       HeadEntry.link("icon", "data:,"),
       HeadEntry("style:main", "link", Seq("rel" -> "stylesheet", "href" -> "/style.css")),
       HeadEntry("style:editor", "link", Seq("rel" -> "stylesheet", "href" -> "/editor.css")),

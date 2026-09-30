@@ -12,6 +12,8 @@ import jakarta.json.bind.annotation.{JsonbProperty, JsonbTransient}
 import jakarta.persistence.{Access, AccessType, Column, Entity, FetchType, ForeignKey, GeneratedValue, GenerationType, Id, JoinColumn, JoinTable, ManyToMany, ManyToOne, NamedAttributeNode, NamedEntityGraph, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
+import jakarta.persistence.{PrePersist, PreUpdate}
+import java.time.Instant
 import java.util
 import java.util.UUID
 import scala.compiletime.uninitialized
@@ -66,6 +68,12 @@ class BlogPostTranslation extends EntityProvider {
   @NotNull @SchemaId("ab210010") @JsonbTransient
   var inlineMedia: util.Set[Media] = new util.LinkedHashSet[Media]()
 
+  @Column(name = "updated_at") @SchemaId("ab240002") @JsonbTransient
+  var updatedAt: Instant = null
+
+  @PrePersist @PreUpdate
+  def recordChange(): Unit = updatedAt = Instant.now()
+
   @Transient @AssertTrue(message = "The translated Markdown document is invalid.")
   def isDocumentConsistent: Boolean = PostDocument.inspect(content).isRight
 
@@ -77,6 +85,7 @@ object BlogPostTranslation extends SchemaProvider[BlogPostTranslation.Schema] {
   class Schema extends EntitySchema[BlogPostTranslation](RuntimeContext.entityManager()) {
     val id: SingularProperty[BlogPostTranslation, UUID] = reference(_.id)
     val version: SingularProperty[BlogPostTranslation, Long] = reference(_.version)
+    val updatedAt: SingularProperty[BlogPostTranslation, Instant] = reference(_.updatedAt)
     val post: SingularProperty[BlogPostTranslation, BlogPost] = reference(_.post)
     val locale: SingularProperty[BlogPostTranslation, String] = reference(_.locale, classOf[TranslationReadRule])
     val title: SingularProperty[BlogPostTranslation, String] = reference(_.title, classOf[TranslationEditRule])
