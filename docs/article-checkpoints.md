@@ -963,3 +963,32 @@ English/German SSR screenshots were inspected. Both article drafts contain
 matching Scala examples taken from this compiled revision and link to this
 same immutable checkpoint.
 
+## Chapter 23: hydrating the server-rendered page
+
+Implementation checkpoint: [8de5903](https://github.com/anjunar/anjunar-blog-example/tree/8de5903024000706abf604833a32ee18738d37aa).
+The [chapter guide](https://github.com/anjunar/anjunar-blog-example/blob/8de5903024000706abf604833a32ee18738d37aa/docs/hydrating-the-server-rendered-page.md)
+explains state transfer, the cursor lifecycle, recovery and verification.
+
+Public pages hydrate the existing BlogPage inside #app. Each server document
+captures its public API response, including status, content type and the original
+JSON body. The browser consumes that exact response once without another initial
+request. Pure maps preserve its completed Future so the router claims the existing
+route nodes. Later navigation fetches fresh data.
+
+The inert head entry contains URI-encoded data, validates the document/API keys
+and format, and is removed after startup. Main.boot returns the same promise on
+repeated calls. Successful hydration preserves search input typed before startup;
+structural/state mismatches clean up the attempt before one fresh mount.
+That recovery is explicit and may discard pre-start input.
+
+Validation at this checkpoint: **183 backend tests, 59 Scala.js tests and 93
+distinct browser checks passed** (80 existing checks plus 13 SSR/hydration
+checks). Real node-identity comparisons cover the page, list, form and article.
+Checks also cover zero duplicate initial requests, early input, repeated boot,
+changed data after SSR, error routes and recovery with working interactions.
+
+Both English and German article drafts have four matching Scala examples:
+two complete source files and two excerpts with their containing context
+explained. Their source links point to this immutable implementation revision.
+Only chapter 24, public-page metadata and discovery, remains.
+

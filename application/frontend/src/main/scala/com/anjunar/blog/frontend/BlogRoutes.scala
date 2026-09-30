@@ -59,11 +59,12 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
     Route.view("/") { context =>
       val search = PostSearch.parse(context.queryParams.get, editorial = false)
       service.list(search, context.signal, context.locale.map(_.code).getOrElse("en"))
-        .map(table => new PostListPage(table, search, actions))
+        .map(table => new PostListPage(table, search, actions))(using ExecutionContext.parasitic)
     },
     Route.view("/posts/:slug") { context =>
       val locale = context.locale.map(_.code).getOrElse("en")
-      service.detail(context.pathParams("slug"), context.signal, locale).map(new PostPage(_, locale))
+      service.detail(context.pathParams("slug"), context.signal, locale)
+        .map(new PostPage(_, locale))(using ExecutionContext.parasitic)
     },
     Route.error("/bad-request", status = 400) { _ =>
       Future.successful(new ErrorPage(400, actions))

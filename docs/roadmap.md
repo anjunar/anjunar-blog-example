@@ -102,6 +102,11 @@ contains localized content and the route status before JavaScript runs. Separate
 server/browser entry points preserve the same components; boot still remounts,
 with hydration reserved for chapter 23.
 
+Chapter 23 now hydrates the public server tree and replays its initial public
+response once. DOM identity, no duplicate initial fetch, early search input,
+error routes, fresh navigation and controlled recovery are verified. Chapter 24
+is the final remaining installment.
+
 ## Writing principles
 
 - Each new article is written in English and German together.

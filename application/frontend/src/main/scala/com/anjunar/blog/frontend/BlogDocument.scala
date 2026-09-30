@@ -13,7 +13,8 @@ import scala.concurrent.ExecutionContext
 
 final class BlogDocument(url: String)(using ExecutionContext) extends Html {
   private val documentHead = new DocumentHead
-  private val page = new BlogPage(new BlogService, new BlogActions(() => ()), Some(url))
+  private val initial = InitialPageData.capture(url)
+  private val page = new BlogPage(new BlogService(initial), new BlogActions(() => ()), Some(url))
 
   def responseStatus: Int = page.responseStatus
 
@@ -28,6 +29,11 @@ final class BlogDocument(url: String)(using ExecutionContext) extends Html {
       HeadEntry("style:editor", "link", Seq("rel" -> "stylesheet", "href" -> "/editor.css")),
       HeadEntry.script("client", "/main.js", "type" -> "module")
     )(using this)
+    val stateHead = documentHead.handle(this)
+    addDisposable(initial.encoded.observe(value => stateHead.set(
+      HeadEntry("application-state", "script",
+        Seq("id" -> "application-state", "type" -> "application/json", "data-state" -> value))
+    )))
     render(this, cursor) {
       lang = if (url.takeWhile(_ != '?').split("/").lift(1).contains("de")) "de" else "en"
       head {}

@@ -12,6 +12,17 @@ final class HttpFailure(val status: Int, val problem: Option[ProblemDetails] = N
     extends RuntimeException(s"HTTP $status")
 
 object HttpJson {
+  final case class Response(status: Int, contentType: String, body: String)
+
+  def getResponse(path: String, signal: Option[dom.AbortSignal])(using ExecutionContext): Future[Response] =
+    send(path, dom.HttpMethod.GET, signal, None, None)
+
+  def decode[M](response: Response)(using JsonSchema[M]): M = {
+    if (response.status < 200 || response.status >= 300)
+      throw failure(response.status, response.contentType, response.body)
+    JsonMapper.deserialize[M](js.JSON.parse(response.body))
+  }
+
   private[frontend] def failure(status: Int, contentType: String, body: String): HttpFailure = {
     val problem = Option(contentType).filter(_.takeWhile(_ != ';').trim.equalsIgnoreCase("application/problem+json"))
       .flatMap(_ => Try(JsonMapper.deserialize[ProblemDetails](js.JSON.parse(body))).toOption)
@@ -38,7 +49,11 @@ object HttpJson {
   }
 
   private def request[M](path: String, method: dom.HttpMethod, signal: Option[dom.AbortSignal],
-      body: Option[js.Dynamic], csrf: Option[String])(using ExecutionContext, JsonSchema[M]): Future[M] = {
+      body: Option[js.Dynamic], csrf: Option[String])(using ExecutionContext, JsonSchema[M]): Future[M] =
+    send(path, method, signal, body, csrf).map(decode[M])(using ExecutionContext.parasitic)
+
+  private def send(path: String, method: dom.HttpMethod, signal: Option[dom.AbortSignal],
+      body: Option[js.Dynamic], csrf: Option[String])(using ExecutionContext): Future[Response] = {
     val headers = new dom.Headers()
     headers.set("Accept", "application/json, application/problem+json")
     val options = new dom.RequestInit {
@@ -54,10 +69,8 @@ object HttpJson {
     }
 
     dom.fetch(path, options).toFuture.flatMap { response =>
-      if (!response.ok) response.text().toFuture.flatMap(body =>
-        Future.failed(failure(response.status, response.headers.get("Content-Type"), body)))
-      else response.text().toFuture.map { body =>
-        JsonMapper.deserialize[M](js.JSON.parse(body))
+      response.text().toFuture.map { body =>
+        Response(response.status, Option(response.headers.get("Content-Type")).getOrElse(""), body)
       }
     }
   }

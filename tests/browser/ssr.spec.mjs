@@ -103,15 +103,162 @@ test("document status, HEAD, private shell and asset boundaries stay correct", a
   expect(publicPage.headers()["set-cookie"]).toBeUndefined();
 });
 
+async function holdBrowserStart(page, path) {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route("**/main.js", async route => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto(path, { waitUntil: "commit" });
+  await page.locator("#app > .blog").waitFor();
+  return async () => {
+    release();
+    await page.evaluate(async () => (await import("/main.js")).boot());
+    await page.unroute("**/main.js");
+  };
+}
+
+test.describe("hydration", () => {
+  test.use({ javaScriptEnabled: true });
+
+  test("claims the existing list and preserves input typed before startup", async ({ page }) => {
+    const requests = [];
+    const warnings = [];
+    page.on("request", value => { if (value.url().includes("/service/blog/posts")) requests.push(value.url()); });
+    page.on("console", value => { if (value.type() === "warning") warnings.push(value.text()); });
+    const resume = await holdBrowserStart(page, "/en?q=" + prefix);
+    await page.evaluate(() => {
+      window.beforeHydration = {
+        root: document.querySelector(".blog"),
+        list: document.querySelector("#post-list"),
+        input: document.querySelector("#post-query"),
+      };
+    });
+    await page.getByLabel("Search posts", { exact: true }).fill("already typing");
+    await resume();
+    expect(await page.evaluate(() => {
+      const before = window.beforeHydration;
+      return before.root === document.querySelector(".blog") &&
+        before.list === document.querySelector("#post-list") &&
+        before.input === document.querySelector("#post-query");
+    })).toBe(true);
+    await expect(page.getByLabel("Search posts", { exact: true })).toHaveValue("already typing");
+    await expect(page.getByRole("button", { name: "Switch to German" })).toBeDisabled();
+    await expect(page.locator("#application-state")).toHaveCount(0);
+    expect(requests).toEqual([]);
+    expect(warnings).toEqual([]);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page).toHaveURL(/q=already%20typing/);
+    expect(requests).toHaveLength(1);
+  });
+
+  test("claims translated Markdown and starts only once", async ({ page }) => {
+    const requests = [];
+    page.on("request", value => { if (value.url().includes("/service/blog/posts")) requests.push(value.url()); });
+    const resume = await holdBrowserStart(page, "/de/posts/" + translated);
+    await page.evaluate(() => {
+      window.beforeHydration = {
+        article: document.querySelector(".post-detail"),
+        heading: document.querySelector("h1"),
+        content: document.querySelector(".post-content"),
+      };
+    });
+    const encoded = await page.locator("#application-state").getAttribute("data-state");
+    expect(encoded).not.toContain("<script");
+    const state = JSON.parse(decodeURIComponent(encoded));
+    expect(state.url).toBe("/de/posts/" + translated);
+    expect(state.request).toBe("/service/blog/posts/" + translated + "?locale=de");
+    expect(JSON.parse(state.body).data.translation.title).toBe("Ein Artikel vom Server");
+    await resume();
+    expect(await page.evaluate(() => {
+      const before = window.beforeHydration;
+      return before.article === document.querySelector(".post-detail") &&
+        before.heading === document.querySelector("h1") &&
+        before.content === document.querySelector(".post-content");
+    })).toBe(true);
+    expect(await page.evaluate(async () => {
+      const app = await import("/main.js");
+      return app.boot() === app.boot();
+    })).toBe(true);
+    expect(requests).toEqual([]);
+    await page.getByRole("button", { name: "Auf Englisch wechseln" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    expect(requests).toHaveLength(1);
+    await expect(page.locator(".blog")).toHaveCount(1);
+  });
+
+  test("reuses the rendered response once and fetches newer values on navigation", async ({ page }) => {
+    const resume = await holdBrowserStart(page, "/en/posts/" + translated);
+    sql("update public.blog_post set title = 'A newer server title' where id = " + quoted(ids[0]));
+    try {
+      await resume();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+      await page.getByRole("button", { name: "Switch to German" }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ein Artikel vom Server");
+      await page.getByRole("button", { name: "Auf Englisch wechseln" }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("A newer server title");
+    } finally {
+      sql("update public.blog_post set title = " + quoted(title) + " where id = " + quoted(ids[0]));
+    }
+  });
+
+  test("hydrates error routes without retrying their initial failed request", async ({ page }) => {
+    const requests = [];
+    page.on("request", value => { if (value.url().includes("/service/blog/posts")) requests.push(value.url()); });
+    for (const path of ["/en/posts/" + draft, "/de?limit=0", "/de/unavailable"]) {
+      const resume = await holdBrowserStart(page, path);
+      await page.evaluate(() => { window.beforeHeading = document.querySelector("h1"); });
+      await resume();
+      expect(await page.evaluate(() => window.beforeHeading === document.querySelector("h1"))).toBe(true);
+      await expect(page.locator("#application-state")).toHaveCount(0);
+    }
+    expect(requests).toEqual([]);
+  });
+
+  for (const problem of ["corrupt", "wrong-url", "missing", "markup"]) {
+    test("recovers once from " + problem + " initial state or markup", async ({ page }) => {
+      const warnings = [];
+      page.on("console", value => { if (value.type() === "warning") warnings.push(value.text()); });
+      const resume = await holdBrowserStart(page, "/en?q=" + prefix);
+      await page.evaluate(problem => {
+        const state = document.querySelector("#application-state");
+        if (problem === "corrupt") state.setAttribute("data-state", "%invalid");
+        if (problem === "wrong-url") {
+          const saved = JSON.parse(decodeURIComponent(state.getAttribute("data-state")));
+          saved.url = "/de";
+          state.setAttribute("data-state", encodeURIComponent(JSON.stringify(saved)));
+        }
+        if (problem === "missing") state.remove();
+        if (problem === "markup") {
+          const header = document.querySelector(".site-header");
+          const replacement = document.createElement("section");
+          replacement.replaceChildren(...header.childNodes);
+          header.replaceWith(replacement);
+        }
+      }, problem);
+      await resume();
+      await expect(page.locator(".blog")).toHaveCount(1);
+      const toggle = page.getByRole("button", { name: "Show summaries", exact: true });
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await expect(page.locator("#application-state")).toHaveCount(0);
+      expect(warnings.filter(value => value.startsWith("Hydration failed;"))).toHaveLength(problem === "missing" ? 0 : 1);
+    });
+  }
+});
+
 test.describe("browser takeover", () => {
   test.use({ javaScriptEnabled: true });
-  test("remounts one page and keeps normal client navigation and controls", async ({ page }) => {
+  test("hydrates one page and keeps normal client navigation and controls", async ({ page }) => {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    const loaded = page.waitForResponse(response => response.url().includes("/service/blog/posts?"));
+    const initialRequests = [];
+    page.on("request", value => { if (value.url().includes("/service/blog/posts")) initialRequests.push(value.url()); });
     const document = await page.goto("/en?q=" + prefix);
     expect(await document.text()).toContain("English fallback");
-    await loaded;
+    await page.evaluate(async () => (await import("/main.js")).boot());
+    expect(initialRequests).toEqual([]);
     await expect(page.locator(".blog")).toHaveCount(1);
     const toggle = page.getByRole("button", { name: "Show summaries", exact: true });
     await toggle.click();
