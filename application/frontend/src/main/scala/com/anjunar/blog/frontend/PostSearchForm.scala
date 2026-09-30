@@ -1,5 +1,6 @@
 package com.anjunar.blog.frontend
 
+import org.scalajs.dom
 import ui.core.component.AbstractComponent
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
@@ -12,7 +13,7 @@ import ui.core.layout.Div.div
 import ui.core.layout.Label.label
 import ui.core.layout.Paragraph.paragraph
 import ui.core.layout.TextComponent.text
-import ui.core.render.Cursor
+import ui.core.render.{Cursor, DomNodes, HostNode}
 import ui.core.state.Property
 import ui.forms.Form.form
 import ui.forms.Input.{input, inputType, inputType_=}
@@ -44,6 +45,21 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
   val tagName = "div"
   private val fields = new PostSearchFields(search)
   private val invalid = Property(false)
+
+  override def beforeHostBinding(node: HostNode, cursor: Cursor): Unit =
+    if (cursor.isHydrating) {
+      // Native controls can be edited while the browser bundle is still loading.
+      // Capture before bindings write defaults; restore through the model after claims finish.
+      val element = DomNodes.raw(node).asInstanceOf[dom.Element]
+      val pending = Seq("query" -> fields.query, "status" -> fields.status,
+        "sort" -> fields.sort, "limit" -> fields.limit).flatMap { (name, property) =>
+        Option(element.querySelector(s"[name='$name']")).collect {
+          case input: dom.HTMLInputElement => property -> input.value
+          case select: dom.HTMLSelectElement => property -> select.value
+        }
+      }
+      cursor.afterHydration(() => pending.foreach((property, value) => property.set(value)))
+    }
 
   override def compose(cursor: Cursor): Unit = {
     import ui.core.dsl.AttributeDsl.{setAttribute as attr}

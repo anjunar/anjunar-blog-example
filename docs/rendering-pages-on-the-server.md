@@ -1,5 +1,8 @@
 # Chapter 22: rendering pages on the server
 
+This guide describes the chapter 22 checkpoint. Chapter 23 now replaces the
+browser remount with [hydration and initial-response reuse](hydrating-the-server-rendered-page.md).
+
 Public list and article requests now return complete HTML from the same Scala.js
 routes, models and components used by the browser. English/German selection,
 published translations, fallback, search and paging still come from the public
@@ -86,10 +89,10 @@ stylesheets have different registry keys so neither replaces the other.
 Per-article metadata, canonical/hreflang and discovery documents belong to
 chapter 24.
 
-For now boot clears #app and mounts BlogPage with DomCursor, then fetches the
+At the chapter 22 checkpoint, boot clears #app and mounts BlogPage with DomCursor, then fetches the
 current route again. This is **remounting, not hydration**; there can be a loading
-transition and duplicate data request. Chapter 23 will preserve/adopt the server
-DOM and reuse initial state. Do not claim that chapter 22 already avoids either.
+transition and duplicate data request. Chapter 23 now preserves/adopts the server
+DOM and reuses initial state. The chapter 22 checkpoint does not avoid either.
 
 ## Verification
 

@@ -23,13 +23,18 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 The series ends with chapter 24's completed public pages. Packaging, deployment
 and production operations are outside its scope; tests accompany each feature.
 
-## Current state: public pages rendered on the server
+## Current state: the browser hydrates the server page
 
-Chapter 22 returns complete HTML for public lists and articles, including German
-translations, Markdown and the correct HTTP status. The browser currently
-remounts that page; hydration follows in chapter 23. See
-[Rendering pages on the server](docs/rendering-pages-on-the-server.md) for the
-request lifecycle, two bundles, limitations and tests. No new migration is needed.
+Chapter 23 preserves the server-rendered public page and reuses its initial API
+response. The first browser render needs no duplicate public-data request;
+navigation fetches fresh values. See
+[Hydrating the server-rendered page](docs/hydrating-the-server-rendered-page.md)
+for state transfer, synchronous route loading, lifecycle and recovery checks.
+No new migration or dependency is needed.
+
+Chapter 22's [server-rendering guide](docs/rendering-pages-on-the-server.md)
+explains GraalJS, the two bundles and the public request boundary. Only chapter
+24's metadata and discovery work remains in the series.
 
 ## Independently published content translations
 
