@@ -1,12 +1,12 @@
 package com.anjunar.blog
 
 import com.anjunar.hibernateddl.hibernate.annotation.SchemaId
-import com.anjunar.json.mapper.annotations.UseConverter
+import com.anjunar.json.mapper.annotations.{JsonbGraphProperty, UseConverter}
 import com.anjunar.json.mapper.provider.EntityProvider
 import com.anjunar.json.mapper.schema.{EntitySchema, SchemaProvider}
-import com.anjunar.json.mapper.schema.property.{SetProperty, SingularProperty}
+import com.anjunar.json.mapper.schema.property.{Property, SetProperty, SingularProperty}
 import jakarta.json.bind.annotation.{JsonbProperty, JsonbTransient}
-import jakarta.persistence.{Access, AccessType, CheckConstraint, Column, Entity, EntityManager, FetchType, ForeignKey, JoinColumn, JoinTable, ManyToMany, ManyToOne, NamedSubgraph, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, Table, Transient, UniqueConstraint, Version}
+import jakarta.persistence.{Access, AccessType, CascadeType, CheckConstraint, Column, Entity, EntityManager, FetchType, ForeignKey, JoinColumn, JoinTable, ManyToMany, ManyToOne, NamedSubgraph, Enumerated, EnumType, GeneratedValue, GenerationType, Id, NamedAttributeNode, NamedEntityGraph, NamedEntityGraphs, OneToMany, Table, Transient, UniqueConstraint, Version}
 import jakarta.validation.constraints.{AssertTrue, NotBlank, NotNull, Pattern, Size}
 
 import java.time.Instant
@@ -164,6 +164,19 @@ class BlogPost extends EntityProvider {
   @Transient @AssertTrue(message = "A cover image needs alternative text.")
   def isCoverConsistent: Boolean = coverImage == null || Option(coverAlt).exists(value => !value.isBlank)
 
+  @OneToMany(mappedBy = "post", cascade = Array(CascadeType.ALL), orphanRemoval = true)
+  @SchemaId("ab210011") @JsonbTransient
+  var translations: util.Set[BlogPostTranslation] = new util.LinkedHashSet[BlogPostTranslation]()
+
+  @Transient @JsonbProperty @JsonbGraphProperty(transitive = true)
+  var translation: BlogPostTranslation = null
+
+  @Transient @JsonbProperty @JsonbGraphProperty(transitive = true)
+  var contentLocale: String = null
+
+  @Transient @JsonbProperty @JsonbGraphProperty(transitive = true)
+  var availableLocales: util.List[String] = new util.ArrayList[String]()
+
   def publish(at: Instant): Unit = {
     require(status == BlogPostStatus.DRAFT, "Only a draft can be published")
     require(at != null, "Publication time is required")
@@ -204,6 +217,12 @@ object BlogPost extends SchemaProvider[BlogPost.Schema] {
     val coverAlt: SingularProperty[BlogPost, String] = reference(_.coverAlt, classOf[PostEditRule])
     val author: SingularProperty[BlogPost, Account] = reference(_.author, classOf[PostEditRule])
     val tags: SetProperty[BlogPost, util.Set[BlogTag]] = set(_.tags, classOf[PostEditRule])
+    val translations: SetProperty[BlogPost, util.Set[BlogPostTranslation]] = set(_.translations)
+    // Resolve this response-only nested schema in PostLocalization, after the two
+    // persistent schemas exist. This factory needs no retained EntityManager.
+    lazy val translation: Property[BlogPost, BlogPostTranslation] = property(_.translation)
+    val contentLocale: Property[BlogPost, String] = property(_.contentLocale)
+    val availableLocales: Property[BlogPost, util.List[String]] = property(_.availableLocales)
   }
 
   def findPublishedBySlug(slug: String)(using entityManager: EntityManager): Option[BlogPost] = {

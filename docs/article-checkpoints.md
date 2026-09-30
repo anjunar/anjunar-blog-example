@@ -891,3 +891,50 @@ Detailed backend problems, built-in validation diagnostics and transactional
 emails retain their existing English strings. The outer html.lang updates at
 browser boot; the initial static shell is still English. Language-button guards
 are not a general guard against reload or all navigation. SSR follows in chapter 22.
+
+
+## Chapter 21: translating blog content
+
+Implementation checkpoint: [2accb8e1b7e0cb2044a0d57c13782e56fda3a563](https://github.com/anjunar/anjunar-blog-example/tree/2accb8e1b7e0cb2044a0d57c13782e56fda3a563).
+
+```text
+git switch --detach 2accb8e1b7e0cb2044a0d57c13782e56fda3a563
+```
+
+The English source stays on BlogPost. A German BlogPostTranslation has its own
+version, Markdown document and publication state. Missing or unpublished German
+text falls back to the complete English article; the editor loads the actual
+draft instead. Shared slug, author, tags and cover remain on the parent.
+
+The [chapter guide](https://github.com/anjunar/anjunar-blog-example/blob/2accb8e1b7e0cb2044a0d57c13782e56fda3a563/docs/translating-blog-content.md)
+covers the additive migration, endpoint contract, editor workflow and limits.
+Before starting, stop the server and run SchemaMain preview/migrate on the
+compile classpath. The upgrade adds two tables and three foreign keys, leaving
+existing English data in place. The verified chapter 20 upgrade applies five
+statements; repeating migrate reports AlreadyApplied with zero statements.
+
+LocalizedPostFields keeps HibernateSearch filtering, title ordering, projection
+and count consistent with the selected language. Inline images require both
+publication states for public access; saved draft references protect cleanup.
+The bound translation form preserves newer typing and handles version conflicts,
+with direct i18n macros and a continuous compose tree.
+
+The chapter's 80 distinct browser checks passed across full and focused runs;
+desktop and mobile translation layouts were inspected. At this corrected
+checkpoint, all **178 backend tests and 53 Scala.js tests** passed, as did
+**nine translation/i18n browser checks**, including the real database workflow.
+
+Translation endpoints receive a managed BlogPost through the entity parameter
+converter. LinkBuilder derives action URLs and HTTP methods from those endpoints;
+the parent relationship is checked before changes are applied. TransactionBoundary
+owns flush before JSON serialization.
+
+The UI keeps the compose tree intact, imports the attribute setter as attr to
+avoid inherited-name collisions, and binds reactive attributes directly through
+the DSL. Browser assertions check the target nodes and validation updates. Both
+articles explain these conventions and contain matching Scala excerpts compiled
+with their declared resource/component context.
+
+Both English and German article drafts use this same checkpoint. The series
+ends at chapter 24: server rendering (22), hydration (23) and public-page
+metadata/discovery (24) are the remaining chapters.

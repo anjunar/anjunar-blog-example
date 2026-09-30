@@ -10,9 +10,14 @@ between platform, features, and application grows with the requirements.
 A single blog post provides the recurring example: store it, serve it, display it,
 edit it, check permissions, and render its public page on the server.
 
-The series, documentation, and code examples are written in English. The
-application starts in English; German provides a second language when we
-introduce internationalization.
+Each new article is written in English and German. Documentation and code
+examples remain English. The application starts in English and adds German
+with internationalization.
+
+The series ends with chapter 24, completing the public pages. Chapters 21–24
+cover translated posts, server-side rendering, hydration and public-page metadata
+and discovery. Packaging, deployment, production operations and additional feature
+chapters are outside this series. Tests remain part of each implementation chapter.
 
 ## Topic sequence
 
@@ -49,10 +54,6 @@ in chapter 21. Later topics move forward accordingly.
 | 22 | Rendering the same interface on the server | The SSR bundle, GraalJS, request data, HTML, HTTP status, and browser API boundaries. |
 | 23 | From server-rendered HTML to an interactive page | The browser bundle, render, boot, hydration, initial state, and lifecycle. |
 | 24 | Completing the public pages | Metadata, canonical URLs, hreflang, sitemap, feed, redirects, and 404 responses. |
-| 25 | Testing the system as a whole | Business logic, persistence, the REST contract, permissions, and complete browser workflows. |
-| 26 | Building a deployable package | JARs, two JavaScript bundles, CSS, fonts, fingerprints, configuration, and a startup script. |
-| 27 | Deploying the application to a domain | HTTPS, a reverse proxy, systemd, resource-limited builds, migrations, backups, and rollback. |
-| 28 | Understanding production operations | Health checks, logs, metrics, queries, SSR, caching, and invalidation. |
 
 ## First milestone
 
@@ -90,20 +91,18 @@ content; preview and public detail share the read-only document component.
 Chapter 20 initializes the interface locale from /en or /de and provides a shared
 macro-based catalog for application and editor messages. Language switches retain
 routes and filters, while page-owned guards protect unfinished input. Post content
-remains unchanged until chapter 21.
-
-## Further topics
-
-- Passkeys
-- Comments and moderation
-- Markdown import and export
-- External integrations and background jobs
+remains unchanged by the UI catalog.
+Chapter 21 adds a separately versioned and published German translation beside
+its English source. Locale-aware detail, search, sort and count select a complete
+published language or fall back to English. Draft media remains private and
+protected from cleanup; the editor preserves newer input and handles conflicts.
 
 ## Writing principles
 
+- Each new article is written in English and German together.
 - Each article delivers a concrete, verifiable result.
 - Examples come from this runnable project.
 - A commit or tag connects each published article to its project revision.
 - Select examples that explain the chapter's central ideas. Give excerpts enough context and the necessary imports; link the complete implementation at the checkpoint. Full files belong in the article only when they help the explanation. Code volume is not a quality target.
 - We explain architectural decisions when they become relevant.
-- Tests accompany each feature; article 25 brings the testing strategy together.
+- Tests accompany each feature, including the remaining chapters 21–24.

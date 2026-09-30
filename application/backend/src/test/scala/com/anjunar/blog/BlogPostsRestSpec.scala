@@ -24,8 +24,8 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
   private val draftId = UUID.randomUUID()
   private val ownedIds = publishedIds :+ draftId
   private val content = "A complete post: \"Hello, readers!\"\nGrüße from the tutorial."
-  private val listFields = Set("id", "version", "slug", "title", "summary", "status", "publishedAt")
-  private val detailFields = listFields + "content"
+  private val listFields = Set("id", "version", "slug", "title", "summary", "status", "publishedAt", "contentLocale")
+  private val detailFields = listFields ++ Set("content", "availableLocales")
 
   private def connection() = {
     val config = DatabaseConfig.load()
@@ -152,7 +152,7 @@ class BlogPostsRestSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(post.getString("content") == content)
     assert(post.getString("publishedAt") == publicationTime.toString)
     assert(post.value.get("version").value == "0")
-    assertSchema(wrapper, detailFields ++ Set("author", "tags", "coverImage", "coverAlt", "contentFormat"))
+    assertSchema(wrapper, detailFields ++ Set("author", "tags", "coverImage", "coverAlt", "contentFormat", "translation"))
   }
 
   test("draft and unknown slugs both return 404 without disclosing post content") {

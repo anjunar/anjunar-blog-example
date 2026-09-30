@@ -35,7 +35,7 @@ class EditorialPostsResource {
     given EntityManager = manager
     val search = parameters.search(editorial = true)
     val context = queries.searchContext(search)
-    val schema = Schema.forGraph(BlogPost.schema, manager.getEntityGraph("BlogPost.list"))
+    val schema = Schema.forGraph(BlogPost.schema, manager.getEntityGraph("BlogPost.list"), Set("contentLocale"))
     val rows = queries.entities(search.index, search.limit, classOf[BlogPost],
       classOf[BlogPostSummary], context, BlogPostSummary.select).asScala
       .map(post => new Data(post, schema, links.summary(post, editorial = true))).asJava

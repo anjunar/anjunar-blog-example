@@ -174,7 +174,7 @@ class PostChangesSpec extends AnyFunSuite with BeforeAndAfterAll {
     assert(post.value.get("version").value == "0")
     assert(URI.create(response.headers().firstValue("Location").orElseThrow()).getPath ==
       s"/service/editorial/posts/${post.getString("id")}")
-    assert(relations(result) == Set("self", "update", "publish"))
+    assert(relations(result) == Set("self", "update", "publish", "translation"))
     assert(relations(json(browser.send("editorial/posts"))).contains("create"))
     assert(browser.send(s"blog/posts/${post.getString("slug")}").statusCode() == 404)
   }

@@ -10,6 +10,7 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
   private val editorial = new EditorialService(accounts)
   private val catalog = new CatalogService(accounts)
   private val media = new MediaService(accounts)
+  private val translations = new TranslationService(accounts)
   val routes: Seq[Route] = Seq("register", "confirm", "forgot-password", "reset-password").map { endpoint =>
     Route.view(s"/$endpoint") { _ =>
       Future.successful(new RecoveryPage(endpoint, AccountLink.takeToken(), accounts))
@@ -32,6 +33,12 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
       editorial.newPost(context.signal).zip(catalog.load(context.signal))
         .map((value, options) => new PostEditorPage(value, editorial, options, catalog, media))
     },
+    Route.view("/editorial/posts/:id/translations/de") { context =>
+      editorial.detail(context.pathParams("id"), context.signal).flatMap { post =>
+        val link = post.links.find(_.rel == "translation").getOrElse(throw new HttpFailure(403))
+        translations.load(link, context.signal).map(new TranslationEditorPage(post.data, _, translations, media))
+      }
+    },
     Route.view("/editorial/posts/:id/edit") { context =>
       editorial.detail(context.pathParams("id"), context.signal).zip(catalog.load(context.signal)).map { (value, options) =>
         val link = value.links.find(_.rel == "update").getOrElse(throw new HttpFailure(403))
@@ -51,11 +58,12 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
     },
     Route.view("/") { context =>
       val search = PostSearch.parse(context.queryParams.get, editorial = false)
-      service.list(search, context.signal)
+      service.list(search, context.signal, context.locale.map(_.code).getOrElse("en"))
         .map(table => new PostListPage(table, search, actions))
     },
     Route.view("/posts/:slug") { context =>
-      service.detail(context.pathParams("slug"), context.signal).map(new PostPage(_))
+      val locale = context.locale.map(_.code).getOrElse("en")
+      service.detail(context.pathParams("slug"), context.signal, locale).map(new PostPage(_, locale))
     },
     Route.error("/bad-request", status = 400) { _ =>
       Future.successful(new ErrorPage(400, actions))

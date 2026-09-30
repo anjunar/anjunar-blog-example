@@ -1,7 +1,6 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
@@ -17,10 +16,16 @@ import ui.core.state.Property
 import ui.core.statement.Foreach.foreach
 import ui.router.RouterLink.routerLink
 
-final class PostPage(post: BlogPost) extends AbstractComponent {
+final class PostPage(post: BlogPost, requestedLocale: String = "en") extends AbstractComponent {
   val tagName = "article"
+  private val translated = Option(post.translation.get)
+  private val titleValue = translated.map(_.title).getOrElse(post.title)
+  private val summaryValue = translated.map(_.summary).getOrElse(post.summary)
+  private val contentValue = translated.map(_.content).getOrElse(post.content)
+  private val formatValue = if (translated.nonEmpty) Property("MARKDOWN") else post.contentFormat
 
-  override def compose(cursor: Cursor): Unit =
+  override def compose(cursor: Cursor): Unit = {
+    import ui.core.dsl.AttributeDsl.{setAttribute as attr}
     render(this, cursor) {
       classes = "post-detail"
       ariaLabelledBy = "post-title"
@@ -29,7 +34,10 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
         classes = "post-date"
         text(post.publishedAt.map(_.fold("")(_.take(10)))) {}
       }
-      heading(1) { id = "post-title"; text(post.title) {} }
+      if (requestedLocale != post.contentLocale.get) {
+        paragraph { classes = "translation-fallback"; text(i18n"This article is available in English. A German translation has not been published yet.") {} }
+      }
+      heading(1) { id = "post-title"; lang = post.contentLocale.get; text(titleValue) {} }
       paragraph {
         classes = "post-author"
         val authorName = post.author.flatMap(account =>
@@ -42,8 +50,8 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
         classes = "post-tags"
         foreach(post.tags) { tag => paragraph { classes = "post-tag"; text(tag.name) {} } }
       }
-      if (Option(post.summary.get).exists(_.nonEmpty)) {
-        paragraph { classes = "detail-summary"; text(post.summary.map(value => Option(value).getOrElse(""))) {} }
+      if (Option(summaryValue.get).exists(_.nonEmpty)) {
+        paragraph { classes = "detail-summary"; lang = post.contentLocale.get; text(summaryValue.map(value => Option(value).getOrElse(""))) {} }
       }
       when(post.coverImage.map(_ != null)) {
         Image.image { picture ?=>
@@ -52,12 +60,13 @@ final class PostPage(post: BlogPost) extends AbstractComponent {
           Image.alt = post.coverAlt.map(value => Option(value).getOrElse(""))
           picture.addDisposable(post.coverImage.observe { value =>
             if (value != null) {
-              AttributeDsl.setAttribute("width", value.width.get.toString)
-              AttributeDsl.setAttribute("height", value.height.get.toString)
+              attr("width", value.width.get.toString)
+              attr("height", value.height.get.toString)
             }
           })
         }
       }
-      child(new PostContent(post)) {}
+      child(new PostContent(contentValue, formatValue)) { lang = post.contentLocale.get }
     }
+  }
 }

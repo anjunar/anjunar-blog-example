@@ -3,6 +3,7 @@ package com.anjunar.blog
 import jakarta.ws.rs.{BadRequestException, DefaultValue, QueryParam}
 
 final class PostSearchParams {
+  @QueryParam("locale") var locale: String = "en"
   @QueryParam("q") var query: String = ""
   @QueryParam("status") var status: String = ""
   @QueryParam("sort") var sort: String = ""
@@ -26,6 +27,8 @@ final class PostSearchParams {
       .getOrElse(throw new BadRequestException("offset must be a nonnegative integer"))
     val size = Option(limit).flatMap(_.toIntOption).filter(value => value >= 1 && value <= 100)
       .getOrElse(throw new BadRequestException("limit must be between 1 and 100"))
-    BlogPostSearch(text, if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED), selectedSort, start, size)
+    val requestedLocale = PostLocale.parse(locale)
+    BlogPostSearch(text, if (editorial) selectedStatus else Some(BlogPostStatus.PUBLISHED), selectedSort, start, size,
+      if (editorial) "en" else requestedLocale)
   }
 }

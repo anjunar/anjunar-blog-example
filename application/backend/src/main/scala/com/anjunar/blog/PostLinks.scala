@@ -32,9 +32,9 @@ class PostLinks {
       new Link("tags", "/service/editorial/tags", "GET", "BlogTag"))
     else util.List.of()
 
-  def publicPost(post: BlogPost): util.List[Link] = {
+  def publicPost(post: BlogPost, locale: String = "en"): util.List[Link] = {
     val links = new util.ArrayList[Link]()
-    links.add(new Link("self", s"/service/blog/posts/${post.slug}", "GET", "BlogPost"))
+    links.add(new Link("self", s"/service/blog/posts/${post.slug}?locale=$locale", "GET", "BlogPost"))
     if (endpoint("read"))
       links.add(new Link("preview", s"/service/editorial/posts/${post.id}", "GET", "BlogPost"))
     links
@@ -46,6 +46,8 @@ class PostLinks {
     links.add(new Link("self", path, "GET", "BlogPost"))
     if (endpoint("update") && access.canEdit(post))
       links.add(new Link("update", path, "PATCH", "BlogPost"))
+    if (endpoint("update") && access.canEdit(post))
+      links.add(LinkBuilder.create[EditorialTranslationsResource](_.read(post)).withRel("translation").build())
     if (endpoint("publish") && access.canPublish(post))
       links.add(new Link("publish", s"$path/publish", "POST", "BlogPost"))
     if (endpoint("retract") && access.canRetract(post))
@@ -55,9 +57,9 @@ class PostLinks {
     links
   }
 
-  def summary(post: BlogPostSummary, editorial: Boolean): util.List[Link] = {
+  def summary(post: BlogPostSummary, editorial: Boolean, locale: String = "en"): util.List[Link] = {
     val path = if (editorial) s"/service/editorial/posts/${post.id}"
-      else s"/service/blog/posts/${post.slug}"
+      else s"/service/blog/posts/${post.slug}?locale=$locale"
     val values = new util.ArrayList[Link]()
     values.add(new Link("self", path, "GET", "BlogPost"))
     if (editorial && endpoint("update"))

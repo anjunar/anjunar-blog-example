@@ -87,7 +87,7 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
 
   test("CDI discovers entity classes without making their instances injectable") {
     val registry = container.select(classOf[EntityRegistry]).get()
-    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[BlogTag], classOf[Media], classOf[Account], classOf[AccountToken], classOf[EntityDiscoveryProbe]))
+    assert(registry.entityClasses.toSet == Set(classOf[BlogPost], classOf[BlogTag], classOf[Media], classOf[Account], classOf[AccountToken], classOf[BlogPostTranslation], classOf[EntityDiscoveryProbe]))
     assert(container.select(classOf[BlogPost]).isUnsatisfied)
     assert(container.select(classOf[EntityDiscoveryProbe]).isUnsatisfied)
   }
@@ -228,7 +228,8 @@ class BlogPostPersistenceSpec extends AnyFunSuite with BeforeAndAfterAll {
       val schema = BlogPost.schema
       val mappedNames = manager.getMetamodel.entity(classOf[BlogPost])
         .getAttributes.asScala.map(_.getName).toSet
-      assert(schema.properties.keySet.toSet == mappedNames)
+      schema.translation // Include the response-only nested schema after persistent initialization.
+      assert(schema.properties.keySet.toSet == mappedNames ++ Set("translation", "contentLocale", "availableLocales"))
       assert(schema.id.isId)
       assert(schema.version.isVersion)
       assert(schema.slug.getJavaType == classOf[String])

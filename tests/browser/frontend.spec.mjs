@@ -172,17 +172,17 @@ test("leaving a slow detail aborts its request and prevents a stale page", async
   const pending = new Promise(resolve => release = resolve);
   let completed;
   const settled = new Promise(resolve => completed = resolve);
-  await page.route("**/service/blog/posts/first-post", async route => {
+  await page.route("**/service/blog/posts/first-post?locale=en", async route => {
     await pending;
     await json(route, row({ ...posts[0], content }));
     completed();
   });
   await page.goto("/");
-  const started = page.waitForRequest("**/service/blog/posts/first-post");
+  const started = page.waitForRequest("**/service/blog/posts/first-post?locale=en");
   await page.getByRole("link", { name: posts[0].title }).click();
   await started;
   await expect(page.getByRole("status")).toBeVisible();
-  const aborted = page.waitForEvent("requestfailed", request => request.url().endsWith("/first-post"));
+  const aborted = page.waitForEvent("requestfailed", request => new URL(request.url()).pathname.endsWith("/first-post"));
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Latest posts" }).click();
   await aborted;
   await expect(page.getByRole("article")).toHaveCount(2);

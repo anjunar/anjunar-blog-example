@@ -18,8 +18,8 @@ class SchemaProperty(
 
 object Schema {
   // Describes the selected fields, not the caller's permissions.
-  def forGraph(source: EntitySchema[?], graph: JpaEntityGraph[?]): Schema = {
-    val selected = graph.getAttributeNodes.asScala.map(_.getAttributeName).toSet
+  def forGraph(source: EntitySchema[?], graph: JpaEntityGraph[?], additional: Set[String] = Set.empty): Schema = {
+    val selected = graph.getAttributeNodes.asScala.map(_.getAttributeName).toSet ++ additional
     val entries = source.properties.valuesIterator
       .filter(property => selected.contains(property.name))
       .map(property => new SchemaProperty(property.name, property.typeName))

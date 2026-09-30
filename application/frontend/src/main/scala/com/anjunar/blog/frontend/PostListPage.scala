@@ -97,6 +97,7 @@ final class PostListPage(table: BlogPostTable, search: PostSearch, actions: Blog
                   }
                   div {
                     classes = "post-copy"
+                    lang = post.contentLocale.get
                     heading(3) {
                       id = s"post-${post.id.get}"
                       routerLink(s"/posts/${encodeURIComponent(post.slug.get)}") {

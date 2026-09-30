@@ -12,7 +12,7 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
     .setWelcomeFiles("index.html")
   private val publicPaths = Set("/", "/index.html", "/main.js", "/main.js.map", "/style.css", "/editor.css", "/material-icons.woff2", "/material-icons-LICENSE.txt")
   private val accountPages = Set("/account", "/register", "/confirm", "/forgot-password", "/reset-password")
-  private val editorialPost = "/editorial/posts/[0-9a-fA-F-]{36}(?:/edit)?".r
+  private val editorialPost = "/editorial/posts/[0-9a-fA-F-]{36}(?:/edit|/translations/de)?".r
   private val postPage = "/posts/[a-z0-9]+(?:-[a-z0-9]+)*".r
 
   override def handleRequest(exchange: HttpServerExchange): Unit = {
