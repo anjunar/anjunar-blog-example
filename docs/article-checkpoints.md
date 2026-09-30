@@ -992,3 +992,44 @@ two complete source files and two excerpts with their containing context
 explained. Their source links point to this immutable implementation revision.
 Only chapter 24, public-page metadata and discovery, remains.
 
+## Chapter 24: completing the public pages
+
+Implementation checkpoint: [ab29329](https://github.com/anjunar/anjunar-blog-example/tree/ab293295d9489d3bb868061d3ccd2969f316938f).
+The [chapter guide](https://github.com/anjunar/anjunar-blog-example/blob/ab293295d9489d3bb868061d3ccd2969f316938f/docs/completing-the-public-pages.md)
+documents the migration, page policies, public routes and verification.
+
+Page metadata is shared between server rendering and browser navigation through
+DocumentHead and the library's BrowserHeadSink. Component-owned entries disappear
+on route disposal. Canonical URLs follow the selected content language; a German
+fallback remains canonical to English, while published translations get reciprocal
+language links. Search/custom lists, private shells and errors are noindex.
+
+PublicSite validates BLOG_PUBLIC_ORIGIN and supplies it to SSR and the browser
+shell. Fixed discovery aliases enter the normal REST transaction/security boundary.
+The sitemap contains canonical published variants; English/German Atom feeds
+select their latest 20 published entries without exposing drafts or English
+fallbacks in the German feed. XML text is escaped and feed IDs survive slug changes.
+The sitemap explicitly supports up to 5000 source posts; overflow is a 503.
+
+Two nullable updated_at columns preserve unknown legacy history and record future
+row changes through persistence callbacks. The dedicated database upgrade applied
+two statements; its repeated migration reported AlreadyApplied with zero.
+The read-only preview reported INCOMPLETE for PostgreSQL normalization of the
+existing CHECK, which the successful migration verified under its locks.
+
+The root/index alias, article aliases, supported trailing slashes and feed alias
+use local 308 redirects preserving queries. Missing articles and unknown localized
+routes produce real 404 responses; HEAD has no body.
+
+Validation: **189 backend tests, 62 Scala.js tests and 99 distinct browser checks
+passed** across complete and focused runs. Checks include XML validity, timestamp
+persistence/rollback, published-language selection, retraction, metadata cleanup
+after navigation, redirects and HEAD. Hydration identity and early-input coverage
+remain green. One old browser assertion was updated to the new page-specific title
+and its full 11-test contract file passed again.
+
+Both article drafts contain the same four Scala examples, verified against this
+compiled checkpoint, and link to this immutable revision. All **24 chapters**
+are now implemented. Deployment, production operations and extra feature chapters
+remain outside the agreed series.
+
