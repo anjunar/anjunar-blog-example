@@ -5,8 +5,11 @@ import io.undertow.server.handlers.resource.{PathResourceManager, ResourceHandle
 import io.undertow.util.{Headers, Methods, StatusCodes}
 
 import java.nio.file.{Files, Path}
+import java.util.logging.{Level, Logger}
+import scala.util.control.NonFatal
 
-final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler {
+final class FrontendHandler(api: HttpHandler, assets: Path, renderer: Option[SsrRenderer] = None) extends HttpHandler {
+  private val log = Logger.getLogger(classOf[FrontendHandler].getName)
   private lazy val files = new ResourceHandler(new PathResourceManager(assets.toAbsolutePath.normalize(), 1024L))
     .setDirectoryListingEnabled(false)
     .setWelcomeFiles("index.html")
@@ -43,8 +46,25 @@ final class FrontendHandler(api: HttpHandler, assets: Path) extends HttpHandler 
       exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE)
       exchange.getResponseHeaders.put(Headers.CONTENT_TYPE, "text/plain; charset=UTF-8")
       exchange.getResponseSender.send("Frontend assets are unavailable.\n")
+    } else if (renderer.nonEmpty && (path == "/" || (localized && (route == "/" || postPage.matches(route) || errorPage)))) {
+      if (exchange.isInIoThread) exchange.dispatch(this)
+      else {
+        val query = exchange.getQueryString
+        val url = path + (if (query.isEmpty) "" else "?" + query)
+        val rendered = try renderer.get.render(url) catch {
+          case NonFatal(error) =>
+            log.log(Level.WARNING, "Public page rendering failed", error)
+            RenderedPage("The page is temporarily unavailable.\n", 503)
+        }
+        exchange.setStatusCode(rendered.status)
+        exchange.getResponseHeaders.put(Headers.CONTENT_TYPE, "text/html; charset=UTF-8")
+        exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, "no-store")
+        exchange.getResponseHeaders.put(Headers.REFERRER_POLICY, "no-referrer")
+        if (exchange.getRequestMethod == Methods.HEAD) exchange.endExchange()
+        else exchange.getResponseSender.send(rendered.html)
+      }
     } else {
-      // Known browser routes load the shell; REST still decides whether a post exists.
+      // Account/editorial routes remain browser applications in this chapter.
       if (page) exchange.setRelativePath("/index.html")
       exchange.getResponseHeaders.put(Headers.CACHE_CONTROL, if (accountPages.contains(route) || editorial) "no-store" else "no-cache")
       exchange.getResponseHeaders.put(Headers.REFERRER_POLICY, "no-referrer")

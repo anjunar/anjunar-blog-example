@@ -938,3 +938,28 @@ with their declared resource/component context.
 Both English and German article drafts use this same checkpoint. The series
 ends at chapter 24: server rendering (22), hydration (23) and public-page
 metadata/discovery (24) are the remaining chapters.
+
+## Chapter 22: rendering pages on the server
+
+Implementation checkpoint: [ca8a382](https://github.com/anjunar/anjunar-blog-example/tree/ca8a382ef8e1afb447d7edb266715dfe24171d26).
+The [chapter guide](https://github.com/anjunar/anjunar-blog-example/blob/ca8a382ef8e1afb447d7edb266715dfe24171d26/docs/rendering-pages-on-the-server.md)
+explains setup, request boundaries and verification.
+
+Public list and article requests render the existing Scala.js route tree through
+GraalJS and return HTML with the route's HTTP status. The server document includes
+localized UI, published translations, English fallback and structured Markdown.
+Browser and server modules have separate entry points; boot currently remounts
+the page, with hydration and initial-state reuse reserved for chapter 23.
+
+The renderer uses isolated request contexts, a bounded worker queue, an anonymous
+public-only API bridge and cancellation. Missing/failed bundles return 503 while
+API and private shell routes remain available. The SSR bundle is not public.
+
+Validation at this checkpoint: **183 backend tests, 53 Scala.js tests and 85
+distinct browser checks passed** (80 existing checks plus five real-data SSR
+checks). The SSR suite verifies no-JavaScript reading, search/paging, translations,
+fallback, escaping, Markdown, HTTP statuses, HEAD and browser takeover.
+English/German SSR screenshots were inspected. Both article drafts contain
+matching Scala examples taken from this compiled revision and link to this
+same immutable checkpoint.
+

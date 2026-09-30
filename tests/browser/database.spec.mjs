@@ -27,7 +27,7 @@ test("draft and unknown slugs return the same API and UI result", async ({ page,
   for (const slug of ["our-private-draft", "no-such-public-post"]) {
     expect((await request.get("/service/blog/posts/" + slug)).status()).toBe(404);
     const document = await page.goto("/en/posts/" + slug);
-    // The static shell is 200 until the SSR chapter. The data request is 404.
+    // This legacy configuration disables SSR; ssr.spec.mjs verifies document 404s.
     expect(document.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Post not found");
     await expect(page.locator(".post-content")).toHaveCount(0);
