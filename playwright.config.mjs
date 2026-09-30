@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: 'sbt --server "application-backend/run"',
     url: "http://127.0.0.1:18080/",
-    env: { BLOG_PORT: "18080", BLOG_COOKIE_SECURE: "false" },
+    env: { BLOG_PORT: "18080", BLOG_COOKIE_SECURE: "false", BLOG_SSR_ENABLED: "false" },
     reuseExistingServer: false,
     timeout: 90_000,
   },

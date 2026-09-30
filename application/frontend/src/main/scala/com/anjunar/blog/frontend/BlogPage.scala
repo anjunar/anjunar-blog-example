@@ -2,7 +2,6 @@ package com.anjunar.blog.frontend
 
 import org.scalajs.dom
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
@@ -26,14 +25,18 @@ import ui.viewport.Viewport.viewport
 
 import scala.concurrent.ExecutionContext
 
-final class BlogPage(service: BlogService, actions: BlogActions)(using ExecutionContext)
+final class BlogPage(service: BlogService, actions: BlogActions, requestUrl: Option[String] = None)(using ExecutionContext)
     extends AbstractComponent {
   val tagName = "div"
   private val pages = new BlogRoutes(service, actions)
   private val languageNavigation = new LanguageNavigation()
+  private var router: Router = null
+
+  def responseStatus: Int = if (router == null) 503 else router.responseStatus.get
 
   override def compose(cursor: Cursor): Unit = {
-    val initialUrl = cursor.browserUrl.getOrElse("/")
+    import ui.core.dsl.AttributeDsl.{setAttribute as attr}
+    val initialUrl = requestUrl.orElse(cursor.browserUrl).getOrElse("/")
     val translations = I18nRuntime.managed(BlogI18n.config, initialUrl)
     I18nRuntime.provide(translations)(using this)
     LanguageNavigation.provide(languageNavigation)(using this)
@@ -44,7 +47,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
       addDisposable(translations.locale.observe(locale =>
         dom.document.documentElement.asInstanceOf[dom.HTMLElement].lang = locale.code))
     }
-    val router = new Router(pages.routes, initialUrl, pages.config)
+    router = new Router(pages.routes, initialUrl, pages.config)
     Router.provide(router)(using this)
 
     def changeLanguage(next: I18nLocale): Unit =
@@ -96,7 +99,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
               lang = "en"
               ariaLabel = i18n"Switch to English"
               ariaPressed = translations.locale.map(_ == BlogI18n.English)
-              AttributeDsl.setAttribute("aria-describedby", "language-switch-help")
+              attr("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
                 translations.locale.map(locale => blocked || locale == BlogI18n.English))
               onClick(_ => changeLanguage(BlogI18n.English))
@@ -106,7 +109,7 @@ final class BlogPage(service: BlogService, actions: BlogActions)(using Execution
               lang = "de"
               ariaLabel = i18n"Switch to German"
               ariaPressed = translations.locale.map(_ == BlogI18n.German)
-              AttributeDsl.setAttribute("aria-describedby", "language-switch-help")
+              attr("aria-describedby", "language-switch-help")
               disabled = languageNavigation.blocked.flatMap(blocked =>
                 translations.locale.map(locale => blocked || locale == BlogI18n.German))
               onClick(_ => changeLanguage(BlogI18n.German))

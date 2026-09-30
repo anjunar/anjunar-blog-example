@@ -13,7 +13,7 @@ class FrontendLocaleSpec extends AnyFunSuite {
     val port = try reservation.getLocalPort finally reservation.close()
     val assets = Files.createTempDirectory("abt20-locale-assets-")
     val index = Files.writeString(assets.resolve("index.html"), "<!doctype html><title>Locale shell</title>")
-    val server = ApplicationMain.start(port, assets)
+    val server = ApplicationMain.start(port, assets, ssrEnabled = false)
     val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     try {
       def request(path: String, method: String = "GET"): HttpResponse[String] =

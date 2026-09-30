@@ -23,7 +23,15 @@ Follow the [roadmap](docs/roadmap.md) and the immutable
 The series ends with chapter 24's completed public pages. Packaging, deployment
 and production operations are outside its scope; tests accompany each feature.
 
-## Current state: independently published content translations
+## Current state: public pages rendered on the server
+
+Chapter 22 returns complete HTML for public lists and articles, including German
+translations, Markdown and the correct HTTP status. The browser currently
+remounts that page; hydration follows in chapter 23. See
+[Rendering pages on the server](docs/rendering-pages-on-the-server.md) for the
+request lifecycle, two bundles, limitations and tests. No new migration is needed.
+
+## Independently published content translations
 
 Chapter 21 adds a German translation editor beside the English source, separate
 versions and publication, localized search and whole-article English fallback.
@@ -136,7 +144,7 @@ example posts, and curl commands.
 
 ### Prerequisites
 
-- JDK 25. We will use GraalVM for server-side rendering later.
+- JDK 25. The build includes GraalJS/Polyglot; no separate GraalVM installation is required.
 - sbt; the project selects sbt 2.0.9 and Scala 3.9.0.
 - PostgreSQL 18 for API data and backend tests, either local or through Docker Compose.
 - Node.js and npm for browser tests (verified with Node 26.4.0).
@@ -171,7 +179,8 @@ starting sbt. See [the account setup](docs/user-accounts.md#open-the-account-pag
 for PowerShell/Bash commands and administrator bootstrap.
 
 After editing Scala, HTML, or CSS, run `sbt --server frontendAssets` in
-another terminal and reload. Stop the application with Ctrl+C.
+another terminal, then restart the backend and reload so its cached SSR module
+matches the browser bundle. Stop the application with Ctrl+C.
 The database setup below is needed for the blog data and backend tests.
 
 ### Start a development database

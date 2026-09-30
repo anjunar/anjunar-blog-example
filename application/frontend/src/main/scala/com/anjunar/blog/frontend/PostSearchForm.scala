@@ -1,7 +1,6 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.render
@@ -47,6 +46,7 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
   private val invalid = Property(false)
 
   override def compose(cursor: Cursor): Unit = {
+    import ui.core.dsl.AttributeDsl.{setAttribute as attr}
     LanguageNavigation.protect(fields.query, fields.status, fields.sort, fields.limit) {
       fields.query.isDirty || fields.status.isDirty || fields.sort.isDirty || fields.limit.isDirty
     }(using this)
@@ -55,7 +55,7 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
       form(fields) { mountedForm ?=>
         classes = "search-form"
         role = "search"
-        AttributeDsl.setAttribute("novalidate", "")
+        attr("novalidate", "")
         on("submit") { event =>
           event.preventDefault()
           invalid.set(false)
@@ -70,16 +70,15 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         div {
           classes = "search-query"
           label {
-            AttributeDsl.setAttribute("for", "post-query")
+            attr("for", "post-query")
             text(i18n"Search posts") {}
           }
           val control = input("query") { fieldInput ?=>
             id = "post-query"
             inputType = "search"
-            AttributeDsl.setAttribute("maxlength", "100")
-            AttributeDsl.setAttribute("aria-describedby", "search-help search-errors")
-            fieldInput.addDisposable(fieldInput.invalid.observe(value =>
-              AttributeDsl.setAttribute("aria-invalid", value.toString)))
+            attr("maxlength", "100")
+            attr("aria-describedby", "search-help search-errors")
+            attr("aria-invalid", fieldInput.invalid.map(_.toString))
           }
           paragraph {
             id = "search-help"
@@ -95,7 +94,7 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         if (search.editorial) {
           div {
             label {
-              AttributeDsl.setAttribute("for", "post-status")
+              attr("for", "post-status")
               text(i18n"Publication status") {}
             }
             selectInput("status", Seq(
@@ -107,7 +106,7 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         }
         div {
           label {
-            AttributeDsl.setAttribute("for", "post-sort")
+            attr("for", "post-sort")
             text(i18n"Sort by") {}
           }
           selectInput("sort", Seq(
@@ -119,7 +118,7 @@ final class PostSearchForm(search: PostSearch) extends AbstractComponent {
         }
         div {
           label {
-            AttributeDsl.setAttribute("for", "post-limit")
+            attr("for", "post-limit")
             text(i18n"Posts per page") {}
           }
           selectInput("limit", (Seq(10, 20, 50, 100) :+ search.limit).distinct.sorted.map(value =>

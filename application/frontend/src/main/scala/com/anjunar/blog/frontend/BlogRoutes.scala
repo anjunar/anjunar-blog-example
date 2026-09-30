@@ -77,6 +77,7 @@ final class BlogRoutes(service: BlogService, actions: BlogActions)(using Executi
   )
 
   val config: RouterConfig = RouterConfig(
+    renderErrorsOnServer = true,
     loading = _ => new LoadingPage,
     onFailure = {
       case RouteFailure.LoadFailed(error: HttpFailure, _) if error.status == 401 =>

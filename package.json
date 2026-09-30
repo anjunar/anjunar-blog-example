@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:browser:ssr": "sbt --server frontendAssets && playwright test --config=playwright.ssr.config.mjs",
     "test:browser": "sbt --server frontendAssets && playwright test --project=contracts",
     "test:browser:i18n": "sbt --server frontendAssets && playwright test --project=contracts tests/browser/i18n.spec.mjs",
     "test:browser:translations": "sbt --server frontendAssets && playwright test --project=translations",

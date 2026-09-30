@@ -97,6 +97,11 @@ its English source. Locale-aware detail, search, sort and count select a complet
 published language or fall back to English. Draft media remains private and
 protected from cleanup; the editor preserves newer input and handles conflicts.
 
+Chapter 22 now renders the shared public route tree with GraalJS. The response
+contains localized content and the route status before JavaScript runs. Separate
+server/browser entry points preserve the same components; boot still remounts,
+with hydration reserved for chapter 23.
+
 ## Writing principles
 
 - Each new article is written in English and German together.

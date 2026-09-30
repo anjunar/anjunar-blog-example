@@ -35,6 +35,8 @@ lazy val backend = Project("application-backend", file("application/backend"))
       // Already used by json-mapper; declare the streaming parser directly at our HTTP boundary.
       "tools.jackson.core" % "jackson-core" % "3.1.1",
       "org.commonmark" % "commonmark" % "0.30.0",
+      "org.graalvm.polyglot" % "polyglot" % "25.3.4.1",
+      "org.graalvm.polyglot" % "js" % "25.3.4.1",
       "com.anjunar.hibernateddl" %% "schema-integration" % "1.1.0",
       "org.hibernate.orm" % "hibernate-core" % "7.4.10.Final",
       "org.hibernate.validator" % "hibernate-validator" % "9.1.4.Final",
@@ -54,7 +56,7 @@ lazy val backend = Project("application-backend", file("application/backend"))
   )
 
 lazy val root = Project("anjunar-blog-tutorial", file("."))
-  .aggregate(backend, frontend)
+  .aggregate(backend, frontend, client)
   .settings(publish / skip := true)
 
 lazy val frontend = Project("application-frontend", file("application/frontend"))
@@ -68,17 +70,28 @@ lazy val frontend = Project("application-frontend", file("application/frontend")
       "com.anjunar" %% "scalajs-ui-editor" % "1.0.13",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
+    scalaJSUseMainModuleInitializer := false,
+    scalaJSLinkerConfig := scalaJSLinkerConfig.value.withModuleKind(ModuleKind.ESModule)
+      .withESFeatures(_.withESVersion(ESVersion.ES2021))
+  )
+
+lazy val client = Project("application-client", file("application/client"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(frontend)
+  .settings(
     scalaJSUseMainModuleInitializer := true,
     scalaJSLinkerConfig := scalaJSLinkerConfig.value.withModuleKind(ModuleKind.ESModule)
       .withESFeatures(_.withESVersion(ESVersion.ES2021))
   )
 
-lazy val frontendAssets = taskKey[File]("Build and copy the browser application")
+lazy val frontendAssets = taskKey[File]("Build and copy browser and server applications")
 frontendAssets / aggregate := false
 
 frontendAssets := Def.uncached {
   val _ = (frontend / Compile / fastLinkJS).value
-  val linked = (frontend / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
+  val _ = (client / Compile / fastLinkJS).value
+  val linked = (client / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
+  val ssr = (frontend / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value
   val destination = (LocalRootProject / baseDirectory).value / "target" / "frontend"
   IO.createDirectory(destination)
   val iconFont = (LocalRootProject / baseDirectory).value / "node_modules" / "@fontsource" / "material-icons" / "files" / "material-icons-latin-400-normal.woff2"
@@ -86,6 +99,7 @@ frontendAssets := Def.uncached {
   IO.copyFile(iconFont, destination / "material-icons.woff2")
   IO.copyFile(iconFont.getParentFile.getParentFile / "LICENSE", destination / "material-icons-LICENSE.txt")
   IO.copyDirectory(linked, destination)
+  IO.copyDirectory(ssr, destination / "ssr")
   IO.copyDirectory((frontend / Compile / resourceDirectory).value, destination)
   destination
 }
