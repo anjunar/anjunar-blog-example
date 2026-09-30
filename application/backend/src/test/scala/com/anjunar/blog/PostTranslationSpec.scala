@@ -202,6 +202,38 @@ class PostTranslationSpec extends AnyFunSuite with BeforeAndAfterAll {
     val reloaded = data(browser.send(s"${path(id)}/de"))
     assert(reloaded.getString("title") == "Correct parent" && version(reloaded) == version(updated))
   }
+  test("entity path parameters reject missing parents and action links follow the resource mappings") {
+    val browser = admin()
+    val id = post()
+    val base = s"/service/${path(id)}"
+    def links(value: JsonObject): Map[String, JsonObject] =
+      value.value.get("$links").asInstanceOf[JsonArray].value.asScala
+        .map(_.asInstanceOf[JsonObject]).map(link => link.getString("rel") -> link).toMap
+
+    val blank = links(json(browser.send(s"${path(id)}/de")))
+    assert(blank.keySet == Set("self", "create"))
+    assert(blank("self").getString("url") == s"$base/de" && blank("self").getString("method") == "GET")
+    assert(blank("create").getString("url") == s"$base/de" && blank("create").getString("method") == "POST")
+
+    val saved = create(browser, id)
+    val savedLinks = links(json(browser.send(s"${path(id)}/de")))
+    assert(savedLinks.keySet == Set("self", "update", "publish"))
+    val update = savedLinks("update")
+    assert(update.getString("url") == s"$base/${saved.getString("id")}" && update.getString("method") == "PATCH")
+    val publish = savedLinks("publish")
+    val published = json(browser.write(publish.getString("url").stripPrefix("/service/"), publish.getString("method"),
+      s"""{"version":${version(saved)}}"""))
+    assert(links(published).keySet == Set("self", "update", "retract"))
+
+    for (missing <- Seq(UUID.randomUUID().toString, "not-a-uuid")) {
+      assert(browser.send(s"editorial/posts/$missing/translations/de").statusCode() == 404)
+      assert(browser.write(s"editorial/posts/$missing/translations/de", "POST", input()).statusCode() == 404)
+      assert(browser.write(s"editorial/posts/$missing/translations/${saved.getString("id")}", "PATCH",
+        """{"version":1,"title":"Unreachable parent"}""").statusCode() == 404)
+    }
+    assert(data(browser.send(s"${path(id)}/de")).getString("title") == "Deutscher Titel")
+  }
+
   test("editorial translations require ADMIN and CSRF") {
     val browser = admin()
     val id = post()

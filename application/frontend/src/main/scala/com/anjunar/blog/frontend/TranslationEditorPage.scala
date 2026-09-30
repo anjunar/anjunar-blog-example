@@ -2,7 +2,6 @@ package com.anjunar.blog.frontend
 
 import org.scalajs.dom
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
@@ -39,6 +38,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
   private val upload = Property(MediaUploadStatus())
 
   override def compose(cursor: Cursor): Unit = {
+    import ui.core.dsl.AttributeDsl.{setAttribute as attr}
     addDisposable(() => actions.dispose())
     LanguageNavigation.protect((translation.fields ++ Seq(actions.busy, actions.dirty, upload))*) {
       actions.dirty.get || actions.busy.get || upload.get.pending > 0
@@ -68,7 +68,7 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
         }
         form(translation) { mountedForm ?=>
           classes = "post-form"
-          AttributeDsl.setAttribute("novalidate", "")
+          attr("novalidate", "")
           mountedForm.addDisposable(actions.errors.observe(values =>
             mountedForm.setErrorResponses(values.map(value => ErrorResponse(value.message, value.path)))))
           on("submit") { event =>
@@ -83,24 +83,24 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
           }
           div {
             classes = "post-field"
-            label { AttributeDsl.setAttribute("for", "translation-title"); text(i18n"Title") {} }
+            label { attr("for", "translation-title"); text(i18n"Title") {} }
             val control = input("title") { fieldInput ?=>
-              fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
+              attr("aria-invalid", fieldInput.invalid.map(_.toString))
               id = "translation-title"
               lang = translation.locale.get
-              AttributeDsl.setAttribute("aria-describedby", "translation-title-errors")
+              attr("aria-describedby", "translation-title-errors")
             }
             paragraph { id = "translation-title-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
           }
           div {
             classes = "post-field"
-            label { AttributeDsl.setAttribute("for", "translation-summary"); text(i18n"Summary (optional)") {} }
+            label { attr("for", "translation-summary"); text(i18n"Summary (optional)") {} }
             val control = textAreaInput("summary") { fieldInput ?=>
-              fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
+              attr("aria-invalid", fieldInput.invalid.map(_.toString))
               id = "translation-summary"
               lang = translation.locale.get
-              AttributeDsl.setAttribute("rows", "3")
-              AttributeDsl.setAttribute("aria-describedby", "translation-summary-errors")
+              attr("rows", "3")
+              attr("aria-describedby", "translation-summary-errors")
             }
             paragraph { id = "translation-summary-errors"; classes = "field-error"; text(control.errors.map((values: js.Array[String]) => values.mkString(", "))) {} }
           }
@@ -113,10 +113,10 @@ final class TranslationEditorPage(post: BlogPost, initial: TranslationData,
               onClick(_ => sourceMode.set(!sourceMode.get))
             }
             val control = editor("content") { fieldInput ?=>
-              fieldInput.addDisposable(fieldInput.invalid.observe(value => AttributeDsl.setAttribute("aria-invalid", value.toString)))
+              attr("aria-invalid", fieldInput.invalid.map(_.toString))
               ariaLabelledBy = "translation-content-label"
               lang = translation.locale.get
-              AttributeDsl.setAttribute("aria-describedby", "translation-content-errors")
+              attr("aria-describedby", "translation-content-errors")
               showModeActions = false
               markdownMode = sourceMode
               mediaUrlPolicy = PostMarkdown.mediaPolicy

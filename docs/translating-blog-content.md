@@ -80,12 +80,21 @@ token. Use the returned links; IDs below are placeholders.
 
 Publication command bodies contain only version. They never save pending content.
 The parent, locale, publication flag and derived image references are not editable
-JSON fields. The PreparedChangeParamConverter reads the translation ID and JSON
-body, then PreparedChanges loads/locks the entity and checks the required version.
-The endpoint compares the entity's parent UUID with postId before applying the
-change. This checks URL consistency, not user ownership; ADMIN/CSRF come from the
-security filter. The mapper validates supplied values; PostMedia.synchronize
-derives authorized image references from the translated Markdown.
+JSON fields. EntityParamConverterProvider binds postId to a managed BlogPost;
+invalid and missing parents return 404. PreparedChangeParamConverter reads the
+translation ID and JSON body, then PreparedChanges loads/locks the translation
+and checks the required version. The endpoint compares its parent identity with
+post.id before applying the change. This checks URL consistency, not user
+ownership; ADMIN/CSRF come from the security filter. The mapper validates supplied
+values; PostMedia.synchronize derives authorized image references from Markdown.
+
+LinkBuilder is adapted from the reference stack. Its create macro describes
+resource method calls without executing them: @Path and HTTP annotations define
+each URL/verb, EntityProvider arguments supply their IDs, and withVariable binds
+the saved translation ID when a null PreparedChange placeholder is used. The
+builder applies EndpointPolicy for the current caller; the resource selects the
+actions permitted by the translation's current state. Link creation never reads
+a request body or replaces endpoint authorization.
 
 Translation endpoints do not flush or commit. TransactionBoundary flushes a
 successful write before MapperMessageBodyWriter serializes the Data envelope.
@@ -111,6 +120,12 @@ uses lang = post.contentLocale.get so English fallback remains marked as English
 inside a German interface. These are named AttributeDsl setters; lang does not
 translate text or change the i18n runtime.
 
+Import AttributeDsl.setAttribute as attr inside compose to resolve the inherited
+method name collision. Use attr(...) directly in the relevant form/label/control
+block, with reactive values such as fieldInput.invalid.map(_.toString). The DSL
+owns the attribute binding and lifecycle. Do not prefix DSL calls or replace
+them with instance/DOM setters.
+
 ## Verify
 
 Use a migrated, separate test database. Full backend tests also need the local
@@ -131,11 +146,16 @@ npm run test:browser:translations
 ```
 
 The chapter implementation has 80 distinct browser checks verified across full
-and focused runs, with desktop and mobile layouts inspected. For the endpoint
-and lang-DSL corrections, the complete 171 backend and 53 Scala.js tests passed
-again, alongside eight translation/i18n browser contracts and the real translation
-database workflow. The parent-URL check also accepts an equivalent uppercase UUID
-and verifies that the returned version matches a subsequent read.
+and focused runs, with desktop and mobile layouts inspected. At this checkpoint,
+all 178 backend and 53 Scala.js tests passed, alongside eight translation/i18n
+browser contracts and the real translation database workflow.
+
+Entity-bound routes reject malformed/missing parents and preserve the parent
+relationship check. LinkBuilder tests verify entity-ID binding, PATCH/POST/GET
+metadata, method-level denial, escaping and missing-variable failures. HTTP
+checks follow generated publication links. Browser checks verify that novalidate
+lands on the form, labels target their inputs, and reactive aria-invalid changes
+on the input without leaking to the outer component.
 
 All three Scala article excerpts compiled against this revision: the resource
 with its update method/response builder, the full localization class, and the

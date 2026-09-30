@@ -47,7 +47,7 @@ class PostLinks {
     if (endpoint("update") && access.canEdit(post))
       links.add(new Link("update", path, "PATCH", "BlogPost"))
     if (endpoint("update") && access.canEdit(post))
-      links.add(new Link("translation", s"$path/translations/de", "GET", "BlogPostTranslation"))
+      links.add(LinkBuilder.create[EditorialTranslationsResource](_.read(post)).withRel("translation").build())
     if (endpoint("publish") && access.canPublish(post))
       links.add(new Link("publish", s"$path/publish", "POST", "BlogPost"))
     if (endpoint("retract") && access.canRetract(post))

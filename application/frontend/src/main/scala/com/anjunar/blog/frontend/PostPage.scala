@@ -1,7 +1,6 @@
 package com.anjunar.blog.frontend
 
 import ui.core.component.AbstractComponent
-import ui.core.dsl.AttributeDsl
 import ui.core.dsl.AttributeDsl.*
 import ui.core.dsl.ClassDsl.classes
 import ui.core.dsl.DslLayer.{child, render}
@@ -25,7 +24,8 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
   private val contentValue = translated.map(_.content).getOrElse(post.content)
   private val formatValue = if (translated.nonEmpty) Property("MARKDOWN") else post.contentFormat
 
-  override def compose(cursor: Cursor): Unit =
+  override def compose(cursor: Cursor): Unit = {
+    import ui.core.dsl.AttributeDsl.{setAttribute as attr}
     render(this, cursor) {
       classes = "post-detail"
       ariaLabelledBy = "post-title"
@@ -60,12 +60,13 @@ final class PostPage(post: BlogPost, requestedLocale: String = "en") extends Abs
           Image.alt = post.coverAlt.map(value => Option(value).getOrElse(""))
           picture.addDisposable(post.coverImage.observe { value =>
             if (value != null) {
-              AttributeDsl.setAttribute("width", value.width.get.toString)
-              AttributeDsl.setAttribute("height", value.height.get.toString)
+              attr("width", value.width.get.toString)
+              attr("height", value.height.get.toString)
             }
           })
         }
       }
       child(new PostContent(contentValue, formatValue)) { lang = post.contentLocale.get }
     }
+  }
 }
